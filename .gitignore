@@ -76,3 +76,10 @@ metals.sbt
 .cache
 .history
 .lib/
+
+# Obsidian
+/data.json
+/data.binary
+/data.mdb
+/workspace.json
+/.obsidian
