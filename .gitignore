@@ -78,8 +78,9 @@ metals.sbt
 .lib/
 
 # Obsidian
-/data.json
-/data.binary
-/data.mdb
-/workspace.json
-/.obsidian
+data.json
+data.binary
+data.mdb
+workspace.json
+.obsidian
+.trash
