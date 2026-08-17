@@ -13,6 +13,24 @@
 
 Deadline: 10/10/2026
 
+## Taskboard
+
+```mermaid
+kanban
+  To Do
+    Analisi rotte di accesso
+    Implementazione rotte di accesso
+    Implementazione invio comandi
+    Implementazione navicella
+    Implementazione movimento
+    Implementazione rotazione
+  Doing
+    Analisi architettura
+  Done
+```
+
+## Descrizione del processo
+
 ***Processo di sviluppo:*** Il gruppo intende adottare il processo di sviluppo consigliato nel punto P8 delle regole d’esame, seguendo una metodologia di sviluppo SCRUM basata su sprint iterativi, continuous integration e revisione periodica dell'architettura software.
 
 ***Divisione del lavoro:*** Durante il primo incontro verranno definiti i requisiti di sistema. Successivamente, in occasione di ogni sprint planning, questi saranno analizzati e suddivisi in task. Il gruppo adotterà sprint della durata di una settimana, con un carico di lavoro stimato di circa 15 ore a persona per sprint. Ad ogni task verrà assegnato un punteggio in base alla complessità e all'effort richiesto. Ad ogni componente del gruppo verranno assegnati task i cui punti sommati avranno un monte ore di sviluppo stimato pari alla durata dello Sprint.
