@@ -1,12 +1,24 @@
-scalaVersion := "3.8.4"
+scalaVersion := "3.3.3"
+organization := "com.unibo.scalaparty"
+libraryDependencies ++= Seq(
+  "org.scalatest" %% "scalatest" % "3.2.20" % Test
+)
 
-lazy val root = rootProject
+// --- CORE MODULE ---
+lazy val core = (project in file("core"))
   .settings(
-    name := "ScalaParty",
-    idePackagePrefix := Some("com.univo.scalaparty"),
-    libraryDependencies ++= Seq(
-      //You can add library dependencies here, for example,
-      //"org.scalatest" %% "scalatest" % "3.2.19" % Test,
-      //"org.scalameta" %% "munit" % "1.2.3" % Test
-    )
+    name := "scalaparty-core",
+  )
+
+// --- INFRASTRUCTURE MODULE ---
+lazy val infrastructure = (project in file("infrastructure"))
+  .dependsOn(core)
+  .settings(
+    name := "scalaparty-infrastructure",
+  )
+
+lazy val root = (project in file("."))
+  .aggregate(core, infrastructure)
+  .settings(
+    name := "scalaparty"
   )
