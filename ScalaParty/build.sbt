@@ -15,6 +15,10 @@ lazy val infrastructure = (project in file("infrastructure"))
   .dependsOn(core)
   .settings(
     name := "scalaparty-infrastructure",
+    libraryDependencies ++= Seq(
+      "org.typelevel" %% "cats-effect" % "3.6.3",
+      "org.typelevel" %% "cats-effect-testing-scalatest" % "1.8.0" % Test
+    )
   )
 
 lazy val root = (project in file("."))
