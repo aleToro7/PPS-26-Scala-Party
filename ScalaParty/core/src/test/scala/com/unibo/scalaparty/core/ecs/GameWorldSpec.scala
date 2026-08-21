@@ -32,7 +32,7 @@ class GameWorldSpec extends AnyFlatSpec with Matchers:
 
   "A GameWorld" should "allow removing entities" in :
     val (entityId, components) = entityWithComponents
-    val gameWorld = emptyWorld.addEntity(entityId, components)
+    val gameWorld = emptyWorld + (entityId, components)
     val updatedWorld = gameWorld.removeEntity(entityId)
     updatedWorld.entities should not contain entityId
     updatedWorld.entities shouldBe empty
@@ -46,7 +46,7 @@ class GameWorldSpec extends AnyFlatSpec with Matchers:
 
   "A GameWorld" should "return an entity's components when queried" in :
     val (entityId, components) = entityWithComponents
-    val gameWorld = emptyWorld.addEntity(entityId, components)
+    val gameWorld = emptyWorld + (entityId, components)
     val retrievedComponents = gameWorld.getComponents(entityId)
     retrievedComponents shouldBe Some(components)
 

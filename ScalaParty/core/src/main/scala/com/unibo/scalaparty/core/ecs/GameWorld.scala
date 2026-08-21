@@ -36,18 +36,21 @@ trait GameWorld:
 
   /** Adds a new entity with the specified [[EntityId]] and a list of [[Component]]s to the world.
    *
-   * @param entityId   the unique identifier of the entity to be added
-   * @param components a list of components associated with the entity
-   * @return a new instance of the world containing the added entity and its components
-   */
-  def addEntity(entityId: EntityId, components: List[Component]): GameWorld
-
-  /** Adds a new entity with the specified [[EntityId]] and a list of [[Component]]s to the world.
-   *
    * @param entity a tuple containing the unique identifier of the entity and its associated list of components
    * @return a new instance of the world containing the added entity and its components
    */
   def addEntity(entity: (EntityId, List[Component])): GameWorld
+
+  /** Adds a new entity with the specified [[EntityId]] and a list of [[Component]]s to the world.
+   *
+   * @param entityId   the unique identifier of the entity to be added
+   * @param components a list of components associated with the entity
+   * @return a new instance of the world containing the added entity and its components
+   */
+  def addEntity(entityId: EntityId, components: List[Component]): GameWorld = addEntity((entityId, components))
+
+  /** Alias for [[addEntity]]. */
+  def +(entity: (EntityId, List[Component])): GameWorld = addEntity(entity)
 
   /** Removes an entity with the specified [[EntityId]] from the world.
    *
@@ -55,6 +58,9 @@ trait GameWorld:
    * @return a new instance of the world without the removed entity
    */
   def removeEntity(entityId: EntityId): GameWorld
+
+  /** Alias for [[removeEntity]]. */
+  def -(entityId: EntityId): GameWorld = removeEntity(entityId)
 
   /** Retrieves the list of [[Component]]s associated with the specified [[EntityId]].
    *
@@ -93,10 +99,6 @@ class GameWorldImpl(private val entityMap: Map[EntityId, List[Component]]) exten
   /** @inheritdoc   */
   override def addEntity(entity: (EntityId, List[Component])): GameWorld =
     new GameWorldImpl(entityMap + entity)
-
-  /** @inheritdoc   */
-  override def addEntity(entityId: EntityId, components: List[Component]): GameWorld =
-    addEntity((entityId, components))
 
   /** @inheritdoc   */
   override def removeEntity(entityId: EntityId): GameWorld =
