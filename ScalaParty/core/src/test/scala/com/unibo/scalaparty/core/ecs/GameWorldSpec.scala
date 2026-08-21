@@ -29,3 +29,17 @@ class GameWorldSpec extends AnyFlatSpec with Matchers:
     val (entityId, components) = entityWithComponents
     val updatedWorld = gameWorld.addEntity(entityId, components)
     updatedWorld.entities should contain(entityId)
+
+  "A GameWorld" should "allow removing entities" in :
+    val (entityId, components) = entityWithComponents
+    val gameWorld = emptyWorld.addEntity(entityId, components)
+    val updatedWorld = gameWorld.removeEntity(entityId)
+    updatedWorld.entities should not contain entityId
+    updatedWorld.entities shouldBe empty
+
+  "A GameWorld" should "not change when removing a non-existing entity" in :
+    val gameWorld = emptyWorld
+    val nonExistingEntityId = EntityId.generate()
+    val updatedWorld = gameWorld.removeEntity(nonExistingEntityId)
+    updatedWorld.entities shouldBe empty
+    updatedWorld.id shouldBe gameWorld.id

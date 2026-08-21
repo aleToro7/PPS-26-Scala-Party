@@ -74,18 +74,19 @@ object GameWorld:
 
 class GameWorldImpl(private val entityMap: Map[EntityId, List[Component]]) extends GameWorld:
 
-  /** @inheritdoc  */
+  /** @inheritdoc   */
   override val entities: List[EntityId] = entityMap.keys.toList
 
-  /** @inheritdoc  */
+  /** @inheritdoc   */
   override def addEntity(entityId: EntityId, components: List[Component]): GameWorld =
     new GameWorldImpl(entityMap + ((entityId, components)))
 
-  /** @inheritdoc  */
-  override def removeEntity(entityId: EntityId): GameWorld = ???
+  /** @inheritdoc   */
+  override def removeEntity(entityId: EntityId): GameWorld =
+    if (entityMap.contains(entityId)) new GameWorldImpl(entityMap - entityId) else this
 
-  /** @inheritdoc  */
+  /** @inheritdoc   */
   override def getComponents(entityId: EntityId): Option[List[Component]] = ???
 
-  /** @inheritdoc  */
+  /** @inheritdoc   */
   override def getEntitiesWithComponent[C <: Component](componentClass: ClassTag[C]): List[EntityId] = ???
