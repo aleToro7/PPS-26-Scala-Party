@@ -3,29 +3,51 @@ package com.unibo.scalaparty.core.ecs
 import java.util.concurrent.atomic.AtomicLong
 import scala.reflect.ClassTag
 
-/** Represents a bucket that holds entities and their associated components in an Entity-Component-System (ECS) architecture.
- */
-trait EntityBucket:
-  /** Retrieves the list of [[EntityId]]s currently stored in the bucket.
+
+opaque type WorldId = Long
+
+object WorldId:
+  private val counter = new AtomicLong()
+
+  /** Generates a new unique [[WorldId]].
    *
-   * @return a list of entity IDs present in the bucket
+   * @return a new unique [[WorldId]]
+   */
+  def generate(): WorldId = counter.getAndIncrement()
+
+/** Represents a game world in the Entity-Component-System (ECS) architecture.
+ *
+ * A [[GameWorld]] manages a collection of entities, each identified by a unique [[EntityId]], and their associated components.
+ * It provides methods to add, remove, and query entities and their components.
+ */
+trait GameWorld:
+
+  /** Retrieves the unique identifier of the game world.
+   *
+   * @return the unique [[WorldId]] of the game world
+   */
+  val id: WorldId = WorldId.generate()
+
+  /** Retrieves the list of [[EntityId]]s currently stored in the world.
+   *
+   * @return a list of entity IDs present in the world
    */
   val entities: List[EntityId]
 
-  /** Adds a new entity with the specified [[EntityId]] and a list of [[Component]]s to the bucket.
+  /** Adds a new entity with the specified [[EntityId]] and a list of [[Component]]s to the world.
    *
    * @param entityId   the unique identifier of the entity to be added
    * @param components a list of components associated with the entity
-   * @return a new instance of the bucket containing the added entity and its components
+   * @return a new instance of the world containing the added entity and its components
    */
-  def addEntity[B <: EntityBucket](entityId: EntityId, components: List[Component]): B
+  def addEntity(entityId: EntityId, components: List[Component]): GameWorld
 
-  /** Removes an entity with the specified [[EntityId]] from the bucket.
+  /** Removes an entity with the specified [[EntityId]] from the world.
    *
    * @param entityId the unique identifier of the entity to be removed
-   * @return a new instance of the bucket without the removed entity
+   * @return a new instance of the world without the removed entity
    */
-  def removeEntity[B <: EntityBucket](entityId: EntityId): B
+  def removeEntity(entityId: EntityId): GameWorld
 
   /** Retrieves the list of [[Component]]s associated with the specified [[EntityId]].
    *
@@ -42,26 +64,6 @@ trait EntityBucket:
    */
   def getEntitiesWithComponent[C <: Component](componentClass: ClassTag[C]): List[EntityId]
 
-opaque type WorldId = Long
-
-object WorldId:
-  private val counter = new AtomicLong()
-
-  /** Generates a new unique [[WorldId]].
-   *
-   * @return a new unique [[WorldId]]
-   */
-  def generate(): WorldId = counter.getAndIncrement()
-
-
-trait GameWorld extends EntityBucket:
-
-  /** Retrieves the unique identifier of the game world.
-   *
-   * @return the unique [[WorldId]] of the game world
-   */
-  val id: WorldId = WorldId.generate()
-
 object GameWorld:
   /** Creates a new instance of [[GameWorld]] with the specified list of entities and their associated components.
    *
@@ -76,10 +78,10 @@ class GameWorldImpl(private val entityMap: Map[EntityId, List[Component]]) exten
   override val entities: List[EntityId] = entityMap.keys.toList
 
   /** @inheritdoc */
-  override def addEntity[B <: EntityBucket](entityId: EntityId, components: List[Component]): B = ???
+  override def addEntity(entityId: EntityId, components: List[Component]): GameWorld = ???
 
   /** @inheritdoc */
-  override def removeEntity[B <: EntityBucket](entityId: EntityId): B = ???
+  override def removeEntity(entityId: EntityId): GameWorld = ???
 
   /** @inheritdoc */
   override def getComponents(entityId: EntityId): Option[List[Component]] = ???
