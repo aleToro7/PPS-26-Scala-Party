@@ -28,7 +28,7 @@ jobs:
 
   test:
     name: Run Unit Tests
-    needs: compile
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
