@@ -1,7 +1,7 @@
 package com.unibo.scalaparty.core.ecs
 
 import java.util.concurrent.atomic.AtomicLong
-import scala.reflect.ClassTag
+import scala.reflect.{ClassTag, classTag}
 
 
 opaque type WorldId = Long
@@ -65,11 +65,10 @@ trait GameWorld:
 
   /** Retrieves the list of [[EntityId]]s that have a component of the specified class.
    *
-   * @param componentClass the class of the component to search for
    * @tparam C the type of the component
    * @return a list of entity IDs that have the specified component
    */
-  def getEntitiesWithComponent[C <: Component](componentClass: ClassTag[C]): List[EntityId]
+  def getEntitiesWithComponent[C <: Component : ClassTag]: List[EntityId]
 
 object GameWorld:
   /** Creates a new instance of [[GameWorld]] with the specified list of entities and their associated components.
@@ -107,4 +106,9 @@ class GameWorldImpl(private val entityMap: Map[EntityId, List[Component]]) exten
   override def getComponents(entityId: EntityId): Option[List[Component]] = entityMap.get(entityId)
 
   /** @inheritdoc   */
-  override def getEntitiesWithComponent[C <: Component](componentClass: ClassTag[C]): List[EntityId] = ???
+  override def getEntitiesWithComponent[C <: Component : ClassTag]: List[EntityId] =
+    entityMap
+      .filter:
+        case (_, components) => components.exists(_.getClass == implicitly[ClassTag[C]].runtimeClass)
+      .toList
+      .map(_._1)
