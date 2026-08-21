@@ -20,7 +20,7 @@ class GameWorldSpec extends AnyFlatSpec with Matchers:
 
   "A GameWorld initialized with entities" should "contain those entities" in :
     val entities = List.fill(5)(entityWithComponents)
-    val gameWorld = GameWorld(entities.toMap)
+    val gameWorld = GameWorld(entities)
     gameWorld.entities should have size entities.size
     gameWorld.entities should contain theSameElementsAs entities.map(_._1)
 

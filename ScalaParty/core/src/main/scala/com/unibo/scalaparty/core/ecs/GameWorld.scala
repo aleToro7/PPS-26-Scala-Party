@@ -42,6 +42,13 @@ trait GameWorld:
    */
   def addEntity(entityId: EntityId, components: List[Component]): GameWorld
 
+  /** Adds a new entity with the specified [[EntityId]] and a list of [[Component]]s to the world.
+   *
+   * @param entity a tuple containing the unique identifier of the entity and its associated list of components
+   * @return a new instance of the world containing the added entity and its components
+   */
+  def addEntity(entity: (EntityId, List[Component])): GameWorld
+
   /** Removes an entity with the specified [[EntityId]] from the world.
    *
    * @param entityId the unique identifier of the entity to be removed
@@ -72,14 +79,25 @@ object GameWorld:
    */
   def apply(entities: Map[EntityId, List[Component]]): GameWorld = new GameWorldImpl(entities)
 
+  /** Creates a new instance of [[GameWorld]] with the specified list of entities and their associated components.
+   *
+   * @param list a list of tuples, each containing an [[EntityId]] and its associated list of [[Component]]s
+   * @return a new instance of [[GameWorld]] containing the provided entities and components
+   */
+  def apply(list: List[(EntityId, List[Component])]): GameWorld = GameWorld(list.toMap)
+
 class GameWorldImpl(private val entityMap: Map[EntityId, List[Component]]) extends GameWorld:
 
   /** @inheritdoc   */
   override val entities: List[EntityId] = entityMap.keys.toList
 
   /** @inheritdoc   */
+  override def addEntity(entity: (EntityId, List[Component])): GameWorld =
+    new GameWorldImpl(entityMap + entity)
+
+  /** @inheritdoc   */
   override def addEntity(entityId: EntityId, components: List[Component]): GameWorld =
-    new GameWorldImpl(entityMap + ((entityId, components)))
+    addEntity((entityId, components))
 
   /** @inheritdoc   */
   override def removeEntity(entityId: EntityId): GameWorld =
