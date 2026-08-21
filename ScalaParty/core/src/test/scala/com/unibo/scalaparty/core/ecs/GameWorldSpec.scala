@@ -43,3 +43,15 @@ class GameWorldSpec extends AnyFlatSpec with Matchers:
     val updatedWorld = gameWorld.removeEntity(nonExistingEntityId)
     updatedWorld.entities shouldBe empty
     updatedWorld.id shouldBe gameWorld.id
+
+  "A GameWorld" should "return an entity's components when queried" in :
+    val (entityId, components) = entityWithComponents
+    val gameWorld = emptyWorld.addEntity(entityId, components)
+    val retrievedComponents = gameWorld.getComponents(entityId)
+    retrievedComponents shouldBe Some(components)
+
+  "A GameWorld" should "return None when querying components of a non-existing entity" in :
+    val gameWorld = emptyWorld
+    val nonExistingEntityId = EntityId.generate()
+    val retrievedComponents = gameWorld.getComponents(nonExistingEntityId)
+    retrievedComponents shouldBe None

@@ -104,7 +104,7 @@ class GameWorldImpl(private val entityMap: Map[EntityId, List[Component]]) exten
     if (entityMap.contains(entityId)) new GameWorldImpl(entityMap - entityId) else this
 
   /** @inheritdoc   */
-  override def getComponents(entityId: EntityId): Option[List[Component]] = ???
+  override def getComponents(entityId: EntityId): Option[List[Component]] = entityMap.get(entityId)
 
   /** @inheritdoc   */
   override def getEntitiesWithComponent[C <: Component](componentClass: ClassTag[C]): List[EntityId] = ???
