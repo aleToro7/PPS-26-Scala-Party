@@ -7,14 +7,25 @@ case class EmptyComponent() extends Component
 
 class GameWorldSpec extends AnyFlatSpec with Matchers:
 
+  private def emptyWorld = GameWorld(Map())
+
+  private def entityWithComponents =
+    val entityId = EntityId.generate()
+    val components = List(EmptyComponent())
+    (entityId, components)
+
   "A GameWorld initialized without entities" should "have be empty" in :
-    val gameWorld = GameWorld(Map())
+    val gameWorld = emptyWorld
     gameWorld.entities shouldBe empty
 
   "A GameWorld initialized with entities" should "contain those entities" in :
-    val entities = List(EntityId.generate(), EntityId.generate())
-    val entitiesWithComponents = entities.map(id => (id, List(EmptyComponent()))).toMap
-    val gameWorld = GameWorld(entitiesWithComponents)
+    val entities = List.fill(5)(entityWithComponents)
+    val gameWorld = GameWorld(entities.toMap)
     gameWorld.entities should have size entities.size
-    gameWorld.entities should contain theSameElementsAs entities
+    gameWorld.entities should contain theSameElementsAs entities.map(_._1)
 
+  "A GameWorld" should "allow adding entities" in :
+    val gameWorld = emptyWorld
+    val (entityId, components) = entityWithComponents
+    val updatedWorld = gameWorld.addEntity(entityId, components)
+    updatedWorld.entities should contain(entityId)
