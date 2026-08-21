@@ -7,8 +7,9 @@ import org.http4s.dsl.io._
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.server.Router
 import org.http4s.server.websocket.WebSocketBuilder2
-import org.http4s.websocket.WebSocketFrame
-import fs2.{Pipe, Stream}
+import com.unibo.scalaparty.core.model.PlayerCommand
+import com.unibo.scalaparty.infrastructure.model.{MatchId, PlayerId}
+import com.unibo.scalaparty.infrastructure.ports.GameCommandPort
 
 object ServerApp extends IOApp.Simple {
 
@@ -17,29 +18,34 @@ object ServerApp extends IOApp.Simple {
       Ok("Scala Party Server is up and running!")
   }
 
-  def wsRoute(wsb: WebSocketBuilder2[IO]): HttpRoutes[IO] = HttpRoutes.of[IO] {
-    case GET -> Root / "ws" =>
-      val receive: Pipe[IO, WebSocketFrame, Unit] =
-        _.evalMap(frame => IO.println(s"Ricevuto dal client: $frame"))
+  val dummyCommandPort: GameCommandPort[IO] = new GameCommandPort[IO] {
+    def handleCommand(matchId: MatchId, playerId: PlayerId, command: PlayerCommand): IO[Unit] =
+      IO.println(s"Stub: Command recived $command from $playerId on match $matchId")
 
-      val send: Stream[IO, WebSocketFrame] = Stream.never[IO]
+    def joinLobby(playerId: PlayerId): IO[MatchId] =
+      IO.println(s"Stub: $playerId joined the lobby") *> IO.pure(MatchId.random())
 
-      wsb.build(send, receive)
+    def leaveLobby(matchId: MatchId, playerId: PlayerId): IO[Unit] =
+      IO.println(s"Stub: $playerId left the lobby $matchId")
   }
-  
-  // Router che mappa la rotta sulla root "/"
-  def httpApp(wsb: WebSocketBuilder2[IO]) = Router(
+
+  def httpApp(wsb: WebSocketBuilder2[IO], wsServer: WebSocketServer) = Router(
     "/" -> baseRoute,
-    "/" -> wsRoute(wsb)
+    "/" -> wsServer.routes(wsb)
   ).orNotFound
 
-  // Dopo 60s senza scambio di messaggi la connessione si chiude automaticamente
   val run: IO[Unit] =
-    EmberServerBuilder
-      .default[IO]
-      .withHost(ipv4"0.0.0.0")
-      .withPort(port"8081")
-      .withHttpWebSocketApp(wsb => httpApp(wsb))
-      .build
-      .use(_ => IO.never)
+    for {
+      _ <- IO.println("Initializing services...")
+      registry <- ConnectionRegistry.make()
+      wsServer = new WebSocketServer(registry, dummyCommandPort)
+
+      _ <- EmberServerBuilder
+        .default[IO]
+        .withHost(ipv4"0.0.0.0")
+        .withPort(port"8081")
+        .withHttpWebSocketApp(wsb => httpApp(wsb, wsServer))
+        .build
+        .use(_ => IO.println("Server started on port 8081") *> IO.never)
+    } yield ()
 }
