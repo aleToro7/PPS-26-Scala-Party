@@ -18,3 +18,8 @@ case class MovementComponent(velocity: Vector2D) extends Component
  * @param position the position of the entity
  */
 case class PositionComponent(position: Point2D) extends Component
+
+/** Represents an entity's type, which can be used to categorize entities in the game world.
+ *  @param entityType the type of the entity
+ */
+case class EntityTypeComponent(entityType: EntityType) extends Component
