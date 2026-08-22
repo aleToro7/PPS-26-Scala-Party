@@ -5,7 +5,7 @@ import com.unibo.scalaparty.core.geometry.{Point2D, Vector2D}
 
 /** ADT for all serializable entity Data Transfer Objects (DTOs).
  */
-enum Entity:
+enum EntityDto:
 
   /** Represents a player spaceship.
    *
