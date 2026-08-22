@@ -10,6 +10,7 @@ import org.http4s.server.websocket.WebSocketBuilder2
 import com.unibo.scalaparty.core.model.PlayerCommand
 import com.unibo.scalaparty.infrastructure.model.{MatchId, PlayerId}
 import com.unibo.scalaparty.infrastructure.ports.GameCommandPort
+import com.unibo.scalaparty.infrastructure.application.LobbyManager
 
 object ServerApp extends IOApp.Simple {
 
@@ -38,8 +39,21 @@ object ServerApp extends IOApp.Simple {
     for {
       _ <- IO.println("Initializing services...")
       registry <- ConnectionRegistry.make()
-      wsServer = new WebSocketServer(registry, dummyCommandPort)
+      lobby    <- LobbyManager.of[IO]
 
+      gameCommandPort = new GameCommandPort[IO] {
+        override def joinLobby(playerId: PlayerId): IO[MatchId] =
+          lobby.joinLobby(playerId)
+
+        override def leaveLobby(matchId: MatchId, playerId: PlayerId): IO[Unit] =
+          lobby.leaveLobby(matchId, playerId)
+
+        override def handleCommand(matchId: MatchId, playerId: PlayerId, command: PlayerCommand): IO[Unit] =
+          IO.println(s"Command $command recived from $playerId on match $matchId")
+      }
+
+      wsServer = new WebSocketServer(registry, gameCommandPort)
+      
       _ <- EmberServerBuilder
         .default[IO]
         .withHost(ipv4"0.0.0.0")
