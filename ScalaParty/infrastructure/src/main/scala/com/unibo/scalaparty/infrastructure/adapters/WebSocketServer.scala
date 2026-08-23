@@ -27,7 +27,7 @@ class WebSocketServer(
 
   def onMessage(playerId: PlayerId, matchId: MatchId, frame: WebSocketFrame): IO[Unit] =
     IO.println(s"Message from $playerId: $frame")
-    //TODO parsing JSON
+    //TODO parsing JSON in RFU3 -> Implementazione invio comandi
 
   def routes(wsb: WebSocketBuilder2[IO]): HttpRoutes[IO] = HttpRoutes.of[IO] {
     case GET -> Root / "ws" =>
