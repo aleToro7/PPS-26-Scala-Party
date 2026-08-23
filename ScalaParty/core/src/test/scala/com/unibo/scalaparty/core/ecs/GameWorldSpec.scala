@@ -14,7 +14,7 @@ class GameWorldSpec extends AnyFlatSpec with Matchers:
     val components = List(EmptyComponent())
     (entityId, components)
 
-  "A GameWorld initialized without entities" should "have be empty" in :
+  "A GameWorld initialized without entities" should "be empty" in:
     val gameWorld = emptyWorld
     gameWorld.entities shouldBe empty
 
