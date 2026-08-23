@@ -1,7 +1,7 @@
 package com.unibo.scalaparty.core.ecs
 
 import java.util.concurrent.atomic.AtomicLong
-import scala.reflect.{ClassTag, classTag}
+import scala.reflect.ClassTag
 
 
 opaque type WorldId = Long
@@ -67,14 +67,14 @@ trait GameWorld:
    * @param entityId the unique identifier of the entity whose components are to be retrieved
    * @return an option containing the list of components if the entity exists, or None if it does not
    */
-  def getComponents(entityId: EntityId): Option[List[Component]]
+  def findComponents(entityId: EntityId): Option[List[Component]]
 
   /** Retrieves the list of [[EntityId]]s that have a component of the specified class.
    *
    * @tparam C the type of the component
    * @return a list of entity IDs that have the specified component
    */
-  def getEntitiesWithComponent[C <: Component : ClassTag]: List[EntityId]
+  def findEntitiesWithComponent[C <: Component : ClassTag]: List[EntityId]
 
 object GameWorld:
   /** Creates a new instance of [[GameWorld]] with the specified list of entities and their associated components.
@@ -93,22 +93,22 @@ object GameWorld:
 
 class GameWorldImpl(private val entityMap: Map[EntityId, List[Component]]) extends GameWorld:
 
-  /** @inheritdoc   */
+  /** @inheritdoc    */
   override val entities: List[EntityId] = entityMap.keys.toList
 
-  /** @inheritdoc   */
+  /** @inheritdoc    */
   override def addEntity(entity: (EntityId, List[Component])): GameWorld =
     new GameWorldImpl(entityMap + entity)
 
-  /** @inheritdoc   */
+  /** @inheritdoc    */
   override def removeEntity(entityId: EntityId): GameWorld =
     if (entityMap.contains(entityId)) new GameWorldImpl(entityMap - entityId) else this
 
-  /** @inheritdoc   */
-  override def getComponents(entityId: EntityId): Option[List[Component]] = entityMap.get(entityId)
+  /** @inheritdoc    */
+  override def findComponents(entityId: EntityId): Option[List[Component]] = entityMap.get(entityId)
 
-  /** @inheritdoc   */
-  override def getEntitiesWithComponent[C <: Component : ClassTag]: List[EntityId] =
+  /** @inheritdoc    */
+  override def findEntitiesWithComponent[C <: Component : ClassTag]: List[EntityId] =
     entityMap
       .filter:
         case (_, components) => components.exists(_.getClass == implicitly[ClassTag[C]].runtimeClass)

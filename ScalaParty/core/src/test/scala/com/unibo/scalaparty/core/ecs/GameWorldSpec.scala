@@ -47,18 +47,18 @@ class GameWorldSpec extends AnyFlatSpec with Matchers:
   "A GameWorld" should "return an entity's components when queried" in :
     val (entityId, components) = entityWithComponents
     val gameWorld = emptyWorld + (entityId, components)
-    val retrievedComponents = gameWorld.getComponents(entityId)
+    val retrievedComponents = gameWorld.findComponents(entityId)
     retrievedComponents shouldBe Some(components)
 
   "A GameWorld" should "return None when querying components of a non-existing entity" in :
     val gameWorld = emptyWorld
     val nonExistingEntityId = EntityId.generate()
-    val retrievedComponents = gameWorld.getComponents(nonExistingEntityId)
+    val retrievedComponents = gameWorld.findComponents(nonExistingEntityId)
     retrievedComponents shouldBe None
 
   "A GameWorld" should "return an empty list when querying entities with a specific component type and no entities have that component" in :
     val gameWorld = emptyWorld
-    val retrievedEntities = gameWorld.getEntitiesWithComponent[EmptyComponent]
+    val retrievedEntities = gameWorld.findEntitiesWithComponent[EmptyComponent]
     retrievedEntities shouldBe empty
 
   "A GameWorld" should "return the correct entities when querying entities with a specific component type" in :
@@ -66,6 +66,6 @@ class GameWorldSpec extends AnyFlatSpec with Matchers:
     val (entityId2, components2) = (EntityId.generate(), List(EmptyComponent()))
     val (entityId3, components3) = (EntityId.generate(), List())
     val gameWorld = GameWorld(List((entityId1, components1), (entityId2, components2), (entityId3, components3)))
-    val retrievedEntities = gameWorld.getEntitiesWithComponent[EmptyComponent]
+    val retrievedEntities = gameWorld.findEntitiesWithComponent[EmptyComponent]
     gameWorld.entities should have size 3
     retrievedEntities should contain theSameElementsAs List(entityId1, entityId2)
