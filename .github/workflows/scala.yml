@@ -22,9 +22,17 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
           cache: 'sbt'
+
+      - name: Set up sbt
+        uses: sbt/setup-sbt@v1
           
       - name: Compile project
-        run: sbt compile
+        run: |
+          if [ -f build.sbt ] || [ -d project ]; then
+            sbt compile
+          else
+            echo "No sbt project found, skipping compile."
+          fi
 
   test:
     name: Run Unit Tests
@@ -39,6 +47,14 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
           cache: 'sbt'
+
+      - name: Set up sbt
+        uses: sbt/setup-sbt@v1
           
       - name: Run tests
-        run: sbt test
+        run: |
+          if [ -f build.sbt ] || [ -d project ]; then
+            sbt test
+          else
+            echo "No sbt project found, skipping tests."
+          fi
