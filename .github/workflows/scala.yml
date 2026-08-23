@@ -26,6 +26,9 @@ jobs:
           distribution: 'temurin'
           cache: 'sbt'
           cache-dependency-path: './ScalaParty/build.sbt'
+
+      - name: Set up sbt
+        uses: sbt/setup-sbt@v1
           
       - name: Compile project
         run: sbt compile
@@ -41,12 +44,15 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: '21'
           distribution: 'temurin'
           cache: 'sbt'
           cache-dependency-path: './ScalaParty/build.sbt'
+
+      - name: Set up sbt
+        uses: sbt/setup-sbt@v1
           
       - name: Run tests
         run: sbt test
