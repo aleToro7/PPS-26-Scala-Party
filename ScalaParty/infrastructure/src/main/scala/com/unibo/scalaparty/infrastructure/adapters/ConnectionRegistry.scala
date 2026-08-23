@@ -25,6 +25,6 @@ class ConnectionRegistry(sessionMap: Ref[IO, Map[PlayerId, PlayerInfo]]) {
 case class PlayerInfo(playerId: PlayerId, matchId: Option[MatchId])
 
 object ConnectionRegistry:
-  // Costruttore per inizializzare il Ref vuoto
+  // Constructor to initialize the empty Ref
   def make(): IO[ConnectionRegistry] =
     Ref.of[IO, Map[PlayerId, PlayerInfo]](Map.empty).map(new ConnectionRegistry(_))

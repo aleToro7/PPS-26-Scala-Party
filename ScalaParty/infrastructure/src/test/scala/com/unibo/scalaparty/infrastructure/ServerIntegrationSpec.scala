@@ -31,7 +31,7 @@ class ServerIntegrationSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers
 
         wsServer = new WebSocketServer(registry, commandPort)
 
-        // richiesta HTTP simulando gli header di un client WebSocket
+        // HTTP request simulating the headers of WebSocket client
         request = Request[IO](method = GET, uri = uri"/ws")
           .withHeaders(
             Header.Raw(CIString("Connection"), "Upgrade"),

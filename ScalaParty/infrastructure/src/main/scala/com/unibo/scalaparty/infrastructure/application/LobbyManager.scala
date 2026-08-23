@@ -12,8 +12,8 @@ private final case class LobbyState(
 private object LobbyState:
   val empty: LobbyState = LobbyState(Map.empty, None)
 
-// Stand-in per MatchRunner: per RFU1 la lobby traccia solo l'appartenenza dei
-// player a un match, senza avviare alcun loop di gioco.
+// Stand-in for MatchRunner: for RFU1, the lobby only tracks player
+// membership in a match, without starting any game loop.
 final class LobbyManager[F[_]: Sync] private (state: Ref[F, LobbyState]):
 
   def activeMatchIds: F[Set[MatchId]] =
@@ -45,7 +45,7 @@ final class LobbyManager[F[_]: Sync] private (state: Ref[F, LobbyState]):
   def setPendingMatch(matchId: Option[MatchId]): F[Unit] =
     state.update(_.copy(pendingLobbyMatch = matchId))
 
-  /** Assegna il player alla lobby pendente con posti liberi, oppure ne apre una nuova. */
+  /** Assigns the player to a pending lobby with available slots, or opens a new one. */
   def joinLobby(playerId: PlayerId): F[MatchId] =
     Sync[F].delay(MatchId.random()).flatMap { candidateMatchId =>
       state.modify { s =>
@@ -62,7 +62,7 @@ final class LobbyManager[F[_]: Sync] private (state: Ref[F, LobbyState]):
       }
     }
 
-  /** Rimuove il player dal match; se il match resta senza giocatori viene eliminato. */
+  /** Removes the player from the match; if the match has no remaining players, it is deleted. */
   def leaveLobby(matchId: MatchId, playerId: PlayerId): F[Unit] =
     state.update { s =>
       s.activeMatches.get(matchId).map(_ - playerId) match
