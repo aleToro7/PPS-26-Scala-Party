@@ -13,6 +13,9 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./ScalaParty
     steps:
       - uses: actions/checkout@v4
       
@@ -22,6 +25,7 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
           cache: 'sbt'
+          cache-dependency-path: './ScalaParty/build.sbt'
           
       - name: Compile project
         run: sbt compile
@@ -30,6 +34,9 @@ jobs:
     name: Run Unit Tests
     needs: build
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./ScalaParty
     steps:
       - uses: actions/checkout@v4
       
@@ -39,6 +46,7 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
           cache: 'sbt'
+          cache-dependency-path: './ScalaParty/build.sbt'
           
       - name: Run tests
         run: sbt test
