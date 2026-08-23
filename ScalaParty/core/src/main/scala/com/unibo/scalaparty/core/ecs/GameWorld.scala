@@ -34,6 +34,12 @@ trait GameWorld:
    */
   val entities: List[EntityId]
 
+  /** Retrieves a list of tuples, each containing an [[EntityId]] and its associated list of [[Component]]s.
+   * @return
+   */
+  def entitiesWithComponents: List[(EntityId, List[Component])] = 
+    entities.map(id => (id, findComponents(id).getOrElse(List())))
+
   /** Adds a new entity with the specified [[EntityId]] and a list of [[Component]]s to the world.
    *
    * @param entity a tuple containing the unique identifier of the entity and its associated list of components
