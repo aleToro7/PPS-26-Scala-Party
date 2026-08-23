@@ -6,7 +6,7 @@ import com.unibo.scalaparty.infrastructure.model.{MatchId, PlayerId}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-class ConnectionRegistryTest extends AnyWordSpec with Matchers {
+class ConnectionRegistrySpec extends AnyWordSpec with Matchers {
 
   "A ConnectionRegistry" should {
 
