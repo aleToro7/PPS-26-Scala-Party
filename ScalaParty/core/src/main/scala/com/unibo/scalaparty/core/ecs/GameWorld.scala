@@ -39,7 +39,7 @@ trait GameWorld:
    *
    * @return a list of (entityId, components) pairs for all entities currently in the world
    */
-  def entitiesWithComponents: List[(EntityId, List[Component])] =
+  def entitiesWithComponents: List[EntityWithComponents] =
     entities.map(id => (id, findComponents(id).getOrElse(Nil)))
   /** Adds a new entity with the specified [[EntityId]] and a list of [[Component]]s to the world.
    *
@@ -115,9 +115,8 @@ class GameWorldImpl(private val entityMap: Map[EntityId, List[Component]]) exten
   override def findComponents(entityId: EntityId): Option[List[Component]] = entityMap.get(entityId)
 
   /** @inheritdoc    */
-  override def findEntitiesWithComponent[C <: Component : ClassTag]: List[EntityId] =
+  override def findEntitiesWithComponent[C <: Component : ClassTag]: List[EntityWithComponents] =
+    val componentClass = implicitly[ClassTag[C]].runtimeClass
     entityMap
-      .filter:
-        case (_, components) => components.exists(_.getClass == implicitly[ClassTag[C]].runtimeClass)
+      .filter((_, components) => components.exists(c => componentClass.isInstance(c)))
       .toList
-      .map(_._1)

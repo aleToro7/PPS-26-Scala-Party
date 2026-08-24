@@ -5,11 +5,13 @@ import org.scalatest.matchers.should.Matchers
 
 case class EmptyComponent() extends Component
 
+case class AnotherComponent() extends Component
+
 class GameWorldSpec extends AnyFlatSpec with Matchers:
 
   private def emptyWorld = GameWorld(Map())
 
-  private def entityWithComponents =
+  private def entityWithComponents: EntityWithComponents =
     val entityId = EntityId.generate()
     val components = List(EmptyComponent())
     (entityId, components)
@@ -29,6 +31,15 @@ class GameWorldSpec extends AnyFlatSpec with Matchers:
     val (entityId, components) = entityWithComponents
     val updatedWorld = gameWorld.addEntity(entityId, components)
     updatedWorld.entities should contain(entityId)
+
+  "A GameWorld" should "replace an existing entity when adding an entity with the same ID" in :
+    val (entityId, components) = entityWithComponents
+    val gameWorld = emptyWorld + (entityId, components)
+    val newComponents = List(AnotherComponent())
+    val updatedWorld = gameWorld + (entityId, newComponents)
+    updatedWorld.id should not be gameWorld.id
+    updatedWorld.entities should contain(entityId)
+    updatedWorld.findComponents(entityId) shouldBe Some(newComponents)
 
   "A GameWorld" should "allow removing entities" in :
     val (entityId, components) = entityWithComponents
@@ -62,10 +73,11 @@ class GameWorldSpec extends AnyFlatSpec with Matchers:
     retrievedEntities shouldBe empty
 
   "A GameWorld" should "return the correct entities when querying entities with a specific component type" in :
-    val (entityId1, components1) = (EntityId.generate(), List(EmptyComponent()))
-    val (entityId2, components2) = (EntityId.generate(), List(EmptyComponent()))
-    val (entityId3, components3) = (EntityId.generate(), List())
-    val gameWorld = GameWorld(List((entityId1, components1), (entityId2, components2), (entityId3, components3)))
+    val entity1 = (EntityId.generate(), List(EmptyComponent()))
+    val entity2 = (EntityId.generate(), List(EmptyComponent()))
+    val entity3 = (EntityId.generate(), Nil)
+    val gameWorld = GameWorld(List(entity1, entity2, entity3))
     val retrievedEntities = gameWorld.findEntitiesWithComponent[EmptyComponent]
+    val expectedEntities = List(entity1, entity2)
     gameWorld.entities should have size 3
-    retrievedEntities should contain theSameElementsAs List(entityId1, entityId2)
+    retrievedEntities should contain theSameElementsAs expectedEntities
