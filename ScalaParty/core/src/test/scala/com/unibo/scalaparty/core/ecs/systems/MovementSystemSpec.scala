@@ -34,3 +34,13 @@ class MovementSystemSpec extends AnyFlatSpec with Matchers:
       .collectFirst { case pc: PositionComponent => pc.position }
     actualPosition should not be empty
     actualPosition.get shouldBe expectedPosition
+
+  "MovementSystem" should "not generate a new world if an entity does not actually move" in:
+    val pos = Point2D.origin
+    val vel = Vector2D.zero
+    val entity = createEntity(pos, vel)
+    val world = GameWorld(List(entity))
+    val dt = 1_000L // 1 second in milliseconds
+    val (updatedWorld, events) = MovementSystem.update(world, Set.empty, dt)
+    events shouldBe empty
+    updatedWorld.id shouldBe world.id
