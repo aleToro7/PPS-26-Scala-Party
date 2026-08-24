@@ -12,8 +12,13 @@ private final case class LobbyState(
 private object LobbyState:
   val empty: LobbyState = LobbyState(Map.empty, None)
 
-// Stand-in for MatchRunner: for RFU1, the lobby only tracks player
-// membership in a match, without starting any game loop.
+/**
+ * Core application service managing the logical state of the matchmaking lobby.
+ * Groups incoming players into pending matches up to a defined maximum capacity
+ * (MaxPlayersPerMatch). Once a match is full, a new pending match is automatically opened.
+ *
+ * Concurrency is handled internally via a purely functional Ref state.
+ */
 final class LobbyManager[F[_]: Sync] private (state: Ref[F, LobbyState]):
 
   def activeMatchIds: F[Set[MatchId]] =

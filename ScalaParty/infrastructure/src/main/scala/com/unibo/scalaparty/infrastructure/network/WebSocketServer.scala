@@ -9,6 +9,15 @@ import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.websocket.WebSocketFrame
 import com.unibo.scalaparty.infrastructure.ports.{AccessPort, CommandPort}
 
+/**
+ * Network adapter providing the WebSocket HTTP routes.
+ * Orchestrates the connection lifecycle by bridging physical socket events
+ * (Connect, Disconnect, Message) with the application's core logic ports.
+ *
+ * @param connections Registry to track active sockets for future broadcasting.
+ * @param accessPort Service handling the logical assignment of players to matches.
+ * @param commandPort Service handling gameplay inputs (e.g., moving, shooting).
+ */
 class WebSocketServer(
                        connections: ConnectionRegistry,
                        accessPort: AccessPort[IO],
