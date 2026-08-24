@@ -48,6 +48,21 @@ final case class Vector2D(x: Double, y: Double):
     val mod = module
     if mod == 0.0 then Vector2D.zero else Vector2D(x / mod, y / mod)
 
+  /** Rotates this vector by a specified angle in degrees.
+   * The rotation is counter-clockwise in the Cartesian plane.
+   *
+   * @param angleDegrees the angle in degrees to rotate the vector
+   * @return a new [[Vector2D]] representing the rotated vector
+   */
+  def rotated(angleDegrees: Double): Vector2D =
+    val angleRadians = Math.toRadians(angleDegrees)
+    val cosTheta = Math.cos(angleRadians)
+    val sinTheta = Math.sin(angleRadians)
+    Vector2D(
+      x * cosTheta - y * sinTheta, // x' = r * cos(alpha + theta) --> expand
+      x * sinTheta + y * cosTheta // y' = r * sin(alpha + theta) --> expand
+    )
+
 object Vector2D:
   /** A constant vector representing the origin `(0.0, 0.0)`. */
   val zero: Vector2D = Vector2D(0.0, 0.0)
