@@ -1,7 +1,7 @@
 package com.unibo.scalaparty.core.engine
 
 import com.unibo.scalaparty.core.dto.{toDto, EntityDto, PlayerCommand}
-import com.unibo.scalaparty.core.ecs.{EntityFactory, EntityId, GameWorld}
+import com.unibo.scalaparty.core.ecs.{EntityFactory, EntityId, GameEvent, GameWorld}
 import com.unibo.scalaparty.core.geometry.{Point2D, Vector2D}
 
 /** A trait representing the game engine responsible for updating the state of the game world based on player commands and elapsed time. */
@@ -15,13 +15,14 @@ trait GameEngine:
   def update(list: List[PlayerCommand], dt: Long): List[EntityDto]
 
 object GameEngine:
-  /** Creates a new instance of the game engine.
+
+  /** Creates a new instance of the game engine based on the provided game configuration.
    *
-   *  @param player the unique identifier of the player's entity
+   *  @param config the game configuration
    *  @return a new instance of GameEngine
    */
-  def apply(player: EntityId): GameEngine =
-    new SinglePlayerGameEngine(GameConfig.singlePlayer(player, 800, 600, 5.0, 0.5))
+  def apply(config: GameConfig): GameEngine =
+    new SinglePlayerGameEngine(config)
 
 private class SinglePlayerGameEngine(config: GameConfig) extends GameEngine:
 
@@ -36,6 +37,13 @@ private class SinglePlayerGameEngine(config: GameConfig) extends GameEngine:
     GameWorld(List(playerSpaceship))
 
   override def update(list: List[PlayerCommand], dt: Long): List[EntityDto] =
-    world.entitiesWithComponents
+    // Execute pipeline of systems
+    val (updatedWorld, _) = config.pipeline
+      .toList
+      .foldLeft((world, Set.empty[GameEvent])):
+        case ((currentWorld, events), system) => system.update(currentWorld, events, dt)
+    // Return the updated entities as DTOs
+    updatedWorld
+      .entitiesWithComponents
       .map(_.toDto)
-      .collect { case Some(dto) => dto }
+      .collect({ case Some(dto) => dto })

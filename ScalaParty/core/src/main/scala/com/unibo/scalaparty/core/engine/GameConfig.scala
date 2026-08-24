@@ -27,7 +27,7 @@ object GameConfig:
   private val defaultPipeline = SystemPipeline(
     MovementSystem,
   )
-  
+
   /** Helper to quickly create a single-player configuration.
    *
    *  @param playerId               the unique identifier of the single player
@@ -35,6 +35,7 @@ object GameConfig:
    *  @param worldHeight            the height of the arena
    *  @param spaceshipSpeed         the constant movement speed of the spaceship
    *  @param spaceshipRotationSpeed the rotation speed applied when changing direction
+   *  @param pipeline               the ordered pipeline of systems to execute sequentially
    *  @return a new [[GameConfig]] configured for a single player
    */
   def singlePlayer(
@@ -42,12 +43,14 @@ object GameConfig:
       worldWidth: Int = 800,
       worldHeight: Int = 800,
       spaceshipSpeed: Double = 1.0,
-      spaceshipRotationSpeed: Double = 180.0
+      spaceshipRotationSpeed: Double = 180.0,
+      pipeline: SystemPipeline = defaultPipeline
   ): GameConfig =
     GameConfig(
       players = List(playerId),
       worldWidth = worldWidth,
       worldHeight = worldHeight,
       spaceshipSpeed = spaceshipSpeed,
-      spaceshipRotationSpeed = spaceshipRotationSpeed
+      spaceshipRotationSpeed = spaceshipRotationSpeed,
+      pipeline = pipeline
     )
