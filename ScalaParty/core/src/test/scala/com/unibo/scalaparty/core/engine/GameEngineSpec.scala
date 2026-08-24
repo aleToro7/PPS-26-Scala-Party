@@ -1,6 +1,5 @@
 package com.unibo.scalaparty.core.engine
 
-import com.unibo.scalaparty.core.ecs.GameEvent.Death
 import com.unibo.scalaparty.core.ecs.{EntityId, GameWorld}
 import com.unibo.scalaparty.core.ecs.systems.{System, SystemPipeline}
 import org.scalatest.flatspec.AnyFlatSpec
@@ -8,7 +7,7 @@ import org.scalatest.matchers.should.Matchers
 
 class GameEngineSpec extends AnyFlatSpec with Matchers:
 
-  val emptyPipeline = SystemPipeline()
+  private val emptyPipeline = SystemPipeline()
 
   "A GameEngine" should "not create a new world if the pipeline is empty" in:
     val player = EntityId.generate()
