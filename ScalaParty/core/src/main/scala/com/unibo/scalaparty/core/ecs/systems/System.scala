@@ -61,3 +61,9 @@ object SystemPipeline:
      *  @return a new system pipeline that represents the composition of the two systems
      */
     def >>(nextSystem: System): SystemPipeline = pipeline :+ nextSystem
+    
+    /** Converts the system pipeline to an ordered list of systems.
+     *
+     *  @return a list of systems in the pipeline
+     */
+    def toList: List[System] = pipeline
