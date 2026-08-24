@@ -25,3 +25,39 @@ trait System:
    *  @return a tuple containing the updated game world and a set of new game events generated during the update
    */
   def update(world: GameWorld, events: Set[GameEvent], dt: Long): SystemOutput
+
+object System:
+  extension (system: System)
+    /** Composes two systems into a single system that executes them in sequence.
+     *
+     *  The resulting system will first execute the `system` and then execute the `nextSystem`, passing the updated
+     *  game world and events from the first system to the second system.
+     *
+     *  @param nextSystem the system to be executed after the current system
+     *  @return a new system that represents the composition of the two systems
+     */
+    def >>(nextSystem: System): SystemPipeline = SystemPipeline(system, nextSystem)
+
+/** Represents a pipeline of systems to be executed in sequence.
+ *  The systems in the pipeline are executed in the order they are defined, with each system receiving the updated game world and events from the previous system.
+ *  The order is very important, as it can affect the final state of the game world and the events generated.
+ *  @see [[System]] for more information on how to define a system.
+ */
+opaque type SystemPipeline = List[System]
+
+object SystemPipeline:
+  def apply(systems: System*): SystemPipeline = systems.toList
+
+  private def apply(systems: List[System]): SystemPipeline = systems
+
+  extension (pipeline: SystemPipeline)
+
+    /** Composes two systems into a single system pipeline that executes them in sequence.
+     *
+     *  The resulting system pipeline will first execute the `pipeline` and then execute the `nextSystem`, passing the updated
+     *  game world and events from the first system to the second system.
+     *  *
+     *  @param nextSystem the system to be executed after the current pipeline
+     *  @return a new system pipeline that represents the composition of the two systems
+     */
+    def >>(nextSystem: System): SystemPipeline = pipeline :+ nextSystem
