@@ -98,7 +98,7 @@ object GameWorld:
    */
   def apply(list: List[EntityWithComponents]): GameWorld = GameWorld(list.toMap)
 
-class GameWorldImpl(private val entityMap: Map[EntityId, List[Component]]) extends GameWorld:
+private class GameWorldImpl(private val entityMap: Map[EntityId, List[Component]]) extends GameWorld:
 
   /** @inheritdoc    */
   override val entities: List[EntityId] = entityMap.keys.toList
