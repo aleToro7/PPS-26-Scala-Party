@@ -8,9 +8,9 @@ import com.unibo.scalaparty.core.geometry.{Point2D, Vector2D}
 trait GameEngine:
   /** Updates the state of the game world based on the provided player commands and the elapsed time.
    *
-   * @param list  a list of player commands to be processed
-   * @param dt    the elapsed time since the last update, in milliseconds
-   * @return a new list of entities representing the updated state of the game world
+   *  @param list  a list of player commands to be processed
+   *  @param dt    the elapsed time since the last update, in milliseconds
+   *  @return a new list of entities representing the updated state of the game world
    */
   def update(list: List[PlayerCommand], dt: Long): List[EntityDto]
 
@@ -20,15 +20,16 @@ object GameEngine:
    *  @param player the unique identifier of the player's entity
    *  @return a new instance of GameEngine
    */
-  def apply(player: EntityId): GameEngine = new SinglePlayerGameEngine(SinglePlayerConfig(player, 800, 600, 5.0, 0.5))
+  def apply(player: EntityId): GameEngine =
+    new SinglePlayerGameEngine(GameConfig.singlePlayer(player, 800, 600, 5.0, 0.5))
 
-private class SinglePlayerGameEngine(config: SinglePlayerConfig) extends GameEngine:
+private class SinglePlayerGameEngine(config: GameConfig) extends GameEngine:
 
   private val world: GameWorld = initializeWorld(config)
 
-  private def initializeWorld(config: SinglePlayerConfig): GameWorld =
+  private def initializeWorld(config: GameConfig): GameWorld =
     val playerSpaceship = EntityFactory.createSpaceship(
-      entityId = config.player,
+      entityId = config.players.head,
       position = Point2D(config.worldWidth / 2, config.worldHeight / 2),
       velocity = Vector2D(config.spaceshipSpeed, 0)
     )
