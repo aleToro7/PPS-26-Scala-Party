@@ -7,4 +7,4 @@ enum PlayerCommand:
    *
    * @param angle the angle in degrees indicating the direction of movement
    */
-  case Rotate(entityId: EntityId, angle: Double)
+  case RotateCommand(entityId: EntityId, angle: Double)
