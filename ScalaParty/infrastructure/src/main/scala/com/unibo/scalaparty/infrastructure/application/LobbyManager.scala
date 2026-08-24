@@ -5,9 +5,9 @@ import cats.syntax.all.*
 import com.unibo.scalaparty.infrastructure.model.{MatchId, PlayerId}
 
 private final case class LobbyState(
-    activeMatches: Map[MatchId, Set[PlayerId]],
-    pendingLobbyMatch: Option[MatchId]
-)
+                                     activeMatches: Map[MatchId, Set[PlayerId]],
+                                     pendingLobbyMatch: Option[MatchId]
+                                   )
 
 private object LobbyState:
   val empty: LobbyState = LobbyState(Map.empty, None)
@@ -29,12 +29,11 @@ final class LobbyManager[F[_]: Sync] private (state: Ref[F, LobbyState]):
     state.update(s => s.copy(activeMatches = s.activeMatches + (matchId -> Set.empty)))
 
   def removeMatch(matchId: MatchId): F[Unit] =
-    state.update(s =>
+    state.update: s =>
       s.copy(
         activeMatches = s.activeMatches - matchId,
         pendingLobbyMatch = s.pendingLobbyMatch.filterNot(_ == matchId)
       )
-    )
 
   def addPlayerToMatch(matchId: MatchId, playerId: PlayerId): F[Unit] =
     state.update(s => s.copy(activeMatches = s.activeMatches.updatedWith(matchId)(players => Some(players.getOrElse(Set.empty) + playerId))))
@@ -47,8 +46,8 @@ final class LobbyManager[F[_]: Sync] private (state: Ref[F, LobbyState]):
 
   /** Assigns the player to a pending lobby with available slots, or opens a new one. */
   def joinLobby(playerId: PlayerId): F[MatchId] =
-    Sync[F].delay(MatchId.random()).flatMap { candidateMatchId =>
-      state.modify { s =>
+    Sync[F].delay(MatchId.random()).flatMap: candidateMatchId =>
+      state.modify: s =>
         val (matchId, players) = s.pendingLobbyMatch match
           case Some(id) => id -> (s.activeMatches.getOrElse(id, Set.empty) + playerId)
           case None     => candidateMatchId -> Set(playerId)
@@ -59,12 +58,10 @@ final class LobbyManager[F[_]: Sync] private (state: Ref[F, LobbyState]):
           pendingLobbyMatch = Option.unless(isFull)(matchId)
         )
         newState -> matchId
-      }
-    }
 
   /** Removes the player from the match; if the match has no remaining players, it is deleted. */
   def leaveLobby(matchId: MatchId, playerId: PlayerId): F[Unit] =
-    state.update { s =>
+    state.update: s =>
       s.activeMatches.get(matchId).map(_ - playerId) match
         case Some(remainingPlayers) if remainingPlayers.isEmpty =>
           s.copy(
@@ -75,7 +72,6 @@ final class LobbyManager[F[_]: Sync] private (state: Ref[F, LobbyState]):
           s.copy(activeMatches = s.activeMatches.updated(matchId, remainingPlayers))
         case None =>
           s
-    }
 
 object LobbyManager:
 

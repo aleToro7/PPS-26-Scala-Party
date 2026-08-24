@@ -4,29 +4,26 @@ import cats.effect.IO
 import cats.effect.testing.scalatest.AsyncIOSpec
 import cats.syntax.all.*
 import com.unibo.scalaparty.infrastructure.model.{MatchId, PlayerId}
-import org.scalatest.freespec.AsyncFreeSpec
 import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AsyncWordSpec
 
-class LobbyManagerSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers:
+class LobbyManagerSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
 
-  "a freshly created LobbyManager" - {
-    "has no active matches" in {
+  "a freshly created LobbyManager".should:
+    "have no active matches".in:
       for
         lobby <- LobbyManager.of[IO]
         ids   <- lobby.activeMatchIds
       yield ids shouldBe empty
-    }
 
-    "has no pending match" in {
+    "have no pending match".in:
       for
         lobby   <- LobbyManager.of[IO]
         pending <- lobby.pendingMatch
       yield pending shouldBe None
-    }
-  }
 
-  "registerMatch" - {
-    "adds an empty match to the active matches" in {
+  "registerMatch".should:
+    "add an empty match to the active matches".in:
       val matchId = MatchId.random()
       for
         lobby   <- LobbyManager.of[IO]
@@ -36,11 +33,9 @@ class LobbyManagerSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers:
       yield
         ids shouldBe Set(matchId)
         players shouldBe empty
-    }
-  }
 
-  "removeMatch" - {
-    "removes a match and clears it if it was the pending one" in {
+  "removeMatch".should:
+    "remove a match and clear it if it was the pending one".in:
       val matchId = MatchId.random()
       for
         lobby   <- LobbyManager.of[IO]
@@ -52,11 +47,9 @@ class LobbyManagerSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers:
       yield
         ids shouldBe empty
         pending shouldBe None
-    }
-  }
 
-  "addPlayerToMatch" - {
-    "adds a player to an existing match" in {
+  "addPlayerToMatch".should:
+    "add a player to an existing match".in:
       val matchId  = MatchId.random()
       val playerId = PlayerId.random()
       for
@@ -65,9 +58,8 @@ class LobbyManagerSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers:
         _       <- lobby.addPlayerToMatch(matchId, playerId)
         players <- lobby.playersInMatch(matchId)
       yield players shouldBe Set(playerId)
-    }
 
-    "creates the match entry if it doesn't exist yet" in {
+    "create the match entry if it doesn't exist yet".in:
       val matchId  = MatchId.random()
       val playerId = PlayerId.random()
       for
@@ -75,11 +67,9 @@ class LobbyManagerSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers:
         _       <- lobby.addPlayerToMatch(matchId, playerId)
         players <- lobby.playersInMatch(matchId)
       yield players shouldBe Set(playerId)
-    }
-  }
 
-  "removePlayerFromMatch" - {
-    "removes a player from a match, keeping the others" in {
+  "removePlayerFromMatch".should:
+    "remove a player from a match, keeping the others".in:
       val matchId   = MatchId.random()
       val playerOne = PlayerId.random()
       val playerTwo = PlayerId.random()
@@ -91,11 +81,9 @@ class LobbyManagerSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers:
         _       <- lobby.removePlayerFromMatch(matchId, playerOne)
         players <- lobby.playersInMatch(matchId)
       yield players shouldBe Set(playerTwo)
-    }
-  }
 
-  "joinLobby" - {
-    "opens a new match for the first player" in {
+  "joinLobby".should:
+    "open a new match for the first player".in:
       val playerId = PlayerId.random()
       for
         lobby   <- LobbyManager.of[IO]
@@ -105,9 +93,8 @@ class LobbyManagerSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers:
       yield
         players shouldBe Set(playerId)
         pending shouldBe Some(matchId)
-    }
 
-    "assigns further players to the same pending match" in {
+    "assign further players to the same pending match".in:
       val playerOne = PlayerId.random()
       val playerTwo = PlayerId.random()
       for
@@ -118,9 +105,8 @@ class LobbyManagerSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers:
       yield
         matchTwo shouldBe matchOne
         players shouldBe Set(playerOne, playerTwo)
-    }
 
-    "stops being pending once it reaches the max number of players" in {
+    "stop being pending once it reaches the max number of players".in:
       val players = List.fill(LobbyManager.MaxPlayersPerMatch)(PlayerId.random())
       for
         lobby      <- LobbyManager.of[IO]
@@ -131,9 +117,8 @@ class LobbyManagerSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers:
         matchIds.toSet shouldBe Set(matchIds.head)
         inMatch shouldBe players.toSet
         pending shouldBe None
-    }
 
-    "opens a new match once the pending one is full" in {
+    "open a new match once the pending one is full".in:
       val firstBatch = List.fill(LobbyManager.MaxPlayersPerMatch)(PlayerId.random())
       val extraPlayer = PlayerId.random()
       for
@@ -144,11 +129,9 @@ class LobbyManagerSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers:
       yield
         newMatchId should not be fullMatchIds.head
         pending shouldBe Some(newMatchId)
-    }
-  }
 
-  "leaveLobby" - {
-    "removes the player but keeps the match if others remain" in {
+  "leaveLobby".should:
+    "remove the player but keep the match if others remain".in:
       val matchId   = MatchId.random()
       val playerOne = PlayerId.random()
       val playerTwo = PlayerId.random()
@@ -163,9 +146,8 @@ class LobbyManagerSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers:
       yield
         ids shouldBe Set(matchId)
         players shouldBe Set(playerTwo)
-    }
 
-    "removes the match entirely once the last player leaves" in {
+    "remove the match entirely once the last player leaves".in:
       val playerId = PlayerId.random()
       for
         lobby   <- LobbyManager.of[IO]
@@ -173,9 +155,8 @@ class LobbyManagerSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers:
         _       <- lobby.leaveLobby(matchId, playerId)
         ids     <- lobby.activeMatchIds
       yield ids shouldBe empty
-    }
 
-    "clears the pending match if the last player leaves it" in {
+    "clear the pending match if the last player leaves it".in:
       val playerId = PlayerId.random()
       for
         lobby   <- LobbyManager.of[IO]
@@ -183,9 +164,8 @@ class LobbyManagerSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers:
         _       <- lobby.leaveLobby(matchId, playerId)
         pending <- lobby.pendingMatch
       yield pending shouldBe None
-    }
 
-    "is a no-op if the match doesn't exist" in {
+    "be a no-op if the match doesn't exist".in:
       val matchId  = MatchId.random()
       val playerId = PlayerId.random()
       for
@@ -193,5 +173,3 @@ class LobbyManagerSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers:
         _     <- lobby.leaveLobby(matchId, playerId)
         ids   <- lobby.activeMatchIds
       yield ids shouldBe empty
-    }
-  }

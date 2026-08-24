@@ -2,11 +2,8 @@ package com.unibo.scalaparty.infrastructure
 
 import cats.effect.IO
 import cats.effect.testing.scalatest.AsyncIOSpec
-import com.unibo.scalaparty.infrastructure.adapters.{ConnectionRegistry, WebSocketServer}
-import com.unibo.scalaparty.infrastructure.application.LobbyManager
-import com.unibo.scalaparty.core.model.PlayerCommand
-import com.unibo.scalaparty.infrastructure.model.{MatchId, PlayerId}
-import com.unibo.scalaparty.infrastructure.ports.GameCommandPort
+import com.unibo.scalaparty.infrastructure.application.{LobbyManager, AccessService, GameCommandService}
+import com.unibo.scalaparty.infrastructure.network.{ConnectionRegistry, WebSocketServer}
 import org.http4s.*
 import org.http4s.Method.GET
 import org.http4s.implicits.*
@@ -15,23 +12,20 @@ import org.scalatest.freespec.AsyncFreeSpec
 import org.scalatest.matchers.should.Matchers
 import org.typelevel.ci.CIString
 
-class ServerIntegrationSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers {
+class ServerIntegrationSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers:
 
-  "The integrated WebSocket Server" - {
-    "should handle a connection request and assign the player to a lobby" in {
-      for {
-        registry <- ConnectionRegistry.make()
+  "The integrated WebSocket Server" - (
+    "should handle a connection request and assign the player to a lobby" in (
+
+      for
+        registry <- ConnectionRegistry()
         lobby    <- LobbyManager.of[IO]
 
-        commandPort = new GameCommandPort[IO] {
-          def joinLobby(playerId: PlayerId): IO[MatchId] = lobby.joinLobby(playerId)
-          def leaveLobby(matchId: MatchId, playerId: PlayerId): IO[Unit] = lobby.leaveLobby(matchId, playerId)
-          def handleCommand(matchId: MatchId, playerId: PlayerId, command: PlayerCommand): IO[Unit] = IO.unit
-        }
+        accessService  = AccessService(lobby)
+        commandService = GameCommandService()
 
-        wsServer = new WebSocketServer(registry, commandPort)
+        wsServer = WebSocketServer(registry, accessService, commandService)
 
-        // HTTP request simulating the headers of WebSocket client
         request = Request[IO](method = GET, uri = uri"/ws")
           .withHeaders(
             Header.Raw(CIString("Connection"), "Upgrade"),
@@ -45,11 +39,8 @@ class ServerIntegrationSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers
 
         activeMatches <- lobby.activeMatchIds
 
-      } yield {
+      yield
         response.status shouldBe Status.NotImplemented
-
         activeMatches.size shouldBe 1
-      }
-    }
-  }
-}
+      )
+    )
