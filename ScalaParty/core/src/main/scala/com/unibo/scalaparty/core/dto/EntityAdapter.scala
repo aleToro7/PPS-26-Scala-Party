@@ -23,9 +23,7 @@ object EntityAdapter:
       velocity <- components.collectFirst { case mc: MovementComponent => mc.velocity }
     yield SpaceshipDto(entityId, position, velocity)
 
-type EntityWithComponents = (EntityId, List[Component])
-
-extension (e: (EntityId, List[Component]))
+extension (e: EntityWithComponents)
   /** Converts the entity ID and its associated components to an EntityDto based on the specified entity type.
    *  @return an Option containing the EntityDto if the mapping is successful, or None if the mapping fails
    */
