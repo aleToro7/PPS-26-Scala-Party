@@ -8,6 +8,9 @@ import org.http4s.dsl.io.*
 import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.websocket.WebSocketFrame
 import com.unibo.scalaparty.infrastructure.ports.{AccessPort, CommandPort}
+import com.unibo.scalaparty.core.model.PlayerCommand
+import io.circe.parser.decode
+import com.unibo.scalaparty.infrastructure.network.dto.ProtocolCodecs.given
 
 /**
  * Network adapter providing the WebSocket HTTP routes.
@@ -39,8 +42,16 @@ class WebSocketServer(
     yield ()
 
   def onMessage(playerId: PlayerId, matchId: MatchId, frame: WebSocketFrame): IO[Unit] =
-    IO.println(s"Message from $playerId: $frame")
-  // TODO parsing JSON in RFU3 -> Implementazione invio comandi
+    frame match
+      case WebSocketFrame.Text(jsonText, _) =>
+        decode[PlayerCommand](jsonText) match
+          case Right(command) =>
+            commandPort.handleCommand(matchId, playerId, command)
+
+          case Left(error) =>
+            IO.println(s"Invalid JSON received from $playerId: ${error.getMessage}")
+
+      case _ => IO.unit
 
   def routes(wsb: WebSocketBuilder2[IO]): HttpRoutes[IO] = HttpRoutes.of[IO]:
     case GET -> Root / "ws" =>

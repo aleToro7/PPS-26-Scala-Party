@@ -27,10 +27,9 @@ object ServerApp extends IOApp.Simple:
       registry <- ConnectionRegistry()
       lobby    <- LobbyManager.of[IO]
 
+      commandService <- GameCommandService()
+      
       accessService  = AccessService(lobby)
-      commandService = GameCommandService()
-
-      // Injecting both ports into the network adapter
       wsServer = WebSocketServer(registry, accessService, commandService)
 
       _ <- EmberServerBuilder

@@ -22,7 +22,7 @@ class ServerIntegrationSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers
         lobby    <- LobbyManager.of[IO]
 
         accessService  = AccessService(lobby)
-        commandService = GameCommandService()
+        commandService <- GameCommandService()
 
         wsServer = WebSocketServer(registry, accessService, commandService)
 
