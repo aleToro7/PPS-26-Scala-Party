@@ -1,7 +1,6 @@
 package com.unibo.scalaparty.infrastructure.application
 
 import cats.effect.{IO, Ref}
-import cats.syntax.all.*
 import com.unibo.scalaparty.infrastructure.ports.CommandPort
 import com.unibo.scalaparty.infrastructure.model.{MatchId, PlayerId}
 import com.unibo.scalaparty.core.ecs.EntityId
@@ -9,34 +8,33 @@ import com.unibo.scalaparty.core.model.PlayerCommand as IntentCommand
 import com.unibo.scalaparty.core.dto.PlayerCommand as DtoCommand
 import com.unibo.scalaparty.infrastructure.application.CommandAdapter.*
 
-type CommandBuffer = Map[MatchId, List[DtoCommand]]
+type CommandBuffer = Map[MatchId, List[(PlayerId, IntentCommand)]]
 
 /**
- * Implementation of the [[CommandPort]] responsible for routing in-game actions.
- *
- * Note: Currently implemented as a stub for RFU1. In future iterations (e.g., RFU3),
- * this service will take the GameEngine as a dependency to process actual
- * gameplay mechanics and resolve state computations.
+ * Implementation of the [[CommandPort]] responsible for buffering in-game network actions.
+ * It routes commands purely based on player and match IDs without resolving game logic.
  */
 class GameCommandService(bufferRef: Ref[IO, CommandBuffer]) extends CommandPort[IO]:
 
   def handleCommand(matchId: MatchId, playerId: PlayerId, command: IntentCommand): IO[Unit] =
+    bufferRef.update: buffer =>
+      val currentCommands = buffer.getOrElse(matchId, List.empty)
+      buffer.updated(matchId, currentCommands :+ (playerId -> command))
+    .flatMap(_ =>
+      IO.println(s"Match $matchId | Command buffered from player $playerId: $command")
+    )
 
-    // TODO: get EntityId
-    val dummyEntityId = EntityId.generate()
+  /** Extracts all accumulated (PlayerId, IntentCommand) for a match and clears the queue. */
+  def drainCommands(matchId: MatchId): IO[List[(PlayerId, IntentCommand)]] =
+    bufferRef.modify: buffer =>
+      val pending = buffer.getOrElse(matchId, List.empty)
+      (buffer.updated(matchId, List.empty), pending)
 
-    command.toDto(dummyEntityId) match
-      case Some(ecsCommand) =>
-        bufferRef.update(buffer =>
-          val currentCommands = buffer.getOrElse(matchId, List.empty)
-          buffer.updated(matchId, currentCommands :+ ecsCommand)
-        ).flatMap(_ =>
-          IO.println(s"Match $matchId | Command buffered: $ecsCommand")
-        )
-
-      case None =>
-        IO.println(s"Match $matchId | Command ignored: $command is not supported by DTO")
-    
 object GameCommandService:
+  /**
+   * Factory method that safely initializes the concurrent state buffer.
+   *
+   * @return an IO containing the instantiated GameCommandService.
+   */
   def apply(): IO[GameCommandService] =
-    Ref.of[IO, CommandBuffer](Map.empty).map(ref => new GameCommandService(ref))
+    Ref.of[IO, CommandBuffer](Map.empty).map(new GameCommandService(_))
