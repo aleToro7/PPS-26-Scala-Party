@@ -1,8 +1,10 @@
 package com.unibo.scalaparty.infrastructure.network
 
 import cats.effect.IO
+import cats.effect.std.Queue
 import cats.effect.testing.scalatest.AsyncIOSpec
 import com.unibo.scalaparty.infrastructure.model.{MatchId, PlayerId}
+import org.http4s.websocket.WebSocketFrame
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
 
@@ -16,7 +18,8 @@ class ConnectionRegistrySpec extends AsyncWordSpec with AsyncIOSpec with Matcher
 
       for
         registry <- ConnectionRegistry()
-        _        <- registry.bindSessionToMatch(playerId, matchId)
+        queue    <- Queue.unbounded[IO, WebSocketFrame]
+        _        <- registry.bindSessionToMatch(playerId, matchId, queue)
         players  <- registry.getClientsForMatch(matchId)
       yield
         players.size shouldBe 1
@@ -37,7 +40,8 @@ class ConnectionRegistrySpec extends AsyncWordSpec with AsyncIOSpec with Matcher
 
       for
         registry <- ConnectionRegistry()
-        _        <- registry.bindSessionToMatch(playerId, matchId)
+        queue    <- Queue.unbounded[IO, WebSocketFrame]
+        _        <- registry.bindSessionToMatch(playerId, matchId, queue)
         _        <- registry.removeSession(playerId)
         players  <- registry.getClientsForMatch(matchId)
       yield
@@ -50,8 +54,10 @@ class ConnectionRegistrySpec extends AsyncWordSpec with AsyncIOSpec with Matcher
 
       for
         registry <- ConnectionRegistry()
-        _        <- registry.bindSessionToMatch(player1, matchId)
-        _        <- registry.bindSessionToMatch(player2, matchId)
+        queue1   <- Queue.unbounded[IO, WebSocketFrame]
+        queue2   <- Queue.unbounded[IO, WebSocketFrame]
+        _        <- registry.bindSessionToMatch(player1, matchId, queue1)
+        _        <- registry.bindSessionToMatch(player2, matchId, queue2)
         players  <- registry.getClientsForMatch(matchId)
       yield
         players.size shouldBe 2
