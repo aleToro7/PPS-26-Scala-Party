@@ -2,7 +2,7 @@ package com.unibo.scalaparty.infrastructure
 
 import cats.effect.{IO, IOApp}
 import com.comcast.ip4s.*
-import com.unibo.scalaparty.infrastructure.application.{LobbyManager, AccessService, GameCommandService}
+import com.unibo.scalaparty.infrastructure.application.{LobbyManager, GameCommandService}
 import com.unibo.scalaparty.infrastructure.network.{ConnectionRegistry, WebSocketServer}
 import org.http4s.HttpRoutes
 import org.http4s.dsl.io.*
@@ -26,11 +26,9 @@ object ServerApp extends IOApp.Simple:
       _        <- IO.println("Initializing services...")
       registry <- ConnectionRegistry()
       lobby    <- LobbyManager.of[IO]
-
       commandService <- GameCommandService()
-      
-      accessService  = AccessService(lobby)
-      wsServer = WebSocketServer(registry, accessService, commandService)
+
+      wsServer = WebSocketServer(registry, lobby, commandService)
 
       _ <- EmberServerBuilder
         .default[IO]
