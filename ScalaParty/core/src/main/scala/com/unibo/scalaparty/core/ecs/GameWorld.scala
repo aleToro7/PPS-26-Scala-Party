@@ -3,6 +3,7 @@ package com.unibo.scalaparty.core.ecs
 import java.util.concurrent.atomic.AtomicLong
 import scala.reflect.ClassTag
 
+type EntityWithComponents = (EntityId, List[Component])
 
 opaque type WorldId = Long
 
@@ -38,14 +39,14 @@ trait GameWorld:
    *
    * @return a list of (entityId, components) pairs for all entities currently in the world
    */
-  def entitiesWithComponents: List[(EntityId, List[Component])] =
+  def entitiesWithComponents: List[EntityWithComponents] =
     entities.map(id => (id, findComponents(id).getOrElse(Nil)))
   /** Adds a new entity with the specified [[EntityId]] and a list of [[Component]]s to the world.
    *
    * @param entity a tuple containing the unique identifier of the entity and its associated list of components
    * @return a new instance of the world containing the added entity and its components
    */
-  def addEntity(entity: (EntityId, List[Component])): GameWorld
+  def addEntity(entity: EntityWithComponents): GameWorld
 
   /** Adds a new entity with the specified [[EntityId]] and a list of [[Component]]s to the world.
    *
@@ -56,7 +57,7 @@ trait GameWorld:
   def addEntity(entityId: EntityId, components: List[Component]): GameWorld = addEntity((entityId, components))
 
   /** Alias for [[addEntity]]. */
-  def +(entity: (EntityId, List[Component])): GameWorld = addEntity(entity)
+  def +(entity: EntityWithComponents): GameWorld = addEntity(entity)
 
   /** Removes an entity with the specified [[EntityId]] from the world.
    *
@@ -75,12 +76,12 @@ trait GameWorld:
    */
   def findComponents(entityId: EntityId): Option[List[Component]]
 
-  /** Retrieves the list of [[EntityId]]s that have a component of the specified class.
+  /** Retrieves the list of entities that have a component of the specified class.
    *
    * @tparam C the type of the component
-   * @return a list of entity IDs that have the specified component
+   * @return a list of entity IDs and their associated components that have a component of type C
    */
-  def findEntitiesWithComponent[C <: Component : ClassTag]: List[EntityId]
+  def findEntitiesWithComponent[C <: Component : ClassTag]: List[EntityWithComponents]
 
 object GameWorld:
   /** Creates a new instance of [[GameWorld]] with the specified list of entities and their associated components.
@@ -95,15 +96,15 @@ object GameWorld:
    * @param list a list of tuples, each containing an [[EntityId]] and its associated list of [[Component]]s
    * @return a new instance of [[GameWorld]] containing the provided entities and components
    */
-  def apply(list: List[(EntityId, List[Component])]): GameWorld = GameWorld(list.toMap)
+  def apply(list: List[EntityWithComponents]): GameWorld = GameWorld(list.toMap)
 
-class GameWorldImpl(private val entityMap: Map[EntityId, List[Component]]) extends GameWorld:
+private class GameWorldImpl(private val entityMap: Map[EntityId, List[Component]]) extends GameWorld:
 
   /** @inheritdoc    */
   override val entities: List[EntityId] = entityMap.keys.toList
 
   /** @inheritdoc    */
-  override def addEntity(entity: (EntityId, List[Component])): GameWorld =
+  override def addEntity(entity: EntityWithComponents): GameWorld =
     new GameWorldImpl(entityMap + entity)
 
   /** @inheritdoc    */
@@ -114,9 +115,8 @@ class GameWorldImpl(private val entityMap: Map[EntityId, List[Component]]) exten
   override def findComponents(entityId: EntityId): Option[List[Component]] = entityMap.get(entityId)
 
   /** @inheritdoc    */
-  override def findEntitiesWithComponent[C <: Component : ClassTag]: List[EntityId] =
+  override def findEntitiesWithComponent[C <: Component : ClassTag]: List[EntityWithComponents] =
+    val componentClass = implicitly[ClassTag[C]].runtimeClass
     entityMap
-      .filter:
-        case (_, components) => components.exists(_.getClass == implicitly[ClassTag[C]].runtimeClass)
+      .filter((_, components) => components.exists(c => componentClass.isInstance(c)))
       .toList
-      .map(_._1)
