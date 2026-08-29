@@ -1,13 +1,21 @@
+# Analisi dei requisiti
+
 In questa sezione vengono descritti nel dettaglio il dominio ed i requisiti del progetto.
+
 ## Requisiti di business
 
-L'obiettivo chiave del progetto è la realizzazione di Scala Party: un videogioco multiplayer online di tipo arcade, fortemente ispirato al celebre _Astro Party_. In particolare:
+L'obiettivo chiave del progetto è la realizzazione di **ScalaParty**: un videogioco multiplayer online di tipo arcade basato sul paradigma _last man standing_ in cui i giocatori competono all'interno di arene bidimensionali
+Il gioco è fortemente ispirato al titolo _Astro Party_ di cui ne riprende pienamente le meccaniche di gioco.
 
-- Il gioco deve essere fruibile direttamente tramite un'interfaccia web che permetta di accedere ad una partita e giocare con altri utenti.
+Il sistema deve rispettare i seguenti vincoli di business:
+
+- I giocatori competono all'interno di un'arena bidimensionale, controllando ciascuno una navicella spaziale in moto costante, di cui possono modificare la rotazione e sparare proiettili per colpire gli avversari.
+
+- Il gioco deve essere fruibile direttamente tramite un comune browser web che permetta di accedere ad una partita e giocare con altri utenti.
+
+- Nessuna registrazione deve essere richiesta, gli utenti si connetteranno e attenderanno che la prima lobby disponibile li inserisca automaticamente in una partita.
     
-- Il sistema deve consentire a più utenti di connettersi a una partita online e competere in tempo reale, assicurando una sincronizzazione corretta dello stato di gioco.
-    
-- Le meccaniche di gioco devono rispecchiare fedelmente il modello di _Astro Party_.
+- Il sistema deve garantire la sincronizzazione in tempo reale dello stato della partita tra tutti i client connessi durante lo svolgimento del match.
 
 ## Modello del dominio
 
