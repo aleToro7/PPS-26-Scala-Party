@@ -1,4 +1,4 @@
-
+In questa sezione vengono descritti nel dettaglio il dominio ed i requisiti del progetto.
 ## Requisiti di business
 
 L'obiettivo chiave del progetto è la realizzazione di Scala Party: un videogioco multiplayer online di tipo arcade, fortemente ispirato al celebre _Astro Party_. In particolare:
