@@ -19,20 +19,53 @@ Il sistema deve rispettare i seguenti vincoli di business:
 
 ## Modello del dominio
 
-ScalaParty è un videogioco multigiocatore ambientato nello spazio. Ogni partita comprende fino a quattro giocatori, ognuno dei quali controlla una propria navicella spaziale all'interno di un'arena delimitata. Le navicelle si muovono costantemente nello spazio di gioco, poiché una navicella non può mai rimanere ferma: il giocatore può esclusivamente modificarne la direzione di rotazione. Durante la partita, le navicelle possono sparare proiettili per colpire gli avversari. Lo spazio di gioco è caratterizzato dalla presenza di muri fissi, che costituiscono ostacoli impenetrabili sia per le navicelle che per i proiettili.
+ScalaParty è un videogioco multigiocatore ambientato nello spazio.
+Ogni partita comprende fino a quattro giocatori, ognuno dei quali controlla una propria navicella spaziale all'interno di un'arena delimitata.
+Le navicelle si muovono costantemente nello spazio di gioco, poiché una navicella non può mai rimanere ferma: il giocatore può esclusivamente modificarne la direzione di rotazione.
+Durante la partita, le navicelle possono sparare proiettili per colpire gli avversari.
+Lo spazio di gioco è caratterizzato dalla presenza di muri fissi, che costituiscono ostacoli impenetrabili sia per le navicelle che per i proiettili.
 
-Ogni navicella dispone di un livello di vita che diminuisce a ogni danno subito, che può essere provocato dall'impatto diretto con un proiettile avversario o dallo scontro con un'altra navicella. Quando i punti vita si azzerano, la navicella viene distrutta ed è eliminata dalla partita. L'ultimo giocatore a rimanere in vita si aggiudica la vittoria.
+Ogni navicella dispone di un livello di vita che diminuisce ad ogni danno subito, che può essere provocato dall'impatto diretto con un proiettile avversario o dallo scontro con un'altra navicella.
+Quando i punti vita si azzerano, la navicella viene distrutta ed è eliminata dalla partita. L'ultimo giocatore a rimanere in vita si aggiudica la vittoria.
 
 Gli elementi concettuali e le entità che compongono il dominio di gioco sono i seguenti:
 
--  **Partita (Match):** Rappresenta l'istanza di gioco attiva, caratterizzata da un'arena con confini definiti, una durata e un insieme di giocatori partecipanti.
+- **Partita (Match):** Rappresenta l'istanza di gioco attiva, caratterizzata da un'arena con confini definiti, una durata e un insieme di giocatori partecipanti.
 - **Giocatore (Player):** L'utente collegato alla sessione, che detiene il controllo di una navicella all'interno dell'arena.
 - **Navicella (Spaceship)**: La navicella controllata dal giocatore che naviga all'interno dell'arena.
 - **Muro (Wall)**: Ostacolo che impedisce il passaggio di navicelle e proiettili attraverso di esso.
 - **Proiettile (Bullet)**: Colpo sparato da una nevicella che causa danno da contatto ad altre navicelle avversarie.
 - **Arena**: Spazio di gioco limitato in cui si sfidano le navicelle spaziali.
 
---- Da inserire un bello schema UML ---
+```mermaid
+classDiagram 
+
+    class Match {
+        + join(p: Player) Unit
+        + start() Unit
+    }
+
+    class Player
+
+    class Spaceship {
+        + fire() Bullet
+        + rotate(angle: Double) Unit
+    }
+
+    class Wall
+
+    class Bullet
+
+    class Arena
+
+    Match "1" o-- "1..4" Player: composed of
+    Match "1" -- "1" Arena: takes place in
+    Player "1" -- "1" Spaceship: controls
+    Spaceship "1" -- "0..*" Bullet: fires
+    Arena "1" o-- "0..*" Wall: contains
+    Arena "1" o-- "0..*" Spaceship: contains
+    Arena "1" o-- "0..*" Bullet: contains
+```
 
 ## Requisiti funzionali
 
