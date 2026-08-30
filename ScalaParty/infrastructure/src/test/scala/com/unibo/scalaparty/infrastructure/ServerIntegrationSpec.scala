@@ -2,7 +2,7 @@ package com.unibo.scalaparty.infrastructure
 
 import cats.effect.IO
 import cats.effect.testing.scalatest.AsyncIOSpec
-import com.unibo.scalaparty.infrastructure.application.{LobbyManager, AccessService, GameCommandService}
+import com.unibo.scalaparty.infrastructure.application.{LobbyManager, GameCommandService}
 import com.unibo.scalaparty.infrastructure.network.{ConnectionRegistry, WebSocketServer}
 import org.http4s.*
 import org.http4s.Method.GET
@@ -20,11 +20,9 @@ class ServerIntegrationSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers
       for
         registry <- ConnectionRegistry()
         lobby    <- LobbyManager.of[IO]
+        commandService <- GameCommandService()
 
-        accessService  = AccessService(lobby)
-        commandService = GameCommandService()
-
-        wsServer = WebSocketServer(registry, accessService, commandService)
+        wsServer = WebSocketServer(registry, lobby, commandService)
 
         request = Request[IO](method = GET, uri = uri"/ws")
           .withHeaders(

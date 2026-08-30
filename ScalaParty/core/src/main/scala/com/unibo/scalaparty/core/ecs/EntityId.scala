@@ -14,10 +14,15 @@ object EntityId:
    */
   def generate(): EntityId = counter.getAndIncrement()
 
-extension (id: EntityId)
-  /** Retrieves the underlying Long value of the [[EntityId]].
-   *
-   * @return the Long value representing the [[EntityId]]
+  /** Explicit boundary method for external infrastructure (e.g., deserialization).
+   * Use with caution outside of network codecs.
    */
-  def value: Long = id
+  def fromLong(value: Long): EntityId = value
+
+  extension (id: EntityId)
+    /** Retrieves the underlying Long value of the [[EntityId]].
+     *
+     * @return the Long value representing the [[EntityId]]
+     */
+    def value: Long = id
 

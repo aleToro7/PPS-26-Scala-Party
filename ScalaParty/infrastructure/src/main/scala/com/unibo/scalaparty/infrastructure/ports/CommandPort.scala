@@ -1,7 +1,7 @@
 package com.unibo.scalaparty.infrastructure.ports
 
-import com.unibo.scalaparty.core.model.PlayerCommand
 import com.unibo.scalaparty.infrastructure.model.{MatchId, PlayerId}
+import com.unibo.scalaparty.core.model.PlayerCommand
 
 /**
  * Inbound port handling the core gameplay commands during an active match.
