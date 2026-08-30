@@ -4,21 +4,27 @@ import cats.effect.{IO, IOApp}
 import com.comcast.ip4s.*
 import com.unibo.scalaparty.infrastructure.application.{GameCommandService, LobbyManager}
 import com.unibo.scalaparty.infrastructure.network.{ConnectionRegistry, WebSocketServer}
-import org.http4s.HttpRoutes
+import org.http4s.{HttpRoutes, StaticFile}
 import org.http4s.dsl.io.*
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.server.Router
 import org.http4s.server.websocket.WebSocketBuilder2
 
 object ServerApp extends IOApp.Simple:
+ private val gameRoute = "scalaparty"
 
-  val baseRoute: HttpRoutes[IO] = HttpRoutes.of[IO]:
+  private val baseRoute: HttpRoutes[IO] = HttpRoutes.of[IO]:
+    case request @ GET -> Root / gameRoute =>
+      StaticFile
+        .fromResource("/public/index.html", Some(request))
+        .getOrElseF(NotFound())
+
     case GET -> Root =>
       Ok("Scala Party Server is up and running!")
 
   def httpApp(wsb: WebSocketBuilder2[IO], wsServer: WebSocketServer) = Router(
     "/" -> baseRoute,
-    "/" -> wsServer.routes(wsb)
+    s"/$gameRoute/ws" -> wsServer.routes(wsb)
   ).orNotFound
 
   val run: IO[Unit] =
