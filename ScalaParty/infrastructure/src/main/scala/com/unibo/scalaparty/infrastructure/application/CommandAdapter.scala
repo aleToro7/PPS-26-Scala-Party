@@ -12,5 +12,5 @@ object CommandAdapter:
      *  Returns None if the command is not yet supported by the DTO.
      */
     def toDto(entityId: EntityId): Option[DtoCommand] = intent match
-      case IntentCommand.Rotate(angle) => Some(DtoCommand.Rotate(entityId, angle))
+      case IntentCommand.Rotate(angle) => Some(DtoCommand.RotateCommand(entityId, angle))
       case IntentCommand.Shoot         => None
