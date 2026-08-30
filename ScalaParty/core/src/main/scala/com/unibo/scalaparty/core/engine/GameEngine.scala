@@ -28,7 +28,7 @@ object GameEngine:
 
 private class SinglePlayerGameEngine(config: GameConfig) extends GameEngine:
 
-  private val world: GameWorld = initializeWorld(config)
+  private var world: GameWorld = initializeWorld(config)
 
   private def initializeWorld(config: GameConfig): GameWorld =
     val playerSpaceship = EntityFactory.createSpaceship(
@@ -40,14 +40,22 @@ private class SinglePlayerGameEngine(config: GameConfig) extends GameEngine:
 
   override def update(list: List[GameCommand], dt: Long): List[EntityDto] =
     // Process player commands and update the world state
-    val world = InputGateway.processCommands(this.world, list)
+    world = InputGateway.processCommands(this.world, list)
     // Execute pipeline of systems
     val (updatedWorld, _) = config.pipeline
       .toList
       .foldLeft((world, Set.empty[GameEvent])):
         case ((currentWorld, events), system) => system.update(currentWorld, events, dt)
-    // Return the updated entities as DTOs
-    updatedWorld
-      .entitiesWithComponents
-      .map(_.toDto)
-      .collect({ case Some(dto) => dto })
+    world = updatedWorld
+    world.serialized
+
+extension (world: GameWorld)
+
+  /** Converts the entities in the game world to their corresponding DTO representations.
+   *
+   *  @return a list of EntityDto representing the entities in the game world
+   */
+  def serialized: List[EntityDto] = world.entitiesWithComponents
+    .map(_.toDto)
+    .collect:
+      case Some(dto) => dto
