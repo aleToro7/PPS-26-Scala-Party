@@ -5,6 +5,8 @@ import org.scalatest.matchers.should.Matchers
 
 class Vector2DSpec extends AnyFlatSpec with Matchers:
 
+  private val precision = 1e-10
+
   "A Vector2D" should "provide a zero vector constant at origin" in :
     Vector2D.zero shouldBe Vector2D(0.0, 0.0)
 
@@ -35,3 +37,10 @@ class Vector2DSpec extends AnyFlatSpec with Matchers:
   "A Vector2D" should "return Vector2D.zero when normalizing a zero module vector" in :
     val zeroVec = Vector2D.zero
     zeroVec.normalized shouldBe Vector2D.zero
+
+  "A Vector2D" should "rotate a vector by a given angle in degrees" in :
+    val v = Vector2D(1.0, 0.0)
+    val angle = 90.0
+    val rotated: Vector2D = v.rotated(angle)
+    rotated.x shouldBe 0.0 +- precision
+    rotated.y shouldBe 1.0 +- precision
