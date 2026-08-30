@@ -1,16 +1,16 @@
 package com.unibo.scalaparty.infrastructure.application
 
 import com.unibo.scalaparty.core.ecs.EntityId
-import com.unibo.scalaparty.core.model.PlayerCommand as IntentCommand
-import com.unibo.scalaparty.core.dto.PlayerCommand as DtoCommand
+import com.unibo.scalaparty.core.model.GameCommand
+import com.unibo.scalaparty.infrastructure.network.dto.PlayerInput
 
 object CommandAdapter:
 
-  extension (intent: IntentCommand)
+  extension (intent: PlayerInput)
 
     /** Converts the raw network intent into the application domain DTO for the ECS.
      *  Returns None if the command is not yet supported by the DTO.
      */
-    def toDto(entityId: EntityId): Option[DtoCommand] = intent match
-      case IntentCommand.Rotate(angle) => Some(DtoCommand.RotateCommand(entityId, angle))
-      case IntentCommand.Shoot         => None
+    def toDto(entityId: EntityId): Option[GameCommand] = intent match
+      case PlayerInput.Rotate(angle) => Some(GameCommand.RotateCommand(entityId, angle))
+      case PlayerInput.Shoot => None

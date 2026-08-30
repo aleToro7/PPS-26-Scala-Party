@@ -2,7 +2,7 @@ package com.unibo.scalaparty.infrastructure
 
 import cats.effect.IO
 import cats.effect.testing.scalatest.AsyncIOSpec
-import com.unibo.scalaparty.infrastructure.application.{LobbyManager, GameCommandService}
+import com.unibo.scalaparty.infrastructure.application.{GameCommandService, LobbyManager}
 import com.unibo.scalaparty.infrastructure.network.{ConnectionRegistry, WebSocketServer}
 import org.http4s.*
 import org.http4s.Method.GET
@@ -16,10 +16,9 @@ class ServerIntegrationSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers
 
   "The integrated WebSocket Server" - (
     "should handle a connection request and assign the player to a lobby" in (
-
       for
-        registry <- ConnectionRegistry()
-        lobby    <- LobbyManager.of[IO]
+        registry       <- ConnectionRegistry()
+        lobby          <- LobbyManager.of[IO]
         commandService <- GameCommandService()
 
         wsServer = WebSocketServer(registry, lobby, commandService)
@@ -36,9 +35,8 @@ class ServerIntegrationSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers
         response <- wsServer.routes(wsb).orNotFound.run(request)
 
         activeMatches <- lobby.activeMatchIds
-
       yield
         response.status shouldBe Status.NotImplemented
         activeMatches.size shouldBe 1
-      )
     )
+  )

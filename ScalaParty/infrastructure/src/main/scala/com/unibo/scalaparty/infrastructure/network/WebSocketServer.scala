@@ -7,26 +7,25 @@ import org.http4s.HttpRoutes
 import org.http4s.dsl.io.*
 import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.websocket.WebSocketFrame
-import com.unibo.scalaparty.infrastructure.ports.{AccessPort, CommandPort}
-import com.unibo.scalaparty.core.model.PlayerCommand
-import io.circe.parser.decode
-import io.circe.generic.auto.*
+import com.unibo.scalaparty.infrastructure.network.dto.PlayerInput
 import com.unibo.scalaparty.infrastructure.network.dto.ProtocolCodecs.given
+import com.unibo.scalaparty.infrastructure.ports.{AccessPort, CommandPort}
+import io.circe.generic.auto.*
+import io.circe.parser.decode
 import cats.effect.std.Queue
 
-/**
- * Network adapter providing the WebSocket HTTP routes.
- * Orchestrates the connection lifecycle by bridging physical socket events
- * (Connect, Disconnect, Message) with the application's core logic ports.
+/** Network adapter providing the WebSocket HTTP routes.
+ *  Orchestrates the connection lifecycle by bridging physical socket events
+ *  (Connect, Disconnect, Message) with the application's core logic ports.
  *
- * @param connections Registry to track active sockets for future broadcasting.
- * @param accessPort Service handling the logical assignment of players to matches.
- * @param commandPort Service handling gameplay inputs (e.g., moving, shooting).
+ *  @param connections Registry to track active sockets for future broadcasting.
+ *  @param accessPort Service handling the logical assignment of players to matches.
+ *  @param commandPort Service handling gameplay inputs (e.g., moving, shooting).
  */
 class WebSocketServer(
- connections: ConnectionRegistry,
- accessPort: AccessPort[IO],
- commandPort: CommandPort[IO]
+    connections: ConnectionRegistry,
+    accessPort: AccessPort[IO],
+    commandPort: CommandPort[IO]
 ):
 
   def onConnect(playerId: PlayerId, queue: MessageQueue): IO[MatchId] =
@@ -46,7 +45,7 @@ class WebSocketServer(
   def onMessage(playerId: PlayerId, matchId: MatchId, frame: WebSocketFrame): IO[Unit] =
     frame match
       case WebSocketFrame.Text(jsonText, _) =>
-        decode[PlayerCommand](jsonText) match
+        decode[PlayerInput](jsonText) match
           case Right(command) =>
             commandPort.handleCommand(matchId, playerId, command)
 

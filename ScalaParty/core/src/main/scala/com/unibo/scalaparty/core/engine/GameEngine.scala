@@ -1,9 +1,10 @@
 package com.unibo.scalaparty.core.engine
 
-import com.unibo.scalaparty.core.dto.{EntityDto, PlayerCommand, toDto}
+import com.unibo.scalaparty.core.dto.{toDto, EntityDto}
 import com.unibo.scalaparty.core.ecs.{EntityFactory, EntityId, GameEvent, GameWorld}
 import com.unibo.scalaparty.core.engine.input.InputGateway
 import com.unibo.scalaparty.core.geometry.{Point2D, Vector2D}
+import com.unibo.scalaparty.core.model.GameCommand
 
 /** A trait representing the game engine responsible for updating the state of the game world based on player commands and elapsed time. */
 trait GameEngine:
@@ -13,7 +14,7 @@ trait GameEngine:
    *  @param dt    the elapsed time since the last update, in milliseconds
    *  @return a new list of entities representing the updated state of the game world
    */
-  def update(list: List[PlayerCommand], dt: Long): List[EntityDto]
+  def update(list: List[GameCommand], dt: Long): List[EntityDto]
 
 object GameEngine:
 
@@ -27,7 +28,7 @@ object GameEngine:
 
 private class SinglePlayerGameEngine(config: GameConfig) extends GameEngine:
 
-  private val world: GameWorld = initializeWorld(config)
+  private var world: GameWorld = initializeWorld(config)
 
   private def initializeWorld(config: GameConfig): GameWorld =
     val playerSpaceship = EntityFactory.createSpaceship(
@@ -37,16 +38,24 @@ private class SinglePlayerGameEngine(config: GameConfig) extends GameEngine:
     )
     GameWorld(List(playerSpaceship))
 
-  override def update(list: List[PlayerCommand], dt: Long): List[EntityDto] =
+  override def update(list: List[GameCommand], dt: Long): List[EntityDto] =
     // Process player commands and update the world state
-    val world = InputGateway.processCommands(this.world, list)
+    world = InputGateway.processCommands(this.world, list)
     // Execute pipeline of systems
     val (updatedWorld, _) = config.pipeline
       .toList
       .foldLeft((world, Set.empty[GameEvent])):
         case ((currentWorld, events), system) => system.update(currentWorld, events, dt)
-    // Return the updated entities as DTOs
-    updatedWorld
-      .entitiesWithComponents
-      .map(_.toDto)
-      .collect({ case Some(dto) => dto })
+    world = updatedWorld
+    world.serialized
+
+extension (world: GameWorld)
+
+  /** Converts the entities in the game world to their corresponding DTO representations.
+   *
+   *  @return a list of EntityDto representing the entities in the game world
+   */
+  def serialized: List[EntityDto] = world.entitiesWithComponents
+    .map(_.toDto)
+    .collect:
+      case Some(dto) => dto

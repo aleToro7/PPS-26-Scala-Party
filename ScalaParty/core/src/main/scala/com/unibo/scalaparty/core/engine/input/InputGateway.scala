@@ -1,8 +1,8 @@
 package com.unibo.scalaparty.core.engine.input
 
-import com.unibo.scalaparty.core.dto.PlayerCommand
-import com.unibo.scalaparty.core.dto.PlayerCommand.RotateCommand
 import com.unibo.scalaparty.core.ecs.GameWorld
+import com.unibo.scalaparty.core.model.GameCommand
+import com.unibo.scalaparty.core.model.GameCommand.RotateCommand
 
 /** The InputGateway trait defines the interface for processing player commands and updating the game world accordingly.
  *
@@ -16,7 +16,7 @@ object InputGateway:
    *  @param commands a list of player commands to be processed
    *  @return a new instance of GameWorld reflecting the changes made by processing the commands
    */
-  def processCommands(world: GameWorld, commands: List[PlayerCommand]): GameWorld =
+  def processCommands(world: GameWorld, commands: List[GameCommand]): GameWorld =
     commands.foldLeft(world): (currentWorld, command) =>
       command match
         case rc: RotateCommand => RotateCommandExecutor.executeCommand(currentWorld, rc)

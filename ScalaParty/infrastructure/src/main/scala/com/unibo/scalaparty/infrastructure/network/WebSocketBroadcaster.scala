@@ -4,15 +4,14 @@ import cats.effect.IO
 import cats.syntax.all.*
 import io.circe.syntax.*
 import org.http4s.websocket.WebSocketFrame
-import com.unibo.scalaparty.infrastructure.ports.MatchEventPublisher
 import com.unibo.scalaparty.core.model.{GameEvent, MatchState}
 import com.unibo.scalaparty.infrastructure.model.MatchId
 import com.unibo.scalaparty.infrastructure.network.dto.ProtocolCodecs.given
+import com.unibo.scalaparty.infrastructure.ports.MatchEventPublisher
 
-/**
- * Outbound adapter that implements the [[MatchEventPublisher]] port.
- * It serializes the pure domain events and match states into JSON strings,
- * then pushes them to the active WebSocket message queues retrieved from the registry.
+/** Outbound adapter that implements the [[MatchEventPublisher]] port.
+ *  It serializes the pure domain events and match states into JSON strings,
+ *  then pushes them to the active WebSocket message queues retrieved from the registry.
  */
 class WebSocketBroadcaster(registry: ConnectionRegistry) extends MatchEventPublisher[IO]:
 
@@ -28,5 +27,5 @@ class WebSocketBroadcaster(registry: ConnectionRegistry) extends MatchEventPubli
     for
       queues <- registry.getQueuesForMatch(matchId)
       // Concurrently push the frame to all queues belonging to this match
-      _      <- queues.traverse(_.offer(frame))
+      _ <- queues.traverse(_.offer(frame))
     yield ()
