@@ -1,61 +1,69 @@
 package com.unibo.scalaparty.infrastructure.application
 
-import cats.effect.{IO, Ref}
-import cats.effect.unsafe.implicits.global
+import cats.effect.IO
+import cats.effect.testing.scalatest.AsyncIOSpec
 import com.unibo.scalaparty.core.engine.GameEngine
 import com.unibo.scalaparty.core.dto.{EntityDto, PlayerCommand as DtoCommand}
 import com.unibo.scalaparty.core.model.PlayerCommand as IntentCommand
 import com.unibo.scalaparty.infrastructure.model.{MatchId, PlayerId}
 import com.unibo.scalaparty.core.ecs.{EntityId, GameWorld}
-import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.wordspec.AsyncWordSpec
 import org.scalatest.matchers.should.Matchers
 
-import scala.concurrent.duration.*
+class MatchRunnerSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
 
-class MatchRunnerSpec extends AnyFlatSpec with Matchers:
+  class Fixture:
+    val matchId: MatchId = MatchId.random()
+    val playerId: PlayerId = PlayerId.random()
+    val entityId: EntityId = EntityId.generate()
 
-  "A MatchRunner" should "drain commands, execute engine updates, and publish state changes correctly" in {
+    var capturedCommands: List[DtoCommand] = List.empty
+    var publishedStates: List[List[EntityDto]] = List.empty
 
-    val matchId = MatchId.random()
-    val playerId = PlayerId.random()
-    val entityId = EntityId.generate()
+    val engine: GameEngine = new GameEngine:
+      def update(commands: List[DtoCommand], dt: Long): List[EntityDto] =
+        capturedCommands = capturedCommands ++ commands
+        List.empty
 
-    // Construct the MatchSession required by the updated MatchRunner
-    val session = MatchSession(
-      matchId = matchId,
-      players = Map(playerId -> entityId),
-      world = GameWorld(Map.empty)
-    )
+    val publisher: MatchEventPublisher[IO] = new MatchEventPublisher[IO]:
+      def publishState(mId: MatchId, entities: List[EntityDto]): IO[Unit] = IO:
+        publishedStates = publishedStates :+ entities
 
-    val testProgram = for
-      commandService <- GameCommandService()
+  "A MatchRunner" should:
 
-      // Mock GameEngine implementation for testing purposes
-      engine = new GameEngine:
-        def update(commands: List[DtoCommand], dt: Long): List[EntityDto] =
-          List.empty
+    "execute ticks and publish state changes at each interval" in:
+      val f = Fixture()
+      val session = MatchSession(f.matchId, Map.empty, GameWorld(Map.empty))
 
-      // Ref to capture published states across ticks
-      publishedStatesRef <- Ref.of[IO, List[List[EntityDto]]](List.empty)
+      for
+        commandService <- GameCommandService()
+        runner = new MatchRunner(session, commandService, f.engine, f.publisher)
+        _ <- runner.run.take(3).compile.drain
+      yield
+        f.publishedStates.length shouldEqual 3
 
-      publisher = new MatchEventPublisher[IO]:
-        def publishState(mId: MatchId, entities: List[EntityDto]): IO[Unit] =
-          publishedStatesRef.update(_ :+ entities)
+    "drain and process queued player commands during execution" in:
+      val f = Fixture()
+      val session = MatchSession(f.matchId, Map(f.playerId -> f.entityId), GameWorld(Map.empty))
 
-      // Inject the MatchSession instead of the raw MatchId
-      runner = new MatchRunner(session, commandService, engine, publisher)
+      for
+        commandService <- GameCommandService()
+        runner = new MatchRunner(session, commandService, f.engine, f.publisher)
+        _ <- commandService.handleCommand(f.matchId, f.playerId, IntentCommand.Rotate(45.0))
+        _ <- runner.run.take(1).compile.drain
+      yield
+        f.capturedCommands.length shouldEqual 1
+        f.capturedCommands.head shouldEqual DtoCommand.Rotate(f.entityId, 45.0)
 
-      // Enqueue a sample player command using the mapped playerId
-      _ <- commandService.handleCommand(matchId, playerId, IntentCommand.Rotate(90.0))
+    "ignore unmapped player commands not present in the session mapping" in:
+      val f = Fixture()
+      val unregisteredPlayer = PlayerId.random()
+      val session = MatchSession(f.matchId, Map(f.playerId -> f.entityId), GameWorld(Map.empty))
 
-      // Execute the FS2 stream for exactly 2 ticks, then compile and drain
-      _ <- runner.run.take(2).compile.drain
-
-      states <- publishedStatesRef.get
-    yield states
-
-    val results = testProgram.unsafeRunSync()
-
-    // Verify that the match runner executed two ticks and published state twice
-    results.length shouldBe 2
-  }
+      for
+        commandService <- GameCommandService()
+        runner = new MatchRunner(session, commandService, f.engine, f.publisher)
+        _ <- commandService.handleCommand(f.matchId, unregisteredPlayer, IntentCommand.Shoot)
+        _ <- runner.run.take(1).compile.drain
+      yield
+        f.capturedCommands shouldBe empty
