@@ -1,7 +1,11 @@
 package com.unibo.scalaparty.infrastructure.network
 
 import cats.effect.{IO, Ref}
+import cats.effect.std.Queue
+import org.http4s.websocket.WebSocketFrame
 import com.unibo.scalaparty.infrastructure.model.{MatchId, PlayerId}
+
+type MessageQueue = Queue[IO, WebSocketFrame]
 
 /**
  * Registry for managing active physical connections (e.g., WebSockets).
@@ -10,8 +14,7 @@ import com.unibo.scalaparty.infrastructure.model.{MatchId, PlayerId}
  */
 trait ConnectionRegistry:
 
-  /** Links an active physical session of a player to a logical match. */
-  def bindSessionToMatch(playerId: PlayerId, matchId: MatchId): IO[Unit]
+  def bindSessionToMatch(playerId: PlayerId, matchId: MatchId, queue: MessageQueue): IO[Unit]
 
   /** Removes a physical session from the registry upon disconnection. */
   def removeSession(playerId: PlayerId): IO[Unit]
@@ -25,23 +28,25 @@ trait ConnectionRegistry:
    */
   def getClientsForMatch(matchId: MatchId): IO[List[PlayerId]]
 
-object ConnectionRegistry:
+  def getQueuesForMatch(matchId: MatchId): IO[List[MessageQueue]]
 
-  private type RegistryState = Map[PlayerId, MatchId]
+object ConnectionRegistry:
+  private case class Session(matchId: MatchId, queue: MessageQueue)
+  private type RegistryState = Map[PlayerId, Session]
 
   private class ConnectionRegistryImpl(state: Ref[IO, RegistryState]) extends ConnectionRegistry:
 
-    def bindSessionToMatch(playerId: PlayerId, matchId: MatchId): IO[Unit] =
-      state.update(_ + (playerId -> matchId))
+    override def bindSessionToMatch(playerId: PlayerId, matchId: MatchId, queue: MessageQueue): IO[Unit] =
+      state.update(_ + (playerId -> Session(matchId, queue)))
 
-    def removeSession(playerId: PlayerId): IO[Unit] =
+    override def removeSession(playerId: PlayerId): IO[Unit] =
       state.update(_ - playerId)
 
-    def getClientsForMatch(matchId: MatchId): IO[List[PlayerId]] =
-      state.get.map: stateMap =>
-        stateMap.collect:
-          case (pId, mId) if mId == matchId => pId
-        .toList
-          
+    override def getClientsForMatch(matchId: MatchId): IO[List[PlayerId]] =
+      state.get.map(_.collect { case (pId, Session(mId, _)) if mId == matchId => pId }.toList)
+
+    override def getQueuesForMatch(matchId: MatchId): IO[List[MessageQueue]] =
+      state.get.map(_.values.collect { case Session(mId, q) if mId == matchId => q }.toList)
+
   def apply(): IO[ConnectionRegistry] =
-    Ref.of[IO, RegistryState](Map.empty).map(ref => ConnectionRegistryImpl(ref))
+    Ref.of[IO, RegistryState](Map.empty).map(new ConnectionRegistryImpl(_))
