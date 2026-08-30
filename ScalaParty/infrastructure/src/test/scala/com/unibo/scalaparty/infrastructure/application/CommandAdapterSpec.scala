@@ -18,7 +18,7 @@ class CommandAdapterSpec extends AnyWordSpec with Matchers:
 
       val result = intent.toDto(entityId)
 
-      result shouldBe Some(DtoCommand.Rotate(entityId, 45.0))
+      result shouldBe Some(DtoCommand.RotateCommand(entityId, 45.0))
 
     "return None for unsupported intents like Shoot".in:
       val entityId = EntityId.generate()

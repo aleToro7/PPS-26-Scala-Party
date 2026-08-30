@@ -53,7 +53,7 @@ class MatchRunnerSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
         _ <- runner.run.take(1).compile.drain
       yield
         f.capturedCommands.length shouldEqual 1
-        f.capturedCommands.head shouldEqual DtoCommand.Rotate(f.entityId, 45.0)
+        f.capturedCommands.head shouldEqual DtoCommand.RotateCommand(f.entityId, 45.0)
 
     "ignore unmapped player commands not present in the session mapping" in:
       val f = Fixture()
