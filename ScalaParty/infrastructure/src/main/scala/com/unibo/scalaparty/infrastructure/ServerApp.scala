@@ -11,7 +11,7 @@ import org.http4s.server.Router
 import org.http4s.server.websocket.WebSocketBuilder2
 
 object ServerApp extends IOApp.Simple:
- private val gameRoute = "scalaparty"
+  private val gameRoute = "scalaparty"
 
   private val baseRoute: HttpRoutes[IO] = HttpRoutes.of[IO]:
     case request @ GET -> Root / gameRoute =>
