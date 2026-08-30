@@ -1,6 +1,6 @@
 package com.unibo.scalaparty.core.engine
 
-import com.unibo.scalaparty.core.dto.{EntityDto, PlayerCommand, toDto}
+import com.unibo.scalaparty.core.dto.{toDto, EntityDto, PlayerCommand}
 import com.unibo.scalaparty.core.ecs.{EntityFactory, EntityId, GameEvent, GameWorld}
 import com.unibo.scalaparty.core.engine.input.InputGateway
 import com.unibo.scalaparty.core.geometry.{Point2D, Vector2D}

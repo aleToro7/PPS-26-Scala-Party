@@ -1,8 +1,8 @@
 package com.unibo.scalaparty.infrastructure.application
 
+import com.unibo.scalaparty.core.dto.PlayerCommand as DtoCommand
 import com.unibo.scalaparty.core.ecs.EntityId
 import com.unibo.scalaparty.core.model.PlayerCommand as IntentCommand
-import com.unibo.scalaparty.core.dto.PlayerCommand as DtoCommand
 
 object CommandAdapter:
 
@@ -13,4 +13,4 @@ object CommandAdapter:
      */
     def toDto(entityId: EntityId): Option[DtoCommand] = intent match
       case IntentCommand.Rotate(angle) => Some(DtoCommand.RotateCommand(entityId, angle))
-      case IntentCommand.Shoot         => None
+      case IntentCommand.Shoot => None

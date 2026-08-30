@@ -2,11 +2,10 @@ package com.unibo.scalaparty.infrastructure.network
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import io.circe.parser.decode
 import io.circe.generic.auto.*
-import com.unibo.scalaparty.infrastructure.network.dto.ProtocolCodecs.given 
-
+import io.circe.parser.decode
 import com.unibo.scalaparty.core.model.PlayerCommand
+import com.unibo.scalaparty.infrastructure.network.dto.ProtocolCodecs.given
 
 class NetworkDecoderSpec extends AnyWordSpec with Matchers:
 

@@ -2,7 +2,7 @@ package com.unibo.scalaparty.infrastructure
 
 import cats.effect.{IO, IOApp}
 import com.comcast.ip4s.*
-import com.unibo.scalaparty.infrastructure.application.{LobbyManager, GameCommandService}
+import com.unibo.scalaparty.infrastructure.application.{GameCommandService, LobbyManager}
 import com.unibo.scalaparty.infrastructure.network.{ConnectionRegistry, WebSocketServer}
 import org.http4s.HttpRoutes
 import org.http4s.dsl.io.*
@@ -23,9 +23,9 @@ object ServerApp extends IOApp.Simple:
 
   val run: IO[Unit] =
     for
-      _        <- IO.println("Initializing services...")
-      registry <- ConnectionRegistry()
-      lobby    <- LobbyManager.of[IO]
+      _              <- IO.println("Initializing services...")
+      registry       <- ConnectionRegistry()
+      lobby          <- LobbyManager.of[IO]
       commandService <- GameCommandService()
 
       wsServer = WebSocketServer(registry, lobby, commandService)

@@ -2,13 +2,13 @@ package com.unibo.scalaparty.infrastructure.application
 
 import cats.effect.IO
 import cats.effect.testing.scalatest.AsyncIOSpec
-import com.unibo.scalaparty.core.engine.GameEngine
 import com.unibo.scalaparty.core.dto.{EntityDto, PlayerCommand as DtoCommand}
+import com.unibo.scalaparty.core.ecs.{EntityId, GameWorld}
+import com.unibo.scalaparty.core.engine.GameEngine
 import com.unibo.scalaparty.core.model.PlayerCommand as IntentCommand
 import com.unibo.scalaparty.infrastructure.model.{MatchId, PlayerId}
-import com.unibo.scalaparty.core.ecs.{EntityId, GameWorld}
-import org.scalatest.wordspec.AsyncWordSpec
 import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AsyncWordSpec
 
 class MatchRunnerSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
 
@@ -39,8 +39,7 @@ class MatchRunnerSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
         commandService <- GameCommandService()
         runner = new MatchRunner(session, commandService, f.engine, f.publisher)
         _ <- runner.run.take(3).compile.drain
-      yield
-        f.publishedStates.length shouldEqual 3
+      yield f.publishedStates.length shouldEqual 3
 
     "drain and process queued player commands during execution" in:
       val f = Fixture()
@@ -65,5 +64,4 @@ class MatchRunnerSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
         runner = new MatchRunner(session, commandService, f.engine, f.publisher)
         _ <- commandService.handleCommand(f.matchId, unregisteredPlayer, IntentCommand.Shoot)
         _ <- runner.run.take(1).compile.drain
-      yield
-        f.capturedCommands shouldBe empty
+      yield f.capturedCommands shouldBe empty

@@ -1,18 +1,17 @@
 package com.unibo.scalaparty.infrastructure.application
 
 import cats.effect.{IO, Ref}
-import com.unibo.scalaparty.infrastructure.ports.CommandPort
-import com.unibo.scalaparty.infrastructure.model.{MatchId, PlayerId}
+import com.unibo.scalaparty.core.dto.PlayerCommand as DtoCommand
 import com.unibo.scalaparty.core.ecs.EntityId
 import com.unibo.scalaparty.core.model.PlayerCommand as IntentCommand
-import com.unibo.scalaparty.core.dto.PlayerCommand as DtoCommand
 import com.unibo.scalaparty.infrastructure.application.CommandAdapter.*
+import com.unibo.scalaparty.infrastructure.model.{MatchId, PlayerId}
+import com.unibo.scalaparty.infrastructure.ports.CommandPort
 
 type CommandBuffer = Map[MatchId, List[(PlayerId, IntentCommand)]]
 
-/**
- * Implementation of the [[CommandPort]] responsible for buffering in-game network actions.
- * It routes commands purely based on player and match IDs without resolving game logic.
+/** Implementation of the [[CommandPort]] responsible for buffering in-game network actions.
+ *  It routes commands purely based on player and match IDs without resolving game logic.
  */
 class GameCommandService(bufferRef: Ref[IO, CommandBuffer]) extends CommandPort[IO]:
 
@@ -31,10 +30,9 @@ class GameCommandService(bufferRef: Ref[IO, CommandBuffer]) extends CommandPort[
       (buffer.updated(matchId, List.empty), pending)
 
 object GameCommandService:
-  /**
-   * Factory method that safely initializes the concurrent state buffer.
+  /** Factory method that safely initializes the concurrent state buffer.
    *
-   * @return an IO containing the instantiated GameCommandService.
+   *  @return an IO containing the instantiated GameCommandService.
    */
   def apply(): IO[GameCommandService] =
     Ref.of[IO, CommandBuffer](Map.empty).map(new GameCommandService(_))

@@ -9,10 +9,10 @@ import com.unibo.scalaparty.core.ecs.GameWorld
  */
 trait CommandExecutor[C <: PlayerCommand]:
 
-    /** Executes a single player command and updates the game world accordingly.
-     *
-     *  @param world   the current state of the game world
-     *  @param command the player command to be executed
-     *  @return a new instance of GameWorld reflecting the changes made by executing the command
-     */
+  /** Executes a single player command and updates the game world accordingly.
+   *
+   *  @param world   the current state of the game world
+   *  @param command the player command to be executed
+   *  @return a new instance of GameWorld reflecting the changes made by executing the command
+   */
   def executeCommand(world: GameWorld, command: C): GameWorld
