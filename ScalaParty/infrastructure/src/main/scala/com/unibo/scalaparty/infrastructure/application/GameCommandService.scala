@@ -1,21 +1,18 @@
 package com.unibo.scalaparty.infrastructure.application
 
 import cats.effect.{IO, Ref}
-import com.unibo.scalaparty.core.dto.PlayerCommand as DtoCommand
-import com.unibo.scalaparty.core.ecs.EntityId
-import com.unibo.scalaparty.core.model.PlayerCommand as IntentCommand
-import com.unibo.scalaparty.infrastructure.application.CommandAdapter.*
 import com.unibo.scalaparty.infrastructure.model.{MatchId, PlayerId}
+import com.unibo.scalaparty.infrastructure.network.dto.PlayerInput
 import com.unibo.scalaparty.infrastructure.ports.CommandPort
 
-type CommandBuffer = Map[MatchId, List[(PlayerId, IntentCommand)]]
+type CommandBuffer = Map[MatchId, List[(PlayerId, PlayerInput)]]
 
 /** Implementation of the [[CommandPort]] responsible for buffering in-game network actions.
  *  It routes commands purely based on player and match IDs without resolving game logic.
  */
 class GameCommandService(bufferRef: Ref[IO, CommandBuffer]) extends CommandPort[IO]:
 
-  def handleCommand(matchId: MatchId, playerId: PlayerId, command: IntentCommand): IO[Unit] =
+  def handleCommand(matchId: MatchId, playerId: PlayerId, command: PlayerInput): IO[Unit] =
     bufferRef.update: buffer =>
       val currentCommands = buffer.getOrElse(matchId, List.empty)
       buffer.updated(matchId, currentCommands :+ (playerId -> command))
@@ -23,8 +20,8 @@ class GameCommandService(bufferRef: Ref[IO, CommandBuffer]) extends CommandPort[
       IO.println(s"Match $matchId | Command buffered from player $playerId: $command")
     )
 
-  /** Extracts all accumulated (PlayerId, IntentCommand) for a match and clears the queue. */
-  def drainCommands(matchId: MatchId): IO[List[(PlayerId, IntentCommand)]] =
+  /** Extracts all accumulated (PlayerId, PlayerInput) for a match and clears the queue. */
+  def drainCommands(matchId: MatchId): IO[List[(PlayerId, PlayerInput)]] =
     bufferRef.modify: buffer =>
       val pending = buffer.getOrElse(matchId, List.empty)
       (buffer.updated(matchId, List.empty), pending)

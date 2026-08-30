@@ -1,6 +1,6 @@
 package com.unibo.scalaparty.core.engine.input
 
-import com.unibo.scalaparty.core.dto.PlayerCommand.RotateCommand
+import com.unibo.scalaparty.core.model.GameCommand.RotateCommand
 import com.unibo.scalaparty.core.ecs.{EntityId, GameWorld, MovementComponent}
 import com.unibo.scalaparty.core.geometry.Vector2D
 import org.scalatest.flatspec.AnyFlatSpec

@@ -1,8 +1,8 @@
 package com.unibo.scalaparty.core.engine.input
 
-import com.unibo.scalaparty.core.dto.PlayerCommand.RotateCommand
 import com.unibo.scalaparty.core.ecs.*
 import com.unibo.scalaparty.core.geometry.Vector2D
+import com.unibo.scalaparty.core.model.GameCommand.RotateCommand
 
 /** The RotateCommandExecutor is responsible for executing the RotateCommand, which rotates an entity's movement component by a specified angle.
  *  It implements the CommandExecutor trait for the RotateCommand type.

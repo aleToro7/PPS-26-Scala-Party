@@ -1,9 +1,10 @@
 package com.unibo.scalaparty.core.engine
 
-import com.unibo.scalaparty.core.dto.{toDto, EntityDto, PlayerCommand}
+import com.unibo.scalaparty.core.dto.{toDto, EntityDto}
 import com.unibo.scalaparty.core.ecs.{EntityFactory, EntityId, GameEvent, GameWorld}
 import com.unibo.scalaparty.core.engine.input.InputGateway
 import com.unibo.scalaparty.core.geometry.{Point2D, Vector2D}
+import com.unibo.scalaparty.core.model.GameCommand
 
 /** A trait representing the game engine responsible for updating the state of the game world based on player commands and elapsed time. */
 trait GameEngine:
@@ -13,7 +14,7 @@ trait GameEngine:
    *  @param dt    the elapsed time since the last update, in milliseconds
    *  @return a new list of entities representing the updated state of the game world
    */
-  def update(list: List[PlayerCommand], dt: Long): List[EntityDto]
+  def update(list: List[GameCommand], dt: Long): List[EntityDto]
 
 object GameEngine:
 
@@ -37,7 +38,7 @@ private class SinglePlayerGameEngine(config: GameConfig) extends GameEngine:
     )
     GameWorld(List(playerSpaceship))
 
-  override def update(list: List[PlayerCommand], dt: Long): List[EntityDto] =
+  override def update(list: List[GameCommand], dt: Long): List[EntityDto] =
     // Process player commands and update the world state
     val world = InputGateway.processCommands(this.world, list)
     // Execute pipeline of systems

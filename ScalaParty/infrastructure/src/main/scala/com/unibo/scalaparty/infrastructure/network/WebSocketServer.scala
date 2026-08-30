@@ -7,7 +7,7 @@ import org.http4s.HttpRoutes
 import org.http4s.dsl.io.*
 import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.websocket.WebSocketFrame
-import com.unibo.scalaparty.core.model.PlayerCommand
+import com.unibo.scalaparty.infrastructure.network.dto.PlayerInput
 import com.unibo.scalaparty.infrastructure.network.dto.ProtocolCodecs.given
 import com.unibo.scalaparty.infrastructure.ports.{AccessPort, CommandPort}
 import io.circe.generic.auto.*
@@ -45,7 +45,7 @@ class WebSocketServer(
   def onMessage(playerId: PlayerId, matchId: MatchId, frame: WebSocketFrame): IO[Unit] =
     frame match
       case WebSocketFrame.Text(jsonText, _) =>
-        decode[PlayerCommand](jsonText) match
+        decode[PlayerInput](jsonText) match
           case Right(command) =>
             commandPort.handleCommand(matchId, playerId, command)
 
