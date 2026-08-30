@@ -22,66 +22,6 @@ class LobbyManagerSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
         pending <- lobby.pendingMatch
       yield pending shouldBe None
 
-  "registerMatch".should:
-    "add an empty match to the active matches".in:
-      val matchId = MatchId.random()
-      for
-        lobby   <- LobbyManager.of[IO]
-        _       <- lobby.registerMatch(matchId)
-        ids     <- lobby.activeMatchIds
-        players <- lobby.playersInMatch(matchId)
-      yield
-        ids shouldBe Set(matchId)
-        players shouldBe empty
-
-  "removeMatch".should:
-    "remove a match and clear it if it was the pending one".in:
-      val matchId = MatchId.random()
-      for
-        lobby   <- LobbyManager.of[IO]
-        _       <- lobby.registerMatch(matchId)
-        _       <- lobby.setPendingMatch(Some(matchId))
-        _       <- lobby.removeMatch(matchId)
-        ids     <- lobby.activeMatchIds
-        pending <- lobby.pendingMatch
-      yield
-        ids shouldBe empty
-        pending shouldBe None
-
-  "addPlayerToMatch".should:
-    "add a player to an existing match".in:
-      val matchId  = MatchId.random()
-      val playerId = PlayerId.random()
-      for
-        lobby   <- LobbyManager.of[IO]
-        _       <- lobby.registerMatch(matchId)
-        _       <- lobby.addPlayerToMatch(matchId, playerId)
-        players <- lobby.playersInMatch(matchId)
-      yield players shouldBe Set(playerId)
-
-    "create the match entry if it doesn't exist yet".in:
-      val matchId  = MatchId.random()
-      val playerId = PlayerId.random()
-      for
-        lobby   <- LobbyManager.of[IO]
-        _       <- lobby.addPlayerToMatch(matchId, playerId)
-        players <- lobby.playersInMatch(matchId)
-      yield players shouldBe Set(playerId)
-
-  "removePlayerFromMatch".should:
-    "remove a player from a match, keeping the others".in:
-      val matchId   = MatchId.random()
-      val playerOne = PlayerId.random()
-      val playerTwo = PlayerId.random()
-      for
-        lobby   <- LobbyManager.of[IO]
-        _       <- lobby.registerMatch(matchId)
-        _       <- lobby.addPlayerToMatch(matchId, playerOne)
-        _       <- lobby.addPlayerToMatch(matchId, playerTwo)
-        _       <- lobby.removePlayerFromMatch(matchId, playerOne)
-        players <- lobby.playersInMatch(matchId)
-      yield players shouldBe Set(playerTwo)
-
   "joinLobby".should:
     "open a new match for the first player".in:
       val playerId = PlayerId.random()
@@ -132,14 +72,12 @@ class LobbyManagerSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
 
   "leaveLobby".should:
     "remove the player but keep the match if others remain".in:
-      val matchId   = MatchId.random()
       val playerOne = PlayerId.random()
       val playerTwo = PlayerId.random()
       for
         lobby   <- LobbyManager.of[IO]
-        _       <- lobby.registerMatch(matchId)
-        _       <- lobby.addPlayerToMatch(matchId, playerOne)
-        _       <- lobby.addPlayerToMatch(matchId, playerTwo)
+        matchId <- lobby.joinLobby(playerOne)
+        _       <- lobby.joinLobby(playerTwo)
         _       <- lobby.leaveLobby(matchId, playerOne)
         ids     <- lobby.activeMatchIds
         players <- lobby.playersInMatch(matchId)

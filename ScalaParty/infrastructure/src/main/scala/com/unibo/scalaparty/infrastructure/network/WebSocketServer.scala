@@ -8,6 +8,11 @@ import org.http4s.dsl.io.*
 import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.websocket.WebSocketFrame
 import com.unibo.scalaparty.infrastructure.ports.{AccessPort, CommandPort}
+import com.unibo.scalaparty.core.model.PlayerCommand
+import io.circe.parser.decode
+import io.circe.generic.auto.*
+import com.unibo.scalaparty.infrastructure.network.dto.ProtocolCodecs.given
+import cats.effect.std.Queue
 
 /**
  * Network adapter providing the WebSocket HTTP routes.
@@ -19,15 +24,15 @@ import com.unibo.scalaparty.infrastructure.ports.{AccessPort, CommandPort}
  * @param commandPort Service handling gameplay inputs (e.g., moving, shooting).
  */
 class WebSocketServer(
-                       connections: ConnectionRegistry,
-                       accessPort: AccessPort[IO],
-                       commandPort: CommandPort[IO]
-                     ):
+ connections: ConnectionRegistry,
+ accessPort: AccessPort[IO],
+ commandPort: CommandPort[IO]
+):
 
-  def onConnect(playerId: PlayerId): IO[MatchId] =
+  def onConnect(playerId: PlayerId, queue: MessageQueue): IO[MatchId] =
     for
       matchId <- accessPort.joinLobby(playerId)
-      _       <- connections.bindSessionToMatch(playerId, matchId)
+      _       <- connections.bindSessionToMatch(playerId, matchId, queue)
       _       <- IO.println(s"Player $playerId assigned to the match $matchId")
     yield matchId
 
@@ -39,20 +44,32 @@ class WebSocketServer(
     yield ()
 
   def onMessage(playerId: PlayerId, matchId: MatchId, frame: WebSocketFrame): IO[Unit] =
-    IO.println(s"Message from $playerId: $frame")
-  // TODO parsing JSON in RFU3 -> Implementazione invio comandi
+    frame match
+      case WebSocketFrame.Text(jsonText, _) =>
+        decode[PlayerCommand](jsonText) match
+          case Right(command) =>
+            commandPort.handleCommand(matchId, playerId, command)
+
+          case Left(error) =>
+            IO.println(s"Invalid JSON received from $playerId: ${error.getMessage}")
+
+      case _ => IO.unit
 
   def routes(wsb: WebSocketBuilder2[IO]): HttpRoutes[IO] = HttpRoutes.of[IO]:
     case GET -> Root / "ws" =>
       val playerId = PlayerId.random()
 
       for
-        matchId <- onConnect(playerId)
+        // Create an unbounded concurrent queue for outbound messages
+        outboundQueue <- Queue.unbounded[IO, WebSocketFrame]
+
+        matchId <- onConnect(playerId, outboundQueue)
 
         response <- wsb
           .withOnClose(onDisconnect(matchId, playerId))
           .build(
-            send = Stream.never[IO],
+            // Pipe the queue directly into the outbound WebSocket stream
+            send = Stream.fromQueueUnterminated(outboundQueue),
             receive = stream => stream.evalMap(frame => onMessage(playerId, matchId, frame))
           )
       yield response
