@@ -24,7 +24,7 @@ object ServerApp extends IOApp.Simple:
 
   def httpApp(wsb: WebSocketBuilder2[IO], wsServer: WebSocketServer) = Router(
     "/" -> baseRoute,
-    s"/$gameRoute/ws" -> wsServer.routes(wsb)
+    s"/$gameRoute" -> wsServer.routes(wsb)
   ).orNotFound
 
   val run: IO[Unit] =
