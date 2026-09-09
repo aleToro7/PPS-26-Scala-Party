@@ -13,21 +13,6 @@
 
 Deadline: 10/10/2026
 
-## Taskboard
-
-```mermaid
-kanban
-  To Do
-    Analisi rotte di accesso
-    Implementazione rotte di accesso
-    Implementazione invio comandi
-    Implementazione navicella
-    Implementazione movimento
-    Implementazione rotazione
-  Doing
-    Analisi architettura
-  Done
-```
 
 ## Descrizione del processo
 
