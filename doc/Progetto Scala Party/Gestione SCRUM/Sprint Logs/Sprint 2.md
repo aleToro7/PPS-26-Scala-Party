@@ -28,7 +28,7 @@ Suddivisione degli Item pescati dal Product Backlog:
 | *RFU2*       | Accesso Partita                         | Configurazione dei parametri della partita        |
 | *RFS2*       | Sync Multiplayer                        | Gestione Disconnessioni                           |
 | *RFS2*       | Sync Multiplayer                        | Broadcast Stato Lobby (WebSocket)                 |
-| RFS2         | Sync Multiplayer                        | Analisi gestione multi-lobby                      |
+| *RFS2*       | Sync Multiplayer                        | Analisi gestione multi-lobby                      |
 | *RFU5*       | Sparo                                   | Implementazione Entità Proiettile                 |
 | *RFS3*       | Rilevamento Collisioni                  | Geometria delle Collisioni (Forme e intersezioni) |
 | *RFS2*       | Confini e Ostacoli                      | Rilevamento Scontri con Muri/Arena                |
