@@ -21,3 +21,18 @@ case class PositionComponent(position: Point2D) extends Component
  *  @param entityType the type of the entity
  */
 case class EntityTypeComponent(entityType: EntityType) extends Component
+
+/** Represents an entity's capacity to shoot.
+ *  @param bulletPower the power of the bullets
+ *  @param bulletSpeed the speed of the bullets
+ *  @param shootCooldown the cooldown time between shots
+ *  @param isShooting whether the entity is currently shooting
+ *  @param lastShootTime the last time the entity shot
+ */
+case class ShootingComponent(
+    bulletPower: Double,
+    bulletSpeed: Double,
+    shootCooldown: Long,
+    isShooting: Boolean = false,
+    lastShootTime: Long = 0L
+) extends Component
