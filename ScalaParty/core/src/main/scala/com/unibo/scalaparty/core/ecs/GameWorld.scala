@@ -85,6 +85,15 @@ trait GameWorld:
    */
   def findEntitiesWithComponent[C <: Component: ClassTag]: List[EntityWithComponents]
 
+  /** Updates the component of the specified entity with a new component of the same type.
+   *
+   *  @param entityId     the unique identifier of the entity whose component is to be updated
+   *  @param newComponent the new component to replace the existing one
+   *  @tparam C the type of the component
+   *  @return a new instance of the world with the updated component for the specified entity
+   */
+  def updateComponent[C <: Component: ClassTag](entityId: EntityId, newComponent: C): GameWorld
+
 object GameWorld:
   /** Creates a new instance of [[GameWorld]] with the specified list of entities and their associated components.
    *
@@ -120,5 +129,15 @@ private class GameWorldImpl(private val entityMap: Map[EntityId, List[Component]
   override def findEntitiesWithComponent[C <: Component: ClassTag]: List[EntityWithComponents] =
     val componentClass = implicitly[ClassTag[C]].runtimeClass
     entityMap
-      .filter((_, components) => components.exists(c => componentClass.isInstance(c)))
+      .filter((_, components) => components.exists(componentClass isInstance _))
       .toList
+
+  /** @inheritdoc */
+  override def updateComponent[C <: Component: ClassTag](entityId: EntityId, newComponent: C): GameWorld = {
+    val componentClass = implicitly[ClassTag[C]].runtimeClass
+    entityMap.get(entityId) match
+      case Some(components) =>
+        val updatedComponents = newComponent +: components.filterNot(componentClass isInstance _)
+        addEntity(entityId, updatedComponents)
+      case None => this
+  }
