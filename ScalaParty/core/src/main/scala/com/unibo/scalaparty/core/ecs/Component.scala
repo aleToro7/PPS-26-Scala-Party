@@ -36,3 +36,9 @@ case class ShootingComponent(
     isShooting: Boolean = false,
     lastShootTime: Long = 0L
 ) extends Component
+
+/** Represents a bullet's info, including its power and owner.
+ *  @param power the power of the bullet
+ *  @param shooterId the unique identifier of the entity that shot the bullet
+ */
+case class BulletComponent(power: Double, shooterId: EntityId) extends Component
