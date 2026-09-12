@@ -1,0 +1,199 @@
+package com.unibo.scalaparty.infrastructure.application
+
+import scala.concurrent.duration.*
+
+import cats.effect.{IO, Ref}
+import cats.effect.std.Queue
+import cats.effect.testing.scalatest.AsyncIOSpec
+import cats.syntax.all.*
+import com.unibo.scalaparty.core.model.{GameEvent, MatchState}
+import com.unibo.scalaparty.infrastructure.model.{MatchId, PlayerId, ServerMessage}
+import com.unibo.scalaparty.infrastructure.network.ConnectionRegistry
+import com.unibo.scalaparty.infrastructure.ports.{MatchEventPublisher, PlayerNotifier}
+import org.http4s.websocket.WebSocketFrame
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AsyncWordSpec
+
+class MatchCoordinatorSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
+
+  /** A notifier remembering everything it was asked to deliver. */
+  private class RecordingNotifier(sent: Ref[IO, List[(PlayerId, ServerMessage)]]) extends PlayerNotifier[IO]:
+    override def send(playerId: PlayerId, message: ServerMessage): IO[Unit] =
+      sent.update(_ :+ (playerId -> message))
+
+    def messagesFor(playerId: PlayerId): IO[List[ServerMessage]] =
+      sent.get.map(_.collect { case (pId, message) if pId == playerId => message })
+
+  /** A publisher counting the broadcasts, to tell a ticking match from a stopped one. */
+  private class CountingPublisher(broadcasts: Ref[IO, Int]) extends MatchEventPublisher[IO]:
+    override def broadcastState(matchId: MatchId, state: MatchState): IO[Unit] = broadcasts.update(_ + 1)
+    override def broadcastEvent(matchId: MatchId, event: GameEvent): IO[Unit] = IO.unit
+
+    def count: IO[Int] = broadcasts.get
+
+  /** The whole wiring under test, with matches short enough to watch them come and go. */
+  private class Fixture(
+      val lobby: QueuedLobbyManager[IO],
+      val registry: ConnectionRegistry,
+      val notifier: RecordingNotifier,
+      val publisher: CountingPublisher,
+      val coordinator: MatchCoordinator
+  ):
+    /** Registers a connection, as the WebSocket adapter would do before joining. */
+    def connect(playerId: PlayerId): IO[Unit] =
+      Queue.unbounded[IO, WebSocketFrame].flatMap(registry.register(playerId, _))
+
+    def join(playerId: PlayerId): IO[Unit] =
+      connect(playerId) *> coordinator.joinLobby(playerId)
+
+  private def fixture(matchDuration: FiniteDuration = 50.millis, maxPlayers: Int = 1): IO[Fixture] =
+    for
+      registry   <- ConnectionRegistry()
+      lobby      <- QueuedLobbyManager.of[IO](maxPlayers = maxPlayers)
+      commands   <- GameCommandService()
+      sent       <- Ref.of[IO, List[(PlayerId, ServerMessage)]](List.empty)
+      broadcasts <- Ref.of[IO, Int](0)
+      notifier = RecordingNotifier(sent)
+      publisher = CountingPublisher(broadcasts)
+      coordinator <- MatchCoordinator(lobby, registry, commands, notifier, publisher, matchDuration)
+    yield Fixture(lobby, registry, notifier, publisher, coordinator)
+
+  /** Retries the given check until it holds, rather than guessing how long a match takes. */
+  private def eventually[A](action: IO[A])(predicate: A => Boolean): IO[A] =
+    action
+      .flatMap(value =>
+        if predicate(value) then IO.pure(value) else IO.sleep(10.millis) *> eventually(action)(predicate)
+      )
+      .timeout(10.seconds)
+
+  "joining".should:
+    "start a match right away for the first player".in:
+      val playerId = PlayerId.random()
+      for
+        f       <- fixture()
+        _       <- f.join(playerId)
+        current <- f.lobby.currentMatch
+      yield current.map(_.players) shouldBe Some(Set(playerId))
+
+    "bind the playing player to its match in the registry".in:
+      val playerId = PlayerId.random()
+      for
+        f       <- fixture()
+        _       <- f.join(playerId)
+        current <- f.lobby.currentMatch
+        bound   <- f.registry.matchOf(playerId)
+      yield bound shouldBe current.map(_.matchId)
+
+    "tell the playing player that its match has begun".in:
+      val playerId = PlayerId.random()
+      for
+        f        <- fixture()
+        _        <- f.join(playerId)
+        messages <- f.notifier.messagesFor(playerId)
+      yield messages should contain(ServerMessage.MatchStarted(players = 1))
+
+    "tell a player arriving during a match how many are ahead of it".in:
+      val playing = PlayerId.random()
+      val waiting = PlayerId.random()
+      for
+        f        <- fixture()
+        _        <- f.join(playing)
+        _        <- f.join(waiting)
+        messages <- f.notifier.messagesFor(waiting)
+      yield messages should contain(ServerMessage.Queued(playersAhead = 0))
+
+    "leave a waiting player out of the running match".in:
+      val playing = PlayerId.random()
+      val waiting = PlayerId.random()
+      for
+        f     <- fixture()
+        _     <- f.join(playing)
+        _     <- f.join(waiting)
+        bound <- f.registry.matchOf(waiting)
+      yield bound shouldBe None
+
+  "the end of a match".should:
+    "hand the arena to the player waiting in the queue".in:
+      val playing = PlayerId.random()
+      val waiting = PlayerId.random()
+      for
+        f    <- fixture()
+        _    <- f.join(playing)
+        _    <- f.join(waiting)
+        next <- eventually(f.lobby.currentMatch)(_.exists(_.players == Set(waiting)))
+      yield next.map(_.players) shouldBe Some(Set(waiting))
+
+    "tell the players of the finished match that it is over".in:
+      val playing = PlayerId.random()
+      for
+        f        <- fixture()
+        _        <- f.join(playing)
+        messages <- eventually(f.notifier.messagesFor(playing))(_.contains(ServerMessage.MatchEnded))
+      yield messages should contain(ServerMessage.MatchEnded)
+
+    "leave the arena free when nobody else is waiting".in:
+      val playing = PlayerId.random()
+      for
+        f       <- fixture()
+        _       <- f.join(playing)
+        current <- eventually(f.lobby.currentMatch)(_.isEmpty)
+      yield current shouldBe None
+
+    "release the finished players from their match in the registry".in:
+      val playing = PlayerId.random()
+      for
+        f     <- fixture()
+        _     <- f.join(playing)
+        _     <- eventually(f.lobby.currentMatch)(_.isEmpty)
+        bound <- f.registry.matchOf(playing)
+      yield bound shouldBe None
+
+  "leaving".should:
+    "drop a waiting player so it is never picked for a match".in:
+      val playing = PlayerId.random()
+      val giveUp = PlayerId.random()
+      for
+        f       <- fixture()
+        _       <- f.join(playing)
+        _       <- f.join(giveUp)
+        _       <- f.coordinator.leaveLobby(giveUp)
+        waiting <- f.lobby.waitingPlayers
+        current <- eventually(f.lobby.currentMatch)(_.isEmpty)
+      yield
+        waiting shouldBe empty
+        current shouldBe None
+
+    "hand the arena over at once when the playing player quits".in:
+      val playing = PlayerId.random()
+      val waiting = PlayerId.random()
+      for
+        f       <- fixture(matchDuration = 10.seconds)
+        _       <- f.join(playing)
+        _       <- f.join(waiting)
+        _       <- f.coordinator.leaveLobby(playing)
+        current <- f.lobby.currentMatch
+      yield current.map(_.players) shouldBe Some(Set(waiting))
+
+    "stop ticking the match once its last player has quit and nobody is waiting".in:
+      val playing = PlayerId.random()
+      for
+        f       <- fixture(matchDuration = 10.seconds)
+        _       <- f.join(playing)
+        _       <- f.coordinator.leaveLobby(playing)
+        settled <- f.publisher.count
+        _       <- IO.sleep(200.millis)
+        later   <- f.publisher.count
+      yield later shouldBe settled
+
+    "tell the players still waiting that they moved up the queue".in:
+      val playing = PlayerId.random()
+      val giveUp = PlayerId.random()
+      val last = PlayerId.random()
+      for
+        f        <- fixture(matchDuration = 10.seconds)
+        _        <- f.join(playing)
+        _        <- f.join(giveUp)
+        _        <- f.join(last)
+        _        <- f.coordinator.leaveLobby(giveUp)
+        messages <- f.notifier.messagesFor(last)
+      yield messages.last shouldBe ServerMessage.Queued(playersAhead = 0)

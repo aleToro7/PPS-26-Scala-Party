@@ -3,7 +3,6 @@ package com.unibo.scalaparty.infrastructure.application
 import cats.effect.{Ref, Sync}
 import cats.syntax.all.*
 import com.unibo.scalaparty.infrastructure.model.{MatchId, MatchStatus, PlayerId}
-import com.unibo.scalaparty.infrastructure.ports.AccessPort
 
 private final case class MatchInfo(players: Set[PlayerId], status: MatchStatus)
 
@@ -27,8 +26,13 @@ private object LobbyState:
  *  [[MatchStatus.Running]] and the next joining player opens a new lobby.
  *
  *  Concurrency is handled internally via a purely functional Ref state.
+ *
+ *  Not currently wired into the running server: the application is driven by [[QueuedLobbyManager]]
+ *  through [[MatchCoordinator]], which serves one match at a time out of a queue of players. This
+ *  manager is kept for the multi-match scenario it was written for, and no longer implements
+ *  `AccessPort`, whose `joinLobby` cannot report that a player has been queued rather than admitted.
  */
-final class LobbyManager[F[_]: Sync] private (state: Ref[F, LobbyState]) extends AccessPort[F]:
+final class LobbyManager[F[_]: Sync] private (state: Ref[F, LobbyState]):
 
   def activeMatchIds: F[Set[MatchId]] =
     state.get.map(_.matches.keySet)
@@ -50,7 +54,7 @@ final class LobbyManager[F[_]: Sync] private (state: Ref[F, LobbyState]) extends
         case Some(info) => s.copy(matches = s.matches.updated(matchId, info.copy(status = MatchStatus.Finished)))
         case None => s
 
-  override def joinLobby(playerId: PlayerId): F[MatchId] =
+  def joinLobby(playerId: PlayerId): F[MatchId] =
     Sync[F].delay(MatchId.random()).flatMap: candidateMatchId =>
       state.modify: s =>
         val (matchId, players) = s.waiting match
@@ -62,7 +66,7 @@ final class LobbyManager[F[_]: Sync] private (state: Ref[F, LobbyState]) extends
 
         s.copy(matches = s.matches.updated(matchId, MatchInfo(players, status))) -> matchId
 
-  override def leaveLobby(matchId: MatchId, playerId: PlayerId): F[Unit] =
+  def leaveLobby(matchId: MatchId, playerId: PlayerId): F[Unit] =
     state.update: s =>
       s.matches.get(matchId).map(info => info.copy(players = info.players - playerId)) match
         case Some(info) if info.players.isEmpty =>

@@ -2,8 +2,13 @@ package com.unibo.scalaparty.infrastructure
 
 import cats.effect.{IO, IOApp}
 import com.comcast.ip4s.*
-import com.unibo.scalaparty.infrastructure.application.{GameCommandService, LobbyManager}
-import com.unibo.scalaparty.infrastructure.network.{ConnectionRegistry, WebSocketServer}
+import com.unibo.scalaparty.infrastructure.application.{GameCommandService, MatchCoordinator, QueuedLobbyManager}
+import com.unibo.scalaparty.infrastructure.network.{
+  ConnectionRegistry,
+  WebSocketBroadcaster,
+  WebSocketNotifier,
+  WebSocketServer
+}
 import org.http4s.{HttpRoutes, StaticFile}
 import org.http4s.dsl.io.*
 import org.http4s.ember.server.EmberServerBuilder
@@ -12,6 +17,14 @@ import org.http4s.server.websocket.WebSocketBuilder2
 
 object ServerApp extends IOApp.Simple:
   private val gameRoute = "scalaparty"
+
+  /** How many players a match is played by.
+   *
+   *  Kept at one on purpose: the only engine available is `SinglePlayerGameEngine`, which spawns a
+   *  spaceship for `config.players.head` alone. Raising this would put several players in the same
+   *  match while only the first of them gets a ship to fly.
+   */
+  private val PlayersPerMatch = 1
 
   private val baseRoute: HttpRoutes[IO] = HttpRoutes.of[IO]:
     case request @ GET -> Root / gameRoute =>
@@ -31,10 +44,15 @@ object ServerApp extends IOApp.Simple:
     for
       _              <- IO.println("Initializing services...")
       registry       <- ConnectionRegistry()
-      lobby          <- LobbyManager.of[IO]
+      lobby          <- QueuedLobbyManager.of[IO](minPlayers = PlayersPerMatch, maxPlayers = PlayersPerMatch)
       commandService <- GameCommandService()
 
-      wsServer = WebSocketServer(registry, lobby, commandService)
+      notifier = WebSocketNotifier(registry)
+      publisher = WebSocketBroadcaster(registry)
+
+      coordinator <- MatchCoordinator(lobby, registry, commandService, notifier, publisher)
+
+      wsServer = WebSocketServer(registry, coordinator, commandService)
 
       _ <- EmberServerBuilder
         .default[IO]

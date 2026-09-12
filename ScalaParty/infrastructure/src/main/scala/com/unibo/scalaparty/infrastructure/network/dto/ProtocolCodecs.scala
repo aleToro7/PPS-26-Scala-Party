@@ -5,6 +5,7 @@ import io.circe.generic.semiauto.*
 import com.unibo.scalaparty.core.dto.EntityDto
 import com.unibo.scalaparty.core.ecs.EntityId
 import com.unibo.scalaparty.core.model.{GameCommand, GameEvent, MatchState}
+import com.unibo.scalaparty.infrastructure.model.ServerMessage
 
 object ProtocolCodecs:
   given Decoder[EntityId] = Decoder.decodeLong.map(EntityId.fromLong)
@@ -18,3 +19,4 @@ object ProtocolCodecs:
   given Encoder[EntityDto] = deriveEncoder
   given Encoder[MatchState] = deriveEncoder
   given Encoder[GameEvent] = deriveEncoder
+  given Encoder[ServerMessage] = deriveEncoder
