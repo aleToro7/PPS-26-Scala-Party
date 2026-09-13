@@ -2,7 +2,7 @@ package com.unibo.scalaparty.core.engine.input
 
 import com.unibo.scalaparty.core.ecs.GameWorld
 import com.unibo.scalaparty.core.model.GameCommand
-import com.unibo.scalaparty.core.model.GameCommand.RotateCommand
+import com.unibo.scalaparty.core.model.GameCommand.{RotateCommand, ShootCommand}
 
 /** The InputGateway trait defines the interface for processing player commands and updating the game world accordingly.
  *
@@ -20,3 +20,4 @@ object InputGateway:
     commands.foldLeft(world): (currentWorld, command) =>
       command match
         case rc: RotateCommand => RotateCommandExecutor.executeCommand(currentWorld, rc)
+        case sc: ShootCommand => ShootCommandExecutor.executeCommand(currentWorld, sc)

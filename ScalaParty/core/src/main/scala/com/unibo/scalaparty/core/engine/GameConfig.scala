@@ -1,7 +1,7 @@
 package com.unibo.scalaparty.core.engine
 
 import com.unibo.scalaparty.core.ecs.EntityId
-import com.unibo.scalaparty.core.ecs.systems.{MovementSystem, SystemPipeline}
+import com.unibo.scalaparty.core.ecs.systems.{MovementSystem, ShootingSystem, SystemPipeline}
 
 /** Configuration for the game engine.
  *
@@ -24,9 +24,7 @@ final case class GameConfig(
 )
 
 object GameConfig:
-  private val defaultPipeline = SystemPipeline(
-    MovementSystem,
-  )
+  private val defaultPipeline = MovementSystem >> ShootingSystem
 
   /** Helper to quickly create a single-player configuration.
    *
