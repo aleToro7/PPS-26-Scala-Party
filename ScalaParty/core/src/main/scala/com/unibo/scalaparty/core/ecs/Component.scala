@@ -27,14 +27,14 @@ case class EntityTypeComponent(entityType: EntityType) extends Component
  *  @param bulletSpeed the speed of the bullets
  *  @param shootCooldown the cooldown time between shots
  *  @param isShooting whether the entity is currently shooting
- *  @param lastShootTime the last time the entity shot
+ *  @param cooldownTimer the current cooldown timer
  */
 case class ShootingComponent(
     bulletPower: Double,
     bulletSpeed: Double,
     shootCooldown: Long,
     isShooting: Boolean = false,
-    lastShootTime: Long = 0L
+    cooldownTimer: Long = 0L
 ) extends Component
 
 /** Represents a bullet's info, including its power and owner.
