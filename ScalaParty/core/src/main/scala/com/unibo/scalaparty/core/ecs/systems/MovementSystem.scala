@@ -5,7 +5,7 @@ import com.unibo.scalaparty.core.geometry.{Point2D, Vector2D}
 
 /** A system responsible for updating the positions of entities in the game world based on their movement components and the elapsed time.
  */
-object MovementSystem extends System:
+object MovementSystem extends WorldSystem:
 
   /** Updates the positions of entities in the game world based on their movement components and the elapsed time.
    *  @param world  the current state of the game world
