@@ -12,6 +12,16 @@ type CommandBuffer = Map[MatchId, List[(PlayerId, PlayerInput)]]
  */
 class GameCommandService(bufferRef: Ref[IO, CommandBuffer]) extends CommandPort[IO]:
 
+  /** Handles and buffers an incoming gameplay command from a player within a specific match.
+   *
+   * Updates the concurrent state buffer atomically by appending the player's input
+   * to the match's pending command queue, then logs the buffered action.
+   *
+   * @param matchId  the match where the action occurs
+   * @param playerId the player performing the action
+   * @param command  the specific player input/command to buffer
+   * @return an IO effect completing when the command is safely buffered and logged
+   */
   def handleCommand(matchId: MatchId, playerId: PlayerId, command: PlayerInput): IO[Unit] =
     bufferRef.update: buffer =>
       val currentCommands = buffer.getOrElse(matchId, List.empty)
