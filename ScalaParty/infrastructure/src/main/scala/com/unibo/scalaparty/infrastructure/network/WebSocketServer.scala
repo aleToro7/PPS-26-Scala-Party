@@ -32,6 +32,13 @@ class WebSocketServer(
     commandPort: CommandPort[IO]
 ):
 
+  /** Handles a new player connection by registering their outbound message queue
+   * and admitting them into the matchmaking access port.
+   *
+   * @param playerId the unique identifier of the connecting player
+   * @param queue    the concurrent queue used to push outbound WebSocket frames to the client
+   * @return an effect completing when the connection setup is finished
+   */
   def onConnect(playerId: PlayerId, queue: MessageQueue): IO[Unit] =
     for
       _ <- connections.register(playerId, queue)
@@ -39,6 +46,12 @@ class WebSocketServer(
       _ <- IO.println(s"Player $playerId connected")
     yield ()
 
+  /** Handles player disconnection by removing their active session from the registry
+   * and notifying the access port that they have left the lobby.
+   *
+   * @param playerId the unique identifier of the disconnecting player
+   * @return an effect completing when the cleanup operations finish
+   */
   def onDisconnect(playerId: PlayerId): IO[Unit] =
     for
       _ <- connections.removeSession(playerId)
@@ -46,6 +59,13 @@ class WebSocketServer(
       _ <- IO.println(s"Player $playerId disconnected")
     yield ()
 
+  /** Processes an incoming WebSocket frame received from a player, decoding valid inputs
+   * and routing them to the command port if the player is currently assigned to an active match.
+   *
+   * @param playerId the unique identifier of the message sender
+   * @param frame    the raw WebSocket frame received from the client
+   * @return an effect completing when the message handling is done
+   */
   def onMessage(playerId: PlayerId, frame: WebSocketFrame): IO[Unit] =
     frame match
       case WebSocketFrame.Text(jsonText, _) =>
@@ -60,6 +80,11 @@ class WebSocketServer(
 
       case _ => IO.unit
 
+  /** Creates the http4s HTTP routes handling the WebSocket endpoint at `/ws`.
+   *
+   * @param wsb the WebSocket builder used to construct the socket response
+   * @return the configured HttpRoutes for the application
+   */
   def routes(wsb: WebSocketBuilder2[IO]): HttpRoutes[IO] = HttpRoutes.of[IO]:
     case GET -> Root / "ws" =>
       val playerId = PlayerId.random()
