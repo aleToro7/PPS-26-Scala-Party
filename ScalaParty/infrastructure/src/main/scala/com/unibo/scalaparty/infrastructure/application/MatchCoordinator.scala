@@ -38,11 +38,23 @@ class MatchCoordinator(
     running: Ref[IO, Option[FiberIO[Unit]]]
 ) extends AccessPort[IO]:
 
+  /** Takes a player in, joining the lobby and either starting a match immediately
+   * or queueing the player with a notification of those ahead.
+   *
+   * @param playerId the unique identifier of the joining player
+   * @return an effect completing when the lobby action is handled
+   */
   override def joinLobby(playerId: PlayerId): IO[Unit] =
     lobby.join(playerId).flatMap:
       case JoinOutcome.Playing(activeMatch) => startMatch(activeMatch)
       case JoinOutcome.Queued(playersAhead) => notifier.send(playerId, ServerMessage.Queued(playersAhead))
 
+  /** Removes a player from the lobby or active match, cancelling running matches if emptied
+   * and refreshing queues or starting successors as appropriate.
+   *
+   * @param playerId the unique identifier of the leaving player
+   * @return an effect completing when the leave action is processed
+   */
   override def leaveLobby(playerId: PlayerId): IO[Unit] =
     for
       started <- lobby.leave(playerId)
@@ -59,7 +71,11 @@ class MatchCoordinator(
     lobby.waitingPlayers.flatMap: waiting =>
       waiting.zipWithIndex.traverse_((playerId, position) => notifier.send(playerId, ServerMessage.Queued(position)))
 
-  /** Binds the chosen players to the match and starts ticking it on a dedicated fiber. */
+  /** Binds the chosen players to the match and starts ticking it on a dedicated fiber.
+   *
+   *  @param activeMatch the match instance containing the assigned players
+   *  @return an effect completing when the match fiber is spawned
+   */
   private def startMatch(activeMatch: ActiveMatch): IO[Unit] =
     for
       _     <- cancelRunning
@@ -68,13 +84,22 @@ class MatchCoordinator(
       _     <- running.set(Some(fiber))
     yield ()
 
+  /** Assigns each player in the match to the connection registry and notifies them that the match has started.
+   *
+   * @param activeMatch the active match being populated
+   * @return an effect completing when all players are admitted
+   */
   private def admit(activeMatch: ActiveMatch): IO[Unit] =
     activeMatch.players.toList.traverse_ { playerId =>
       registry.assignToMatch(playerId, activeMatch.matchId) *>
         notifier.send(playerId, ServerMessage.MatchStarted(activeMatch.players.size))
     }
 
-  /** Runs the match to completion, then hands the arena over to the next group of players. */
+  /** Runs the match to completion, then hands the arena over to the next group of players.
+   *
+   *  @param activeMatch the active match to run
+   *  @return an effect completing when the match finishes and cleanup concludes
+   */
   private def play(activeMatch: ActiveMatch): IO[Unit] =
     val mapping = activeMatch.players.map(_ -> EntityId.generate()).toMap
     val session = MatchSession(activeMatch.matchId, mapping, GameWorld(Map.empty))
@@ -90,7 +115,11 @@ class MatchCoordinator(
     val runner = new MatchRunner(session, commands, engine, publisher, matchDuration)
     runner.run.compile.drain *> concludeMatch(activeMatch)
 
-  /** Releases the players of a finished match and lets the next one in. */
+  /** Releases the players of a finished match and lets the next one in.
+   *
+   *  @param activeMatch the match that has just concluded
+   *  @return an effect completing when resources are released and the next match starts
+   */
   private def concludeMatch(activeMatch: ActiveMatch): IO[Unit] =
     for
       // Forget the fiber first: this code runs inside it, and starting the next match cancels
@@ -104,6 +133,10 @@ class MatchCoordinator(
       _    <- next.traverse_(startMatch)
     yield ()
 
+  /** Cancels the currently running match fiber, if any.
+   *
+   * @return an effect completing when the running fiber is cancelled
+   */
   private def cancelRunning: IO[Unit] =
     running.getAndSet(None).flatMap(_.traverse_(_.cancel))
 
@@ -113,6 +146,16 @@ object MatchCoordinator:
   val SpaceshipSpeed: Double = 1.0
   val SpaceshipRotationSpeed: Double = 180.0
 
+  /** Factory method that safely initializes the MatchCoordinator with a reference to track the running fiber.
+   *
+   * @param lobby         the queued lobby manager deciding who plays
+   * @param registry      the connection registry tracking player sockets
+   * @param commands      the service buffering player inputs
+   * @param notifier      the port delivering personal messages to players
+   * @param publisher     the publisher broadcasting match states
+   * @param matchDuration the duration of each match session
+   * @return an IO effect containing the instantiated MatchCoordinator
+   */
   def apply(
       lobby: QueuedLobbyManager[IO],
       registry: ConnectionRegistry,
