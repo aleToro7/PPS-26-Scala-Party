@@ -34,26 +34,52 @@ private object LobbyState:
  */
 final class LobbyManager[F[_]: Sync] private (state: Ref[F, LobbyState]):
 
+  /** Retrieves the set of identifiers for all known matches.
+   *
+   * @return an effect containing the set of all match IDs
+   */
   def activeMatchIds: F[Set[MatchId]] =
     state.get.map(_.matches.keySet)
 
+  /** Retrieves the set of players currently participating in a specific match.
+   *
+   * @param matchId the unique identifier of the match
+   * @return an effect containing the set of player IDs in the match, or an empty set if unknown
+   */
   def playersInMatch(matchId: MatchId): F[Set[PlayerId]] =
     state.get.map(_.matches.get(matchId).fold(Set.empty[PlayerId])(_.players))
 
+  /** Retrieves the identifier of the match currently admitting players, if any.
+   *
+   * @return an effect containing the pending match ID, or None if no lobby is open
+   */
   def pendingMatch: F[Option[MatchId]] =
     state.get.map(_.waiting.map(_._1))
 
-  /** Retrieves the lifecycle phase of a match, or None if the match is unknown. */
+  /** Retrieves the lifecycle phase of a match, or None if the match is unknown.
+   *
+   *  @param matchId the unique identifier of the match
+   *  @return an effect containing the match status, or None if the match does not exist
+   */
   def matchStatus(matchId: MatchId): F[Option[MatchStatus]] =
     state.get.map(_.matches.get(matchId).map(_.status))
 
-  /** Marks a match as concluded. Has no effect if the match is unknown. */
+  /** Marks a match as concluded. Has no effect if the match is unknown.
+   *
+   *  @param matchId the unique identifier of the match to finish
+   *  @return an effect completing when the state is updated
+   */
   def finishMatch(matchId: MatchId): F[Unit] =
     state.update: s =>
       s.matches.get(matchId) match
         case Some(info) => s.copy(matches = s.matches.updated(matchId, info.copy(status = MatchStatus.Finished)))
         case None => s
 
+  /** Adds a player to the open lobby or opens a new one if capacity is reached.
+   *
+   * @param playerId the unique identifier of the joining player
+   * @return an effect containing the match ID the player was assigned to
+   */
   def joinLobby(playerId: PlayerId): F[MatchId] =
     Sync[F].delay(MatchId.random()).flatMap: candidateMatchId =>
       state.modify: s =>
@@ -66,6 +92,12 @@ final class LobbyManager[F[_]: Sync] private (state: Ref[F, LobbyState]):
 
         s.copy(matches = s.matches.updated(matchId, MatchInfo(players, status))) -> matchId
 
+  /** Removes a player from a match lobby. If the match becomes empty, it is removed entirely.
+   *
+   * @param matchId  the unique identifier of the match
+   * @param playerId the unique identifier of the leaving player
+   * @return an effect completing when the state is updated
+   */
   def leaveLobby(matchId: MatchId, playerId: PlayerId): F[Unit] =
     state.update: s =>
       s.matches.get(matchId).map(info => info.copy(players = info.players - playerId)) match
@@ -79,5 +111,9 @@ final class LobbyManager[F[_]: Sync] private (state: Ref[F, LobbyState]):
 object LobbyManager:
   val MaxPlayersPerMatch: Int = 4
 
+  /** Factory method that safely initializes the concurrent lobby state buffer.
+   *
+   * @return an effect containing the newly instantiated LobbyManager
+   */
   def of[F[_]: Sync]: F[LobbyManager[F]] =
     Ref.of[F, LobbyState](LobbyState.empty).map(new LobbyManager[F](_))
