@@ -30,7 +30,14 @@ class GameCommandService(bufferRef: Ref[IO, CommandBuffer]) extends CommandPort[
       IO.println(s"Match $matchId | Command buffered from player $playerId: $command")
     )
 
-  /** Extracts all accumulated (PlayerId, PlayerInput) for a match and clears the queue. */
+  /** Extracts all accumulated player inputs for a given match and atomically clears the queue.
+   *
+   * Retrieves the list of pending commands associated with the match ID and replaces
+   * them with an empty list in a single atomic modification of the buffer state.
+   *
+   * @param matchId the match whose pending commands are to be extracted
+   * @return an IO effect containing the list of accumulated player inputs for the match
+   */
   def drainCommands(matchId: MatchId): IO[List[(PlayerId, PlayerInput)]] =
     bufferRef.modify: buffer =>
       val pending = buffer.getOrElse(matchId, List.empty)
