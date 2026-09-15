@@ -16,7 +16,7 @@ enum Shape:
 extension [A <: Shape](self: A)
 
   /** Determines whether the current shape intersects with another shape.
- *
+   *
    *  @param other the other shape to check for intersection
    *  @tparam B the type of the other shape, which must be a subtype of Shape
    *  @return true if the shapes intersect, false otherwise
@@ -38,7 +38,10 @@ extension [A <: Shape](self: A)
       val edgesIntersect = edgesT1 anyIntersects edgesT2
       // 2. Check if one triangle contains the other
       edgesIntersect || (t1.a isInside t2) || (t2.a isInside t1)
+    case (t: Triangle, r: Rectangle) => t intersects r
+    case (r: Rectangle, t: Triangle) => t intersects r
     case _ => false
+    
 
 // (b-a) * (c-a) = (b.x - a.x)(c.y - a.y) - (b.y - a.y)(c.x - a.x)
 // A positive cross product indicates that point c is to the left of the line formed by points a and b,
@@ -69,6 +72,15 @@ extension (self: List[Segment])
 extension (self: Triangle)
 
   def edges: List[Segment] = List((self.a, self.b), (self.a, self.c), (self.b, self.c))
+  
+  def intersects(r: Rectangle): Boolean =
+    val rectangleEdges = r.edges
+    val triangleEdges = self.edges
+    // 1. Check edge intersections between rectangle and triangle
+    val edgesIntersect = rectangleEdges anyIntersects triangleEdges
+    val rectanglePoint = rectangleEdges.head._1 // take any point of the rectangle
+    // 2. Check if the triangle is fully inside the rectangle or vice versa
+    edgesIntersect || (self.a isInside r) || (rectanglePoint isInside self)
 
 extension (self: Rectangle)
 

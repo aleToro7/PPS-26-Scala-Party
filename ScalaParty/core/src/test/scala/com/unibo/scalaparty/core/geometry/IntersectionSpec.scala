@@ -54,3 +54,18 @@ class IntersectionSpec extends AnyFlatSpec:
     val a = Shape.Triangle(Point2D(0.0, 0.0), Point2D(2.0, 0.0), Point2D(1.0, 2.0))
     val b = Shape.Triangle(Point2D(3.0, 3.0), Point2D(5.0, 3.0), Point2D(4.0, 5.0))
     (a intersects b) shouldBe false
+
+  it should "intersect when one triangle is fully inside the other" in:
+    val outerTriangle = Shape.Triangle(Point2D(0.0, 0.0), Point2D(4.0, 0.0), Point2D(2.0, 4.0))
+    val innerTriangle = Shape.Triangle(Point2D(1.0, 1.0), Point2D(3.0, 1.0), Point2D(2.0, 3.0))
+    (outerTriangle intersects innerTriangle) shouldBe true
+
+  it should "intersect with a rectangle when they overlap" in:
+    val triangle = Shape.Triangle(Point2D(0.0, 0.0), Point2D(4.0, 0.0), Point2D(2.0, 4.0))
+    val rectangle = Shape.Rectangle(3.0, 3.0, Point2D(1.0, 1.0))
+    (triangle intersects rectangle) shouldBe true
+
+  it should "intersect with a rectangle when they touch only at the border" in:
+    val triangle = Shape.Triangle(Point2D(0.0, 0.0), Point2D(4.0, 0.0), Point2D(2.0, 0.0))
+    val rectangle = Shape.Rectangle(2.0, 2.0, Point2D(-1.0, 0.0))
+    (triangle intersects rectangle) shouldBe true
