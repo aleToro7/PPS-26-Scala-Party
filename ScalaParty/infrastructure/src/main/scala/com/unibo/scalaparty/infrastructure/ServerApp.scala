@@ -2,6 +2,7 @@ package com.unibo.scalaparty.infrastructure
 
 import cats.effect.{IO, IOApp}
 import com.comcast.ip4s.*
+import com.unibo.scalaparty.core.model.GameSettings
 import com.unibo.scalaparty.infrastructure.application.{GameCommandService, MatchCoordinator, QueuedLobbyManager}
 import com.unibo.scalaparty.infrastructure.network.{
   ConnectionRegistry,
@@ -49,8 +50,9 @@ object ServerApp extends IOApp.Simple:
 
       notifier = WebSocketNotifier(registry)
       publisher = WebSocketBroadcaster(registry)
+      settings = GameSettings.default
 
-      coordinator <- MatchCoordinator(lobby, registry, commandService, notifier, publisher)
+      coordinator <- MatchCoordinator(lobby, registry, commandService, notifier, publisher, settings)
 
       wsServer = WebSocketServer(registry, coordinator, commandService)
 

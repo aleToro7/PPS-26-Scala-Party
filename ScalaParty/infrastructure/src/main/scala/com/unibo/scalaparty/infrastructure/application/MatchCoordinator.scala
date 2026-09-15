@@ -9,6 +9,7 @@ import com.unibo.scalaparty.core.engine.{GameConfig, GameEngine}
 import com.unibo.scalaparty.infrastructure.model.{ActiveMatch, JoinOutcome, PlayerId, ServerMessage}
 import com.unibo.scalaparty.infrastructure.network.ConnectionRegistry
 import com.unibo.scalaparty.infrastructure.ports.{AccessPort, MatchEventPublisher, PlayerNotifier}
+import com.unibo.scalaparty.core.model.GameSettings
 
 /** Application service driving the whole life of a match, from the waiting queue to the last tick.
  *
@@ -25,6 +26,7 @@ import com.unibo.scalaparty.infrastructure.ports.{AccessPort, MatchEventPublishe
  *  @param commands      Buffer the gameplay inputs are drained from.
  *  @param notifier      Tells a single player what is happening to it.
  *  @param publisher     Broadcasts the authoritative state to everybody in the match.
+ *  @param settings      Shared rules and arena dimensions for the engine.
  *  @param matchDuration How long a match lasts, there being no win condition yet.
  *  @param running       The fiber ticking the current match, if any.
  */
@@ -34,6 +36,7 @@ class MatchCoordinator(
     commands: GameCommandService,
     notifier: PlayerNotifier[IO],
     publisher: MatchEventPublisher[IO],
+    settings: GameSettings,
     matchDuration: FiniteDuration,
     running: Ref[IO, Option[FiberIO[Unit]]]
 ) extends AccessPort[IO]:
@@ -106,10 +109,7 @@ class MatchCoordinator(
     val engine = GameEngine(
       GameConfig(
         players = mapping.values.toList,
-        worldWidth = MatchCoordinator.WorldWidth,
-        worldHeight = MatchCoordinator.WorldHeight,
-        spaceshipSpeed = MatchCoordinator.SpaceshipSpeed,
-        spaceshipRotationSpeed = MatchCoordinator.SpaceshipRotationSpeed
+        settings = GameSettings.default
       )
     )
     val runner = new MatchRunner(session, commands, engine, publisher, matchDuration)
@@ -141,10 +141,6 @@ class MatchCoordinator(
     running.getAndSet(None).flatMap(_.traverse_(_.cancel))
 
 object MatchCoordinator:
-  val WorldWidth: Int = 800
-  val WorldHeight: Int = 800
-  val SpaceshipSpeed: Double = 1.0
-  val SpaceshipRotationSpeed: Double = 180.0
 
   /** Factory method that safely initializes the MatchCoordinator with a reference to track the running fiber.
    *
@@ -153,6 +149,7 @@ object MatchCoordinator:
    * @param commands      the service buffering player inputs
    * @param notifier      the port delivering personal messages to players
    * @param publisher     the publisher broadcasting match states
+   * @param settings      Shared rules and arena dimensions for the engine
    * @param matchDuration the duration of each match session
    * @return an IO effect containing the instantiated MatchCoordinator
    */
@@ -162,8 +159,9 @@ object MatchCoordinator:
       commands: GameCommandService,
       notifier: PlayerNotifier[IO],
       publisher: MatchEventPublisher[IO],
+      settings: GameSettings,
       matchDuration: FiniteDuration = MatchRunner.DefaultDuration
   ): IO[MatchCoordinator] =
     Ref
       .of[IO, Option[FiberIO[Unit]]](None)
-      .map(new MatchCoordinator(lobby, registry, commands, notifier, publisher, matchDuration, _))
+      .map(new MatchCoordinator(lobby, registry, commands, notifier, publisher, settings, matchDuration, _))
