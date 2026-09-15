@@ -2,9 +2,6 @@ package com.unibo.scalaparty.core.geometry
 
 import com.unibo.scalaparty.core.geometry.Shape.{Circle, Rectangle, Triangle}
 
-import scala.annotation.tailrec
-import scala.reflect.ClassTag
-
 /** Represents a geometric shape in a two-dimensional space.
  *  This sealed trait defines the different types of shapes that can be represented, including circles, rectangles, squares, and polygons.
  */
@@ -22,26 +19,12 @@ extension [A <: Shape](self: A)
    *  @return true if the shapes intersect, false otherwise
    */
   infix def intersects[B <: Shape](other: B): Boolean = (self, other) match
-    case (r1: Rectangle, r2: Rectangle) =>
-      val (rect1Left, rect1Right, rect1Bottom, rect1Top) = r1.corners
-      val (rect2Left, rect2Right, rect2Bottom, rect2Top) = r2.corners
-      val overlapX = math.max(rect1Left, rect2Left) <= math.min(rect1Right, rect2Right)
-      val overlapY = math.max(rect1Bottom, rect2Bottom) <= math.min(rect1Top, rect2Top)
-      overlapX && overlapY
-    case (c1: Circle, c2: Circle) =>
-      val distance = (c1.center - c2.center).module
-      distance <= c1.radius + c2.radius
-    case (t1: Triangle, t2: Triangle) =>
-      val edgesT1 = t1.edges
-      val edgesT2 = t2.edges
-      // 1. Check if any edge of t1 intersects any edge of t2
-      val edgesIntersect = edgesT1 anyIntersects edgesT2
-      // 2. Check if one triangle contains the other
-      edgesIntersect || (t1.a isInside t2) || (t2.a isInside t1)
+    case (r1: Rectangle, r2: Rectangle) => r1 intersects r2
+    case (c1: Circle, c2: Circle) => c1 intersects c2
+    case (t1: Triangle, t2: Triangle) => t1 intersects t2
     case (t: Triangle, r: Rectangle) => t intersects r
-    case (r: Rectangle, t: Triangle) => t intersects r
-    case _ => false
-    
+    case (r: Rectangle, t: Triangle) => r intersects t
+    case _ => false // TODO: complete cases
 
 // (b-a) * (c-a) = (b.x - a.x)(c.y - a.y) - (b.y - a.y)(c.x - a.x)
 // A positive cross product indicates that point c is to the left of the line formed by points a and b,
@@ -65,14 +48,14 @@ extension (self: Segment)
 
 extension (self: List[Segment])
 
-  def anyIntersects(segments: List[Segment]): Boolean = self.exists:
-    segment1 => segments.exists:
-      segment2 => segment1 intersects segment2
+  def anyIntersects(segments: List[Segment]): Boolean = self.exists: segment1 =>
+    segments.exists: segment2 =>
+      segment1 intersects segment2
 
 extension (self: Triangle)
 
   def edges: List[Segment] = List((self.a, self.b), (self.a, self.c), (self.b, self.c))
-  
+
   def intersects(r: Rectangle): Boolean =
     val rectangleEdges = r.edges
     val triangleEdges = self.edges
@@ -81,6 +64,20 @@ extension (self: Triangle)
     val rectanglePoint = rectangleEdges.head._1 // take any point of the rectangle
     // 2. Check if the triangle is fully inside the rectangle or vice versa
     edgesIntersect || (self.a isInside r) || (rectanglePoint isInside self)
+
+  def intersects(t: Triangle): Boolean =
+    val edgesT1 = self.edges
+    val edgesT2 = t.edges
+    // 1. Check if any edge of t1 intersects any edge of t2
+    val edgesIntersect = edgesT1 anyIntersects edgesT2
+    // 2. Check if one triangle contains the other
+    edgesIntersect || (self.a isInside t) || (t.a isInside self)
+
+extension (self: Circle)
+
+  def intersects(c: Circle): Boolean =
+    val distance = (self.center - c.center).module
+    distance <= self.radius + c.radius
 
 extension (self: Rectangle)
 
@@ -99,6 +96,15 @@ extension (self: Rectangle)
     val d = Point2D(left, top)
     List((a, b), (a, d), (b, c), (c, d))
 
+  def intersects(r: Rectangle): Boolean =
+    val (rect1Left, rect1Right, rect1Bottom, rect1Top) = r.corners
+    val (rect2Left, rect2Right, rect2Bottom, rect2Top) = self.corners
+    val overlapX = math.max(rect1Left, rect2Left) <= math.min(rect1Right, rect2Right)
+    val overlapY = math.max(rect1Bottom, rect2Bottom) <= math.min(rect1Top, rect2Top)
+    overlapX && overlapY
+
+  def intersects(t: Triangle): Boolean = t intersects self
+
 extension (self: Point2D)
 
   def isInside(t: Triangle): Boolean =
@@ -112,4 +118,3 @@ extension (self: Point2D)
   def isInside(r: Rectangle): Boolean =
     val (left, right, bottom, top) = r.corners
     self.x >= left && self.x <= right && self.y >= bottom && self.y <= top
-
