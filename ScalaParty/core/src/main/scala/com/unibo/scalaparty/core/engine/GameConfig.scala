@@ -2,6 +2,7 @@ package com.unibo.scalaparty.core.engine
 
 import com.unibo.scalaparty.core.ecs.EntityId
 import com.unibo.scalaparty.core.ecs.systems.{MovementSystem, SystemPipeline}
+import com.unibo.scalaparty.core.model.GameSettings
 
 /** Configuration for the game engine.
  *
@@ -13,15 +14,11 @@ import com.unibo.scalaparty.core.ecs.systems.{MovementSystem, SystemPipeline}
  *  @param pipeline               the ordered pipeline of systems to execute sequentially
  */
 final case class GameConfig(
+    settings: GameSettings,
     players: List[EntityId],
-    worldWidth: Int,
-    worldHeight: Int,
-    spaceshipSpeed: Double,
-    spaceshipRotationSpeed: Double,
-    pipeline: SystemPipeline = SystemPipeline(
-      MovementSystem
-    )
-)
+    pipeline: SystemPipeline = GameConfig.defaultPipeline
+):
+  export settings.* //VALUTARE SE MANTENERE
 
 object GameConfig:
   private val defaultPipeline = SystemPipeline(
@@ -40,17 +37,11 @@ object GameConfig:
    */
   def singlePlayer(
       playerId: EntityId,
-      worldWidth: Int = 800,
-      worldHeight: Int = 800,
-      spaceshipSpeed: Double = 1.0,
-      spaceshipRotationSpeed: Double = 180.0,
+      settings: GameSettings = GameSettings.default,
       pipeline: SystemPipeline = defaultPipeline
   ): GameConfig =
     GameConfig(
       players = List(playerId),
-      worldWidth = worldWidth,
-      worldHeight = worldHeight,
-      spaceshipSpeed = spaceshipSpeed,
-      spaceshipRotationSpeed = spaceshipRotationSpeed,
+      settings = settings,
       pipeline = pipeline
     )
