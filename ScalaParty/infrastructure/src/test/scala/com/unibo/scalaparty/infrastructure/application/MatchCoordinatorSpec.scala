@@ -1,12 +1,11 @@
 package com.unibo.scalaparty.infrastructure.application
 
 import scala.concurrent.duration.*
-
 import cats.effect.{IO, Ref}
 import cats.effect.std.Queue
 import cats.effect.testing.scalatest.AsyncIOSpec
 import cats.syntax.all.*
-import com.unibo.scalaparty.core.model.{GameEvent, MatchState}
+import com.unibo.scalaparty.core.model.{GameEvent, GameSettings, MatchState}
 import com.unibo.scalaparty.infrastructure.model.{MatchId, PlayerId, ServerMessage}
 import com.unibo.scalaparty.infrastructure.network.ConnectionRegistry
 import com.unibo.scalaparty.infrastructure.ports.{MatchEventPublisher, PlayerNotifier}
@@ -55,7 +54,8 @@ class MatchCoordinatorSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
       broadcasts <- Ref.of[IO, Int](0)
       notifier = RecordingNotifier(sent)
       publisher = CountingPublisher(broadcasts)
-      coordinator <- MatchCoordinator(lobby, registry, commands, notifier, publisher, matchDuration)
+      settings = GameSettings.default
+      coordinator <- MatchCoordinator(lobby, registry, commands, notifier, publisher, settings, matchDuration)
     yield Fixture(lobby, registry, notifier, publisher, coordinator)
 
   /** Retries the given check until it holds, rather than guessing how long a match takes. */
