@@ -21,3 +21,26 @@ object EntityFactory:
       EntityTypeComponent(EntityType.Spaceship)
     )
     (entityId, components)
+
+    /** Creates a new bullet entity with the specified position, velocity, and power.
+     *
+     *  @param shooterId the unique identifier of the entity that shot the bullet
+     *  @param position the initial position of the bullet
+     *  @param velocity the initial velocity of the bullet
+     *  @param power the power of the bullet
+     *  @return a tuple containing the unique identifier of the created bullet entity and its associated list of components
+     */
+  def createBullet(
+      shooterId: EntityId,
+      position: Point2D,
+      velocity: Vector2D,
+      power: Double,
+      entityId: EntityId = EntityId.generate()
+  ): EntityWithComponents =
+    val components: List[Component] = List(
+      PositionComponent(position),
+      MovementComponent(velocity),
+      EntityTypeComponent(EntityType.Bullet),
+      BulletComponent(power, shooterId)
+    )
+    (entityId, components)

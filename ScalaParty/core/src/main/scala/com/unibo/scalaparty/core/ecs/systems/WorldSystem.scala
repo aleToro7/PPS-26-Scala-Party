@@ -15,7 +15,7 @@ type SystemOutput = (GameWorld, Set[GameEvent])
  *  state of the game world, a set of game events, and the elapsed time since the last update, and produces an updated
  *  game world along with any new game events generated during the update.
  */
-trait System:
+trait WorldSystem:
 
   /** Updates the state of the game world based on the provided events and the elapsed time.
    *
@@ -26,8 +26,8 @@ trait System:
    */
   def update(world: GameWorld, events: Set[GameEvent], dt: Long): SystemOutput
 
-object System:
-  extension (system: System)
+object WorldSystem:
+  extension (system: WorldSystem)
     /** Composes two systems into a single system that executes them in sequence.
      *
      *  The resulting system will first execute the `system` and then execute the `nextSystem`, passing the updated
@@ -36,19 +36,20 @@ object System:
      *  @param nextSystem the system to be executed after the current system
      *  @return a new system that represents the composition of the two systems
      */
-    def >>(nextSystem: System): SystemPipeline = SystemPipeline(system, nextSystem)
+    def >>(nextSystem: WorldSystem): SystemPipeline = SystemPipeline(system, nextSystem)
 
 /** Represents a pipeline of systems to be executed in sequence.
  *  The systems in the pipeline are executed in the order they are defined, with each system receiving the updated game world and events from the previous system.
  *  The order is very important, as it can affect the final state of the game world and the events generated.
- *  @see [[System]] for more information on how to define a system.
+ *
+ *  @see [[WorldSystem]] for more information on how to define a system.
  */
-opaque type SystemPipeline = List[System]
+opaque type SystemPipeline = List[WorldSystem]
 
 object SystemPipeline:
-  def apply(systems: System*): SystemPipeline = systems.toList
+  def apply(systems: WorldSystem*): SystemPipeline = systems.toList
 
-  private def apply(systems: List[System]): SystemPipeline = systems
+  private def apply(systems: List[WorldSystem]): SystemPipeline = systems
 
   extension (pipeline: SystemPipeline)
 
@@ -60,10 +61,10 @@ object SystemPipeline:
      *  @param nextSystem the system to be executed after the current pipeline
      *  @return a new system pipeline that represents the composition of the two systems
      */
-    def >>(nextSystem: System): SystemPipeline = pipeline :+ nextSystem
+    def >>(nextSystem: WorldSystem): SystemPipeline = pipeline :+ nextSystem
 
     /** Converts the system pipeline to an ordered list of systems.
      *
      *  @return a list of systems in the pipeline
      */
-    def toList: List[System] = pipeline
+    def toList: List[WorldSystem] = pipeline
