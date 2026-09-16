@@ -1,14 +1,14 @@
 package com.unibo.scalaparty.core.geometry
 
-import com.unibo.scalaparty.core.geometry.Shape.{Circle, Rectangle, Triangle}
+given Conversion[AABB, Polygon] = r => Polygon(r.vertices*)
 
 /** Represents a geometric shape in a two-dimensional space.
  *  This sealed trait defines the different types of shapes that can be represented, including circles, rectangles, squares, and polygons.
  */
 enum Shape:
+  case Polygon(vertices: Point2D*)
   case Circle(radius: Double, center: Point2D)
-  case Rectangle(width: Double, height: Double, center: Point2D)
-  case Triangle(a: Point2D, b: Point2D, c: Point2D)
+  case AABB(width: Double, height: Double, center: Point2D)
 
 extension [A <: Shape](self: A)
 
@@ -18,103 +18,63 @@ extension [A <: Shape](self: A)
    *  @tparam B the type of the other shape, which must be a subtype of Shape
    *  @return true if the shapes intersect, false otherwise
    */
-  infix def intersects[B <: Shape](other: B): Boolean = (self, other) match
-    case (r1: Rectangle, r2: Rectangle) => r1 intersects r2
+  def intersects[B <: Shape](other: B): Boolean = (self, other) match
+    case (r1: AABB, r2: AABB) => r1 intersects r2
     case (c1: Circle, c2: Circle) => c1 intersects c2
-    case (t1: Triangle, t2: Triangle) => t1 intersects t2
-    case (t: Triangle, r: Rectangle) => t intersects r
-    case (r: Rectangle, t: Triangle) => r intersects t
-    case _ => false // TODO: complete cases
+    case (p1: Polygon, p2: Polygon) => p1 intersects p2
+    case (r: AABB, p: Polygon) => p intersects r
+    case (p: Polygon, r: AABB) => p intersects r
+    case _ => false // TODO: Implement other shape intersections
 
-// (b-a) * (c-a) = (b.x - a.x)(c.y - a.y) - (b.y - a.y)(c.x - a.x)
-// A positive cross product indicates that point c is to the left of the line formed by points a and b,
-// a negative cross product indicates that point c is to the right of the line,
-// and a zero cross product indicates that point c is on the line.
-private def crossProduct(a: Point2D, b: Point2D, c: Point2D): Double =
-  (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x)
+import com.unibo.scalaparty.core.geometry.Shape.*
 
-type Segment = (Point2D, Point2D)
+private type Segment = (Point2D, Point2D)
 
-extension (self: Segment)
+extension (self: Polygon)
+  private def edges: Seq[Segment] = self.vertices.zip(self.vertices.tail :+ self.vertices.head)
 
-  def intersects(other: Segment): Boolean =
-    val (a1, b1) = self
-    val (a2, b2) = other
-    val ca1 = crossProduct(a1, b1, a2)
-    val ca2 = crossProduct(a1, b1, b2)
-    val cp3 = crossProduct(a2, b2, a1)
-    val cp4 = crossProduct(a2, b2, b1)
-    ((ca1 > 0) != (ca2 > 0)) && ((cp3 > 0) != (cp4 > 0))
+  private def axes: Seq[Vector2D] = self.edges.map: (v1, v2) =>
+    val v = (v2 - v1).normalized
+    Vector2D(-v.x, v.y)
 
-extension (self: List[Segment])
+  private def projectOnto(axis: Vector2D): (Double, Double) =
+    val projections = self.vertices.map: p =>
+      val v = Vector2D(p.x, p.y)
+      v.x * axis.x + v.y * axis.y
+    (projections.min, projections.max)
 
-  def anyIntersects(segments: List[Segment]): Boolean = self.exists: segment1 =>
-    segments.exists: segment2 =>
-      segment1 intersects segment2
+  private def intersects(other: Polygon): Boolean =
+    val axes = self.axes ++ other.axes
+    val hasSeparatingAxes = axes.exists: axis =>
+      val (min1, max1) = self projectOnto axis
+      val (min2, max2) = other.projectOnto(axis)
+      max1 < min2 || max2 < min1
+    !hasSeparatingAxes
 
-extension (self: Triangle)
+extension (self: Double)
+  private def half = self / 2.0
 
-  def edges: List[Segment] = List((self.a, self.b), (self.a, self.c), (self.b, self.c))
+extension (self: AABB)
+  private def vertices: Seq[Point2D] =
+    val halfWidth = self.width.half
+    val halfHeight = self.height.half
+    val bottomLeft = Point2D(self.center.x - halfWidth, self.center.y - halfHeight)
+    Seq(
+      bottomLeft,
+      Point2D(bottomLeft.x + self.width, bottomLeft.y), // Bottom-right
+      Point2D(bottomLeft.x + self.width, bottomLeft.y + self.height), // Top-right
+      Point2D(bottomLeft.x, bottomLeft.y + self.height) // Top-left
+    )
 
-  def intersects(r: Rectangle): Boolean =
-    val rectangleEdges = r.edges
-    val triangleEdges = self.edges
-    // 1. Check edge intersections between rectangle and triangle
-    val edgesIntersect = rectangleEdges anyIntersects triangleEdges
-    val rectanglePoint = rectangleEdges.head._1 // take any point of the rectangle
-    // 2. Check if the triangle is fully inside the rectangle or vice versa
-    edgesIntersect || (self.a isInside r) || (rectanglePoint isInside self)
+  private def edges: Seq[Segment] = Polygon(self.vertices*).edges
 
-  def intersects(t: Triangle): Boolean =
-    val edgesT1 = self.edges
-    val edgesT2 = t.edges
-    // 1. Check if any edge of t1 intersects any edge of t2
-    val edgesIntersect = edgesT1 anyIntersects edgesT2
-    // 2. Check if one triangle contains the other
-    edgesIntersect || (self.a isInside t) || (t.a isInside self)
+  private def intersects(other: AABB): Boolean =
+    // This implementation could actually be much prettier, however the objective of AABB
+    val dx = math.abs(self.center.x - other.center.x)
+    val dy = math.abs(self.center.y - other.center.y)
+    dx <= self.width.half + other.width.half && dy <= self.height.half + other.height.half
 
 extension (self: Circle)
-
-  def intersects(c: Circle): Boolean =
+  private def intersects(c: Circle): Boolean =
     val distance = (self.center - c.center).module
     distance <= self.radius + c.radius
-
-extension (self: Rectangle)
-
-  def corners: (Double, Double, Double, Double) =
-    val left = self.center.x - self.width / 2.0
-    val right = self.center.x + self.width / 2.0
-    val bottom = self.center.y - self.height / 2.0
-    val top = self.center.y + self.height / 2.0
-    (left, right, bottom, top)
-
-  def edges: List[Segment] =
-    val (left, right, bottom, top) = self.corners
-    val a = Point2D(left, bottom)
-    val b = Point2D(right, bottom)
-    val c = Point2D(right, top)
-    val d = Point2D(left, top)
-    List((a, b), (a, d), (b, c), (c, d))
-
-  def intersects(r: Rectangle): Boolean =
-    val (rect1Left, rect1Right, rect1Bottom, rect1Top) = r.corners
-    val (rect2Left, rect2Right, rect2Bottom, rect2Top) = self.corners
-    val overlapX = math.max(rect1Left, rect2Left) <= math.min(rect1Right, rect2Right)
-    val overlapY = math.max(rect1Bottom, rect2Bottom) <= math.min(rect1Top, rect2Top)
-    overlapX && overlapY
-
-  def intersects(t: Triangle): Boolean = t intersects self
-
-extension (self: Point2D)
-
-  def isInside(t: Triangle): Boolean =
-    val cp1 = crossProduct(t.a, t.b, self)
-    val cp2 = crossProduct(t.b, t.c, self)
-    val cp3 = crossProduct(t.c, t.a, self)
-    val hasNeg = (cp1 < 0) || (cp2 < 0) || (cp3 < 0)
-    val hasPos = (cp1 > 0) || (cp2 > 0) || (cp3 > 0)
-    !(hasNeg && hasPos)
-
-  def isInside(r: Rectangle): Boolean =
-    val (left, right, bottom, top) = r.corners
-    self.x >= left && self.x <= right && self.y >= bottom && self.y <= top
