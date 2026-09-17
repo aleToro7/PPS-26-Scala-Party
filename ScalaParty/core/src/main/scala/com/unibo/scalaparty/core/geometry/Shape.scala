@@ -26,13 +26,35 @@ extension [A <: Shape](self: A)
     case (p1: Polygon, p2: Polygon) => p1 intersects p2
     case (r: AABB, p: Polygon) => p intersects r
     case (p: Polygon, r: AABB) => p intersects r
-    case (c: Circle, r :AABB) => c intersects r
-    case (r: AABB, c :Circle) => c intersects r
+    case (c: Circle, r: AABB) => c intersects r
+    case (r: AABB, c: Circle) => c intersects r
     case _ => false // TODO: Implement other shape intersections
 
 import com.unibo.scalaparty.core.geometry.Shape.*
 
 private type Segment = (Point2D, Point2D)
+
+@FunctionalInterface
+trait Projectable:
+  def projectOnto(axis: Vector2D): (Double, Double)
+
+  def hasSeparatingAxis(axes: Seq[Vector2D])(other: Projectable): Boolean =
+    axes.exists: axis =>
+      val (min1, max1) = this projectOnto axis
+      val (min2, max2) = other projectOnto axis
+      max1 < min2 || max2 < min1
+
+given Conversion[Polygon, Projectable] with
+  def apply(p: Polygon): Projectable = axis =>
+    val projections = p.vertices.map: v =>
+      val projection = v.x * axis.x + v.y * axis.y
+      projection
+    (projections.min, projections.max)
+
+given Conversion[Circle, Projectable] with
+  def apply(c: Circle): Projectable = axis =>
+    val centerProjection = c.center.x * axis.x + c.center.y * axis.y
+    (centerProjection - c.radius, centerProjection + c.radius)
 
 extension (self: Polygon)
   private def edges: Seq[Segment] = self.vertices.zip(self.vertices.tail :+ self.vertices.head)
@@ -41,19 +63,28 @@ extension (self: Polygon)
     val v = (v2 - v1).normalized
     Vector2D(-v.x, v.y)
 
-  private def projectOnto(axis: Vector2D): (Double, Double) =
-    val projections = self.vertices.map: p =>
-      val v = Vector2D(p.x, p.y)
-      v.x * axis.x + v.y * axis.y
-    (projections.min, projections.max)
+  private def closestVertexTo(point: Point2D): Point2D =
+    self.vertices.minBy: v =>
+      val d = point - v
+      (d.x * d.x) + (d.y * d.y)
 
   private def intersects(other: Polygon): Boolean =
     val axes = self.axes ++ other.axes
-    val hasSeparatingAxes = axes.exists: axis =>
-      val (min1, max1) = self projectOnto axis
-      val (min2, max2) = other.projectOnto(axis)
-      max1 < min2 || max2 < min1
-    !hasSeparatingAxes
+    !self.hasSeparatingAxis(axes)(other)
+
+  private def intersects(circle: Circle): Boolean =
+    val polyHasSeparatingAxis = self.hasSeparatingAxis(self.axes)(circle)
+    if polyHasSeparatingAxis then
+      return false
+    val closestVertex = self closestVertexTo circle.center
+    val axisVector = circle.center - closestVertex
+    if axisVector.x == 0.0 && axisVector.y == 0.0 then
+      return true
+    val circleAxis = axisVector.normalized
+    val (pMin, pMax) = self projectOnto circleAxis
+    val (cMin, cMax) = circle projectOnto circleAxis
+    val circleHasSeparatingAxis = pMax < cMin || cMax < pMin
+    !circleHasSeparatingAxis
 
 extension (self: Double)
   private def half = self / 2.0
@@ -73,7 +104,7 @@ extension (self: AABB)
   private def edges: Seq[Segment] = Polygon(self.vertices*).edges
 
   private def intersects(other: AABB): Boolean =
-    // This implementation could actually be much prettier, however the objective of AABB
+    // This implementation could actually be much prettier, however the objective of AABB is performance
     val dx = math.abs(self.center.x - other.center.x)
     val dy = math.abs(self.center.y - other.center.y)
     dx <= self.width.half + other.width.half && dy <= self.height.half + other.height.half
