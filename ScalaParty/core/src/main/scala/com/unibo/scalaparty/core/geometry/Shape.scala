@@ -34,16 +34,6 @@ import com.unibo.scalaparty.core.geometry.Shape.*
 
 private type Segment = (Point2D, Point2D)
 
-@FunctionalInterface
-trait Projectable:
-  def projectOnto(axis: Vector2D): (Double, Double)
-
-  def hasSeparatingAxis(axes: Seq[Vector2D])(other: Projectable): Boolean =
-    axes.exists: axis =>
-      val (min1, max1) = this projectOnto axis
-      val (min2, max2) = other projectOnto axis
-      max1 < min2 || max2 < min1
-
 given Conversion[Polygon, Projectable] with
   def apply(p: Polygon): Projectable = axis =>
     val projections = p.vertices.map: v =>
@@ -71,6 +61,8 @@ extension (self: Polygon)
   private def intersects(other: Polygon): Boolean =
     val axes = self.axes ++ other.axes
     !self.hasSeparatingAxis(axes)(other)
+    
+  private def intersects(aabb: AABB): Boolean = self intersects Polygon(aabb.vertices*)
 
   private def intersects(circle: Circle): Boolean =
     val polyHasSeparatingAxis = self.hasSeparatingAxis(self.axes)(circle)
