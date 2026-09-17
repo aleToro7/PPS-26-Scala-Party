@@ -45,6 +45,9 @@ given Conversion[Circle, Projectable] with
     val centerProjection = c.center.x * axis.x + c.center.y * axis.y
     (centerProjection - c.radius, centerProjection + c.radius)
 
+extension (self: Double)
+  private def half = self / 2.0
+
 extension (self: Polygon)
   private def edges: Seq[Segment] = self.vertices.zip(self.vertices.tail :+ self.vertices.head)
 
@@ -60,7 +63,7 @@ extension (self: Polygon)
   private def intersects(other: Polygon): Boolean =
     val axes = self.axes ++ other.axes
     !self.hasSeparatingAxis(axes)(other)
-    
+
   private def intersects(aabb: AABB): Boolean = self intersects Polygon(aabb.vertices*)
 
   private def intersects(circle: Circle): Boolean =
@@ -77,8 +80,19 @@ extension (self: Polygon)
     val circleHasSeparatingAxis = pMax < cMin || cMax < pMin
     !circleHasSeparatingAxis
 
-extension (self: Double)
-  private def half = self / 2.0
+  /** Computes and returns the polygon's bounding box.
+   *  The computed bounded box is the smallest [[AABB]] object fitting the polygon.
+   *  @return the computed bounding box
+   */
+  def boundingBox: AABB =
+    val a = self.vertices.head
+    val (minX, minY, maxX, maxY) = self.vertices.tail.foldLeft((a.x, a.y, a.x, a.y)):
+      case ((currMinX, currMinY, currMaxX, currMaxY), p) =>
+        (math.min(currMinX, p.x), math.min(currMinY, p.y), math.max(currMaxX, p.x), math.max(currMaxY, p.y))
+    val width = maxX - minX
+    val height = maxY - minY
+    val center = Point2D(minX + width.half, minY + height.half)
+    AABB(width, height, center)
 
 extension (self: AABB)
   private def vertices: Seq[Point2D] =
