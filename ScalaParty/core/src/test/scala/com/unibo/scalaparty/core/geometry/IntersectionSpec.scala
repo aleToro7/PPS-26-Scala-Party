@@ -41,6 +41,21 @@ class IntersectionSpec extends AnyFlatSpec:
     val b = Shape.Circle(2.0, Point2D(5.0, 0.0))
     (a intersects b) shouldBe false
 
+  it should "intersect with a rectangle when they overlap" in:
+    val circle = Shape.Circle(2.0, Point2D(0.0, 0.0))
+    val rectangle = AABB(4.0, 2.0, Point2D(1.0, 0.0))
+    (circle intersects rectangle) shouldBe true
+
+  it should "intersect with a rectangle when they touch only at the border" in:
+    val circle = Shape.Circle(2.0, Point2D(0.0, 0.0))
+    val rectangle = AABB(4.0, 2.0, Point2D(2.0, 0.0))
+    (circle intersects rectangle) shouldBe true
+
+  it should "intersect with a rectangle when one contains the other" in:
+    val circle = Shape.Circle(2.0, Point2D(0.0, 0.0))
+    val rectangle = AABB(1.0, 1.0, Point2D(0.0, 0.0))
+    (circle intersects rectangle) shouldBe true
+
   type Triangle = Polygon
 
   object Triangle:

@@ -1,5 +1,7 @@
 package com.unibo.scalaparty.core.geometry
 
+import java.lang.Math.clamp
+
 given Conversion[AABB, Polygon] = r => Polygon(r.vertices*)
 
 /** Represents a geometric shape in a two-dimensional space.
@@ -24,6 +26,8 @@ extension [A <: Shape](self: A)
     case (p1: Polygon, p2: Polygon) => p1 intersects p2
     case (r: AABB, p: Polygon) => p intersects r
     case (p: Polygon, r: AABB) => p intersects r
+    case (c: Circle, r :AABB) => c intersects r
+    case (r: AABB, c :Circle) => c intersects r
     case _ => false // TODO: Implement other shape intersections
 
 import com.unibo.scalaparty.core.geometry.Shape.*
@@ -78,3 +82,14 @@ extension (self: Circle)
   private def intersects(c: Circle): Boolean =
     val distance = (self.center - c.center).module
     distance <= self.radius + c.radius
+
+  private def intersects(aabb: AABB): Boolean =
+    val distanceBetweenCenters = self.center - aabb.center
+    val halfWidth = aabb.width.half
+    val halfHeight = aabb.height.half
+    val px = clamp(distanceBetweenCenters.x, -halfWidth, halfWidth)
+    val py = clamp(distanceBetweenCenters.y, -halfHeight, halfHeight)
+    val closestPoint = Point2D(aabb.center.x + px, aabb.center.y + py)
+    val distanceFromClosest = self.center - closestPoint
+    val squaredDistance = distanceFromClosest.x * distanceFromClosest.x + distanceFromClosest.y * distanceFromClosest.y
+    squaredDistance <= self.radius * self.radius
