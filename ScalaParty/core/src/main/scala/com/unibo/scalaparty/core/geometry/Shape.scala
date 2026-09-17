@@ -2,8 +2,6 @@ package com.unibo.scalaparty.core.geometry
 
 import java.lang.Math.clamp
 
-given Conversion[AABB, Polygon] = r => Polygon(r.vertices*)
-
 /** Represents a geometric shape in a two-dimensional space.
  *  This sealed trait defines the different types of shapes that can be represented, including circles, rectangles, squares, and polygons.
  */
@@ -28,7 +26,8 @@ extension [A <: Shape](self: A)
     case (p: Polygon, r: AABB) => p intersects r
     case (c: Circle, r: AABB) => c intersects r
     case (r: AABB, c: Circle) => c intersects r
-    case _ => false // TODO: Implement other shape intersections
+    case (p: Polygon, c: Circle) => p intersects c
+    case (c: Circle, p: Polygon) => p intersects c
 
 import com.unibo.scalaparty.core.geometry.Shape.*
 
