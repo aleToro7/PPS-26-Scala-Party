@@ -7,10 +7,9 @@ import com.unibo.scalaparty.infrastructure.model.{MatchId, PlayerId}
 
 type MessageQueue = Queue[IO, WebSocketFrame]
 
-/**
- * Registry for managing active physical connections (e.g., WebSockets).
- * Tracks the relationship between a connected player and their assigned match,
- * enabling targeted message broadcasting to specific groups of clients.
+/** Registry for managing active physical connections (e.g., WebSockets).
+ *  Tracks the relationship between a connected player and their assigned match,
+ *  enabling targeted message broadcasting to specific groups of clients.
  */
 trait ConnectionRegistry:
 
@@ -19,12 +18,11 @@ trait ConnectionRegistry:
   /** Removes a physical session from the registry upon disconnection. */
   def removeSession(playerId: PlayerId): IO[Unit]
 
-  /**
-   * Retrieves all currently connected players for a given match.
-   * Essential for broadcasting game state updates only to the relevant clients.
+  /** Retrieves all currently connected players for a given match.
+   *  Essential for broadcasting game state updates only to the relevant clients.
    *
-   * @param matchId The match to query.
-   * @return A list of players currently holding an active connection in that match.
+   *  @param matchId The match to query.
+   *  @return A list of players currently holding an active connection in that match.
    */
   def getClientsForMatch(matchId: MatchId): IO[List[PlayerId]]
 

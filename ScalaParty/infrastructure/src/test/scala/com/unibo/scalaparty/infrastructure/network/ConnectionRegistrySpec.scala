@@ -14,7 +14,7 @@ class ConnectionRegistrySpec extends AsyncWordSpec with AsyncIOSpec with Matcher
 
     "allow binding a session to a match and retrieving it".in:
       val playerId = PlayerId.random()
-      val matchId  = MatchId.random()
+      val matchId = MatchId.random()
 
       for
         registry <- ConnectionRegistry()
@@ -26,17 +26,16 @@ class ConnectionRegistrySpec extends AsyncWordSpec with AsyncIOSpec with Matcher
         players.head shouldBe playerId
 
     "return an empty list for a match with no players".in:
-      val matchId  = MatchId.random()
+      val matchId = MatchId.random()
 
       for
         registry <- ConnectionRegistry()
         players  <- registry.getClientsForMatch(matchId)
-      yield
-        players shouldBe empty
+      yield players shouldBe empty
 
     "remove a session correctly".in:
       val playerId = PlayerId.random()
-      val matchId  = MatchId.random()
+      val matchId = MatchId.random()
 
       for
         registry <- ConnectionRegistry()
@@ -44,13 +43,12 @@ class ConnectionRegistrySpec extends AsyncWordSpec with AsyncIOSpec with Matcher
         _        <- registry.bindSessionToMatch(playerId, matchId, queue)
         _        <- registry.removeSession(playerId)
         players  <- registry.getClientsForMatch(matchId)
-      yield
-        players shouldBe empty
+      yield players shouldBe empty
 
     "handle multiple players in the same match".in:
-      val matchId  = MatchId.random()
-      val player1  = PlayerId.random()
-      val player2  = PlayerId.random()
+      val matchId = MatchId.random()
+      val player1 = PlayerId.random()
+      val player2 = PlayerId.random()
 
       for
         registry <- ConnectionRegistry()
@@ -61,4 +59,4 @@ class ConnectionRegistrySpec extends AsyncWordSpec with AsyncIOSpec with Matcher
         players  <- registry.getClientsForMatch(matchId)
       yield
         players.size shouldBe 2
-        players should contain allOf(player1, player2)
+        players should contain allOf (player1, player2)

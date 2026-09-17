@@ -3,8 +3,8 @@ package com.unibo.scalaparty.infrastructure.network.dto
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import io.circe.syntax.*
-import com.unibo.scalaparty.core.ecs.EntityId
 import com.unibo.scalaparty.core.dto.EntityDto
+import com.unibo.scalaparty.core.ecs.EntityId
 import com.unibo.scalaparty.core.geometry.{Point2D, Vector2D}
 import com.unibo.scalaparty.core.model.MatchState
 import com.unibo.scalaparty.infrastructure.network.dto.ProtocolCodecs.given

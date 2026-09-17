@@ -6,19 +6,18 @@ import com.unibo.scalaparty.infrastructure.model.{MatchId, PlayerId}
 import com.unibo.scalaparty.infrastructure.ports.AccessPort
 
 private final case class LobbyState(
-                                     activeMatches: Map[MatchId, Set[PlayerId]],
-                                     pendingLobbyMatch: Option[MatchId]
-                                   )
+    activeMatches: Map[MatchId, Set[PlayerId]],
+    pendingLobbyMatch: Option[MatchId]
+)
 
 private object LobbyState:
   val empty: LobbyState = LobbyState(Map.empty, None)
 
-/**
- * Core application service managing the logical state of the matchmaking lobby.
- * Groups incoming players into pending matches up to a defined maximum capacity
- * (MaxPlayersPerMatch). Once a match is full, a new pending match is automatically opened.
+/** Core application service managing the logical state of the matchmaking lobby.
+ *  Groups incoming players into pending matches up to a defined maximum capacity
+ *  (MaxPlayersPerMatch). Once a match is full, a new pending match is automatically opened.
  *
- * Concurrency is handled internally via a purely functional Ref state.
+ *  Concurrency is handled internally via a purely functional Ref state.
  */
 final class LobbyManager[F[_]: Sync] private (state: Ref[F, LobbyState]) extends AccessPort[F]:
 
@@ -46,7 +45,7 @@ final class LobbyManager[F[_]: Sync] private (state: Ref[F, LobbyState]) extends
       state.modify: s =>
         val (matchId, players) = s.pendingLobbyMatch match
           case Some(id) => id -> (s.activeMatches.getOrElse(id, Set.empty) + playerId)
-          case None     => candidateMatchId -> Set(playerId)
+          case None => candidateMatchId -> Set(playerId)
 
         val isFull = players.size >= LobbyManager.MaxPlayersPerMatch
         val newState = LobbyState(

@@ -1,14 +1,14 @@
 package com.unibo.scalaparty.infrastructure.application
 
+import scala.concurrent.duration.*
+
 import cats.effect.IO
 import fs2.Stream
-
-import scala.concurrent.duration.*
-import com.unibo.scalaparty.infrastructure.model.{MatchId, PlayerId}
-import com.unibo.scalaparty.core.engine.GameEngine
 import com.unibo.scalaparty.core.dto.EntityDto
 import com.unibo.scalaparty.core.ecs.{EntityId, GameWorld}
+import com.unibo.scalaparty.core.engine.GameEngine
 import com.unibo.scalaparty.infrastructure.application.CommandAdapter.*
+import com.unibo.scalaparty.infrastructure.model.{MatchId, PlayerId}
 
 trait MatchEventPublisher[F[_]]:
   def publishState(matchId: MatchId, entities: List[EntityDto]): F[Unit]
@@ -16,17 +16,17 @@ trait MatchEventPublisher[F[_]]:
 type PlayerEntityMapping = Map[PlayerId, EntityId]
 
 case class MatchSession(
-                         matchId: MatchId,
-                         players: PlayerEntityMapping,
-                         world: GameWorld
-                       )
+    matchId: MatchId,
+    players: PlayerEntityMapping,
+    world: GameWorld
+)
 
 class MatchRunner(
-                   session: MatchSession,
-                   commandQueue: GameCommandService,
-                   engine: GameEngine,
-                   publisher: MatchEventPublisher[IO]
-                 ):
+    session: MatchSession,
+    commandQueue: GameCommandService,
+    engine: GameEngine,
+    publisher: MatchEventPublisher[IO]
+):
 
   def run: Stream[IO, Unit] =
     Stream.fixedRate[IO](16.millis).zipWithIndex.evalMap: (_, tick) =>

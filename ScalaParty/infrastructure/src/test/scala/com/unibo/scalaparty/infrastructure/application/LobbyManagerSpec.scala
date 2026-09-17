@@ -49,10 +49,10 @@ class LobbyManagerSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
     "stop being pending once it reaches the max number of players".in:
       val players = List.fill(LobbyManager.MaxPlayersPerMatch)(PlayerId.random())
       for
-        lobby      <- LobbyManager.of[IO]
-        matchIds   <- players.traverse(lobby.joinLobby)
-        pending    <- lobby.pendingMatch
-        inMatch    <- lobby.playersInMatch(matchIds.head)
+        lobby    <- LobbyManager.of[IO]
+        matchIds <- players.traverse(lobby.joinLobby)
+        pending  <- lobby.pendingMatch
+        inMatch  <- lobby.playersInMatch(matchIds.head)
       yield
         matchIds.toSet shouldBe Set(matchIds.head)
         inMatch shouldBe players.toSet
@@ -104,7 +104,7 @@ class LobbyManagerSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
       yield pending shouldBe None
 
     "be a no-op if the match doesn't exist".in:
-      val matchId  = MatchId.random()
+      val matchId = MatchId.random()
       val playerId = PlayerId.random()
       for
         lobby <- LobbyManager.of[IO]

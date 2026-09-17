@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ScalaParty</title>
+  <style>
+    body {
+      margin: 0;
+      background: #0d0d11;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      color: #edf6ff;
+      font-family: monospace;
+    }
+
+    .panel {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    canvas {
+      border: 2px solid #2a2a3a;
+      background-color: #121218;
+      box-shadow: 0 0 20px rgba(0, 255, 204, 0.15);
+    }
+
+    .status {
+      min-height: 1.5em;
+      color: #9ee7ff;
+      letter-spacing: 0.04em;
+    }
+
+    .debug-log {
+      width: 800px;
+      max-height: 180px;
+      overflow-y: auto;
+      border: 1px solid #2a2a3a;
+      background: #0b0b10;
+      color: #b8f7cc;
+      padding: 8px;
+      box-sizing: border-box;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <div id="status" class="status">Connecting to server...</div>
+    <div id="debugLog" class="debug-log"></div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const statusEl = document.getElementById('status');
+    const debugLogEl = document.getElementById('debugLog');
+
+    const SHIP_HEIGHT = 24;
+    const SHIP_BASE = 14;
+    const MAX_LOG_LINES = 50;
+
+    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const host = window.location.hostname || 'localhost';
+    const port = window.location.port || '8081';
+    const socket = new WebSocket(`${protocol}://${host}:${port}/scalaparty/ws`);
+
+    const logLines = [];
+
+    function appendLog(message) {
+      const now = new Date().toISOString().slice(11, 19);
+      logLines.push(`[${now}] ${message}`);
+      if (logLines.length > MAX_LOG_LINES) {
+        logLines.shift();
+      }
+      debugLogEl.textContent = `${logLines.join('\n')}\n`;
+      debugLogEl.scrollTop = debugLogEl.scrollHeight;
+    }
+
+    let currentShip = {
+      position: { x: canvas.width / 2, y: canvas.height / 2 },
+      velocity: { x: 0, y: 0 },
+      angle: 0
+    };
+
+    function extractShip(payload) {
+      const list = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.entities)
+          ? payload.entities
+          : [];
+
+      for (const entry of list) {
+        if (entry && typeof entry === 'object' && 'Spaceship' in entry) {
+          return entry.Spaceship;
+        }
+      }
+      return null;
+    }
+
+    function updateFromServer(rawMessage) {
+      try {
+        const payload = JSON.parse(rawMessage);
+        const ship = extractShip(payload);
+        if (!ship) return;
+
+        const pos = ship.position ?? { x: currentShip.position.x, y: currentShip.position.y };
+        const vel = ship.velocity ?? { x: 0, y: 0 };
+
+        currentShip = {
+          position: {
+            x: Number(pos.x ?? currentShip.position.x),
+            y: Number(pos.y ?? currentShip.position.y)
+          },
+          velocity: {
+            x: Number(vel.x ?? currentShip.velocity.x),
+            y: Number(vel.y ?? currentShip.velocity.y)
+          },
+          angle: Math.atan2(Number(vel.y ?? 0), Number(vel.x ?? 1))
+        };
+      } catch (error) {
+        console.error('Invalid server payload', error);
+      }
+    }
+
+    function drawSpaceship(x, y, angle) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(angle);
+
+      ctx.beginPath();
+      ctx.moveTo(SHIP_HEIGHT / 2, 0);
+      ctx.lineTo(-SHIP_HEIGHT / 2, -SHIP_BASE / 2);
+      ctx.lineTo(-SHIP_HEIGHT / 2, SHIP_BASE / 2);
+      ctx.closePath();
+
+      ctx.fillStyle = '#00ffcc';
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function render() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawSpaceship(currentShip.position.x, currentShip.position.y, currentShip.angle);
+    }
+
+    function gameLoop() {
+      render();
+      requestAnimationFrame(gameLoop);
+    }
+
+    socket.addEventListener('open', () => {
+      statusEl.textContent = 'Connected to ScalaParty server';
+      appendLog('WebSocket connected');
+    });
+
+    socket.addEventListener('close', () => {
+      statusEl.textContent = 'Disconnected from server';
+      appendLog('WebSocket disconnected');
+    });
+
+    socket.addEventListener('error', () => {
+      appendLog('WebSocket error');
+    });
+
+    socket.addEventListener('message', (event) => {
+      appendLog(`Received: ${event.data}`);
+      updateFromServer(event.data);
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key.toLowerCase() !== 'r') return;
+      event.preventDefault();
+
+      if (socket.readyState !== WebSocket.OPEN) {
+        statusEl.textContent = 'Socket not ready yet';
+        appendLog('Rotate skipped: socket not open');
+        return;
+      }
+      const angle = 2.0
+      const command = JSON.stringify({ Rotate: { angle } });
+      socket.send(command);
+      appendLog(`Sent: ${command}`);
+      statusEl.textContent = `Rotated by ${angle}°`;
+    });
+
+    appendLog(`Connecting to WebSocket at ${protocol}://${host}:${port}/scalaparty/ws`);
+    requestAnimationFrame(gameLoop);
+  </script>
+</body>
+</html>

@@ -32,4 +32,4 @@ class WebSocketBroadcasterSpec extends AsyncWordSpec with AsyncIOSpec with Match
         frame shouldBe defined
         frame.get match
           case WebSocketFrame.Text(text, _) => text should include(""""tick":1""")
-          case _                            => fail("Expected a Text WebSocket frame")
+          case _ => fail("Expected a Text WebSocket frame")
