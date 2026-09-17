@@ -117,7 +117,7 @@ class IntersectionSpec extends AnyFlatSpec:
   it should "compute the correct bounding box" in:
     val triangle = Triangle(Point2D(0.0, 0.0), Point2D(4.0, 0.0), Point2D(2.0, 4.0))
     triangle.boundingBox shouldBe AABB(4.0, 4.0, Point2D(2.0, 2.0))
-    
+
   it should "compute the correct bounding box for a triangle with negative coordinates" in:
     val triangle = Triangle(Point2D(-2.0, -1.0), Point2D(1.0, -3.0), Point2D(-4.0, 2.0))
     triangle.boundingBox shouldBe AABB(5.0, 5.0, Point2D(-1.5, -0.5))
