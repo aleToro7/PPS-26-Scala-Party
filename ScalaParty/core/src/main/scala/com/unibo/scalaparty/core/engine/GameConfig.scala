@@ -1,7 +1,7 @@
 package com.unibo.scalaparty.core.engine
 
 import com.unibo.scalaparty.core.ecs.EntityId
-import com.unibo.scalaparty.core.ecs.systems.{MovementSystem, SystemPipeline}
+import com.unibo.scalaparty.core.ecs.systems.{MovementSystem, ShootingSystem, SystemPipeline}
 import com.unibo.scalaparty.core.model.GameSettings
 
 /** Configuration for the game engine.
