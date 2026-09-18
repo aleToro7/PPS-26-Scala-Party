@@ -1,6 +1,7 @@
 package com.unibo.scalaparty.infrastructure.application
 
 import scala.concurrent.duration.*
+
 import cats.effect.{IO, Ref}
 import cats.effect.std.Queue
 import cats.effect.testing.scalatest.AsyncIOSpec

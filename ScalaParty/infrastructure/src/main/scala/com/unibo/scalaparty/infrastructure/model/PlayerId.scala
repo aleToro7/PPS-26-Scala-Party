@@ -11,14 +11,14 @@ object PlayerId:
 
   /** Generates a new random player identifier.
    *
-   * @return a newly created random [[PlayerId]]
+   *  @return a newly created random [[PlayerId]]
    */
   def random(): PlayerId = UUID.randomUUID()
 
   /** Parses a player identifier from its string representation.
    *
-   * @param s the string representation of the UUID
-   * @return the corresponding [[PlayerId]]
+   *  @param s the string representation of the UUID
+   *  @return the corresponding [[PlayerId]]
    */
   def fromString(s: String): PlayerId = UUID.fromString(s)
 

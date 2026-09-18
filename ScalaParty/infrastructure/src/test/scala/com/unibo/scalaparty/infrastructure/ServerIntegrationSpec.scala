@@ -1,11 +1,17 @@
 package com.unibo.scalaparty.infrastructure
 
 import scala.concurrent.duration.*
+
 import cats.effect.IO
 import cats.effect.testing.scalatest.AsyncIOSpec
 import com.unibo.scalaparty.core.model.GameSettings
 import com.unibo.scalaparty.infrastructure.application.{GameCommandService, MatchCoordinator, QueuedLobbyManager}
-import com.unibo.scalaparty.infrastructure.network.{ConnectionRegistry, WebSocketBroadcaster, WebSocketNotifier, WebSocketServer}
+import com.unibo.scalaparty.infrastructure.network.{
+  ConnectionRegistry,
+  WebSocketBroadcaster,
+  WebSocketNotifier,
+  WebSocketServer
+}
 import org.http4s.*
 import org.http4s.Method.GET
 import org.http4s.implicits.*

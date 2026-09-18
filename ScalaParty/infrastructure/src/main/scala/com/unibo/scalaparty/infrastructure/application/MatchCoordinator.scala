@@ -6,10 +6,10 @@ import cats.effect.{FiberIO, IO, Ref}
 import cats.syntax.all.*
 import com.unibo.scalaparty.core.ecs.{EntityId, GameWorld}
 import com.unibo.scalaparty.core.engine.{GameConfig, GameEngine}
+import com.unibo.scalaparty.core.model.GameSettings
 import com.unibo.scalaparty.infrastructure.model.{ActiveMatch, JoinOutcome, PlayerId, ServerMessage}
 import com.unibo.scalaparty.infrastructure.network.ConnectionRegistry
 import com.unibo.scalaparty.infrastructure.ports.{AccessPort, MatchEventPublisher, PlayerNotifier}
-import com.unibo.scalaparty.core.model.GameSettings
 
 /** Application service driving the whole life of a match, from the waiting queue to the last tick.
  *
@@ -42,10 +42,10 @@ class MatchCoordinator(
 ) extends AccessPort[IO]:
 
   /** Takes a player in, joining the lobby and either starting a match immediately
-   * or queueing the player with a notification of those ahead.
+   *  or queueing the player with a notification of those ahead.
    *
-   * @param playerId the unique identifier of the joining player
-   * @return an effect completing when the lobby action is handled
+   *  @param playerId the unique identifier of the joining player
+   *  @return an effect completing when the lobby action is handled
    */
   override def joinLobby(playerId: PlayerId): IO[Unit] =
     lobby.join(playerId).flatMap:
@@ -53,10 +53,10 @@ class MatchCoordinator(
       case JoinOutcome.Queued(playersAhead) => notifier.send(playerId, ServerMessage.Queued(playersAhead))
 
   /** Removes a player from the lobby or active match, cancelling running matches if emptied
-   * and refreshing queues or starting successors as appropriate.
+   *  and refreshing queues or starting successors as appropriate.
    *
-   * @param playerId the unique identifier of the leaving player
-   * @return an effect completing when the leave action is processed
+   *  @param playerId the unique identifier of the leaving player
+   *  @return an effect completing when the leave action is processed
    */
   override def leaveLobby(playerId: PlayerId): IO[Unit] =
     for
@@ -89,8 +89,8 @@ class MatchCoordinator(
 
   /** Assigns each player in the match to the connection registry and notifies them that the match has started.
    *
-   * @param activeMatch the active match being populated
-   * @return an effect completing when all players are admitted
+   *  @param activeMatch the active match being populated
+   *  @return an effect completing when all players are admitted
    */
   private def admit(activeMatch: ActiveMatch): IO[Unit] =
     activeMatch.players.toList.traverse_ { playerId =>
@@ -135,7 +135,7 @@ class MatchCoordinator(
 
   /** Cancels the currently running match fiber, if any.
    *
-   * @return an effect completing when the running fiber is cancelled
+   *  @return an effect completing when the running fiber is cancelled
    */
   private def cancelRunning: IO[Unit] =
     running.getAndSet(None).flatMap(_.traverse_(_.cancel))
@@ -144,14 +144,14 @@ object MatchCoordinator:
 
   /** Factory method that safely initializes the MatchCoordinator with a reference to track the running fiber.
    *
-   * @param lobby         the queued lobby manager deciding who plays
-   * @param registry      the connection registry tracking player sockets
-   * @param commands      the service buffering player inputs
-   * @param notifier      the port delivering personal messages to players
-   * @param publisher     the publisher broadcasting match states
-   * @param settings      Shared rules and arena dimensions for the engine
-   * @param matchDuration the duration of each match session
-   * @return an IO effect containing the instantiated MatchCoordinator
+   *  @param lobby         the queued lobby manager deciding who plays
+   *  @param registry      the connection registry tracking player sockets
+   *  @param commands      the service buffering player inputs
+   *  @param notifier      the port delivering personal messages to players
+   *  @param publisher     the publisher broadcasting match states
+   *  @param settings      Shared rules and arena dimensions for the engine
+   *  @param matchDuration the duration of each match session
+   *  @return an IO effect containing the instantiated MatchCoordinator
    */
   def apply(
       lobby: QueuedLobbyManager[IO],

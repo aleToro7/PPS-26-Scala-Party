@@ -18,7 +18,7 @@ final case class GameConfig(
     players: List[EntityId],
     pipeline: SystemPipeline = GameConfig.defaultPipeline
 ):
-  export settings.* //VALUTARE SE MANTENERE
+  export settings.* // VALUTARE SE MANTENERE
 
 object GameConfig:
   private val defaultPipeline = MovementSystem >> ShootingSystem

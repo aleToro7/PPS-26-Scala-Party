@@ -14,13 +14,13 @@ class GameCommandService(bufferRef: Ref[IO, CommandBuffer]) extends CommandPort[
 
   /** Handles and buffers an incoming gameplay command from a player within a specific match.
    *
-   * Updates the concurrent state buffer atomically by appending the player's input
-   * to the match's pending command queue, then logs the buffered action.
+   *  Updates the concurrent state buffer atomically by appending the player's input
+   *  to the match's pending command queue, then logs the buffered action.
    *
-   * @param matchId  the match where the action occurs
-   * @param playerId the player performing the action
-   * @param command  the specific player input/command to buffer
-   * @return an IO effect completing when the command is safely buffered and logged
+   *  @param matchId  the match where the action occurs
+   *  @param playerId the player performing the action
+   *  @param command  the specific player input/command to buffer
+   *  @return an IO effect completing when the command is safely buffered and logged
    */
   def handleCommand(matchId: MatchId, playerId: PlayerId, command: PlayerInput): IO[Unit] =
     bufferRef.update: buffer =>
@@ -32,11 +32,11 @@ class GameCommandService(bufferRef: Ref[IO, CommandBuffer]) extends CommandPort[
 
   /** Extracts all accumulated player inputs for a given match and atomically clears the queue.
    *
-   * Retrieves the list of pending commands associated with the match ID and replaces
-   * them with an empty list in a single atomic modification of the buffer state.
+   *  Retrieves the list of pending commands associated with the match ID and replaces
+   *  them with an empty list in a single atomic modification of the buffer state.
    *
-   * @param matchId the match whose pending commands are to be extracted
-   * @return an IO effect containing the list of accumulated player inputs for the match
+   *  @param matchId the match whose pending commands are to be extracted
+   *  @return an IO effect containing the list of accumulated player inputs for the match
    */
   def drainCommands(matchId: MatchId): IO[List[(PlayerId, PlayerInput)]] =
     bufferRef.modify: buffer =>
