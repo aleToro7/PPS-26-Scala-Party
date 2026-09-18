@@ -14,22 +14,14 @@ object RotateCommandExecutor extends CommandExecutor[RotateCommand]:
     val angle = command.angle
     val updatedWorld =
       for
-        components <- world.findComponents(entityId)
-        velocity   <- components.collectFirst { case mc: MovementComponent => mc.velocity }
-        if velocity != Vector2D.zero
-        updatedEntity <- rotateMovementComponent(entityId, components, angle)
-      yield world + updatedEntity
-    updatedWorld.getOrElse(world)
+        components        <- world.findComponents(entityId)
+        movementComponent <- components.collectFirst { case mc: MovementComponent => mc }
+        if movementComponent.velocity != Vector2D.zero
+      yield world.updateComponent(entityId, rotateMovementComponent(entityId, movementComponent, angle))
+    updatedWorld getOrElse world
 
   private def rotateMovementComponent(
       entityId: EntityId,
-      components: List[Component],
+      component: MovementComponent,
       angle: Double
-  ): Option[EntityWithComponents] =
-    for
-      velocity <- components.collectFirst { case mc: MovementComponent => mc.velocity }
-      if velocity != Vector2D.zero
-      updatedComponents = components.map:
-        case mc: MovementComponent => mc.copy(velocity = velocity.rotated(angle))
-        case other => other
-    yield (entityId, updatedComponents)
+  ): MovementComponent = component.copy(velocity = component.velocity.rotated(angle))
