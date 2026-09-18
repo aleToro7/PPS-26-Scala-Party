@@ -14,3 +14,11 @@ enum EntityDto:
    *  @param velocity the current movement vector representing the speed and direction of the spaceship
    */
   case Spaceship(id: EntityId, position: Point2D, velocity: Vector2D)
+
+  /** Represents a bullet fired by a spaceship.
+   *
+   *  @param id the unique identifier of the bullet entity
+   *  @param position the current 2D spatial coordinates of the bullet
+   *  @param velocity the current movement vector representing the speed and direction of the bullet
+   */
+  case Bullet(id: EntityId, position: Point2D, velocity: Vector2D)

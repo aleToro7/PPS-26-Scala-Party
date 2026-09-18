@@ -1,7 +1,7 @@
 package com.unibo.scalaparty.core.engine
 
 import com.unibo.scalaparty.core.ecs.{EntityId, GameWorld}
-import com.unibo.scalaparty.core.ecs.systems.{System, SystemPipeline}
+import com.unibo.scalaparty.core.ecs.systems.{SystemPipeline, WorldSystem}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import com.unibo.scalaparty.core.model.GameSettings
@@ -30,7 +30,8 @@ class GameEngineSpec extends AnyFlatSpec with Matchers:
 
   "A GameEngine" should "update the world state according to the defined pipeline" in:
     val player = EntityId.generate()
-    val clearWorldSystem: System = (world, events, dt) => if dt > 0 then (GameWorld(Nil), events) else (world, events)
+    val clearWorldSystem: WorldSystem =
+      (world, events, dt) => if dt > 0 then (GameWorld(Nil), events) else (world, events)
     val someTime = 100L // 100 milliseconds
     val engine = GameEngine(GameConfig(
       players = List(player),

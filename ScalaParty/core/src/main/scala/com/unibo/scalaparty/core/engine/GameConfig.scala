@@ -21,9 +21,7 @@ final case class GameConfig(
   export settings.* //VALUTARE SE MANTENERE
 
 object GameConfig:
-  private val defaultPipeline = SystemPipeline(
-    MovementSystem,
-  )
+  private val defaultPipeline = MovementSystem >> ShootingSystem
 
   /** Helper to quickly create a single-player configuration.
    *

@@ -81,3 +81,30 @@ class GameWorldSpec extends AnyFlatSpec with Matchers:
     val expectedEntities = List(entity1, entity2)
     gameWorld.entities should have size 3
     retrievedEntities should contain theSameElementsAs expectedEntities
+
+  "A GameWorld" should "update a component when updateComponent is called" in:
+    val oldComponent = EmptyComponent()
+    val newComponent = AnotherComponent()
+    val entity = (EntityId.generate(), List(oldComponent))
+    val gameWorld = GameWorld(List(entity))
+    val updatedWorld = gameWorld.updateComponent(entity._1, newComponent)
+    updatedWorld.findComponents(entity._1) shouldBe Some(List(newComponent, oldComponent))
+    gameWorld.id should not be updatedWorld.id
+
+  "A GameWorld" should "replace an existing component of the same type when updateComponent is called" in:
+    case class ComponentWithId(id: Int) extends Component
+    val oldComponent = ComponentWithId(1)
+    val newComponent = ComponentWithId(2)
+    val entity = (EntityId.generate(), List(oldComponent))
+    val gameWorld = GameWorld(List(entity))
+    val updatedWorld = gameWorld.updateComponent(entity._1, newComponent)
+    gameWorld.id should not be updatedWorld.id
+    updatedWorld.findComponents(entity._1) shouldBe Some(List(newComponent))
+
+  "A GameWorld" should "not change when updateComponent is called on a non-existing entity" in:
+    val gameWorld = emptyWorld
+    val nonExistingEntityId = EntityId.generate()
+    val newComponent = EmptyComponent()
+    val updatedWorld = gameWorld.updateComponent(nonExistingEntityId, newComponent)
+    updatedWorld.entities shouldBe empty
+    updatedWorld.id shouldBe gameWorld.id
