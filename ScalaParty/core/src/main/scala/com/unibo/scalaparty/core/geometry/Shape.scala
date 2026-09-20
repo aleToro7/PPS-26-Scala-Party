@@ -103,6 +103,29 @@ extension (self: Polygon)
     val center = Point2D(minX + width.half, minY + height.half)
     AABB(width, height, center)
 
+  /** Rotates the polygon by a given angle (in degrees) around its center.
+   *  @param angle the angle in degrees by which to rotate the polygon
+   *  @return a new [[Polygon]] that is the result of rotating the current polygon by the specified angle
+   */
+  def rotate(angle: Double): Polygon =
+    val radians = math.toRadians(angle)
+    val cosTheta = math.cos(radians)
+    val sinTheta = math.sin(radians)
+    val vertices = self.vertices
+    val center = vertices.foldLeft(Point2D(0.0, 0.0))((acc, v) =>
+      println:
+        s"Accumulating vertex $v to center $acc"
+      Point2D(acc.x + (v.x / vertices.size), acc.y + (v.y / vertices.size))
+    )
+    val rotatedVertices = vertices.map { vertex =>
+      val translatedX = vertex.x - center.x
+      val translatedY = vertex.y - center.y
+      val rotatedX = translatedX * cosTheta - translatedY * sinTheta
+      val rotatedY = translatedX * sinTheta + translatedY * cosTheta
+      Point2D(rotatedX + center.x, rotatedY + center.y)
+    }
+    Polygon(rotatedVertices*)
+
 extension (self: AABB)
   private def vertices: Seq[Point2D] =
     val halfWidth = self.width.half

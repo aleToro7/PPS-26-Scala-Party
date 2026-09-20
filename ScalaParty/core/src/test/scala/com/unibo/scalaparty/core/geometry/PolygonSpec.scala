@@ -76,3 +76,28 @@ class PolygonSpec extends AnyFlatSpec:
   it should "compute the correct bounding box for a triangle with zero coordinates" in:
     val triangle = Triangle(Point2D(0.0, 0.0), Point2D(0.0, 0.0), Point2D(0.0, 0.0))
     triangle.boundingBox shouldBe AABB(0.0, 0.0, Point2D(0.0, 0.0))
+
+  "A Triangle" should "correctly rotate around its center" in:
+    val triangle = Triangle(Point2D(0.0, 0.0), Point2D(6.0, 0.0), Point2D(3.0, 6.0))
+    val expectedTriangle = Triangle(Point2D(6.0, 4.0), Point2D(0.0, 4.0), Point2D(3.0, -2.0))
+    triangle.rotate(180) shouldEqual expectedTriangle
+
+  it should "correctly return to its original position after a full rotation" in:
+    val triangle = Triangle(Point2D(0.0, 0.0), Point2D(6.0, 0.0), Point2D(3.0, 6.0))
+    triangle.rotate(360) shouldEqual triangle
+
+  it should "correctly perform multiple rotations" in:
+    val triangle = Triangle(Point2D(0.0, 0.0), Point2D(6.0, 0.0), Point2D(3.0, 6.0))
+    triangle.rotate(90).rotate(90).rotate(90).rotate(90) shouldEqual triangle
+
+  it should "correctly rotate with negative angles" in:
+    val triangle = Triangle(Point2D(0.0, 0.0), Point2D(6.0, 0.0), Point2D(3.0, 6.0))
+    val expectedTriangle = Triangle(Point2D(6.0, 4.0), Point2D(0.0, 4.0), Point2D(3.0, -2.0))
+    triangle.rotate(-180) shouldEqual expectedTriangle
+
+  extension (self: Triangle)
+    def shouldEqual(other: Triangle): Unit =
+      val tolerance = 0.0001
+      for (v1, v2) <- self.vertices zip other.vertices do
+        v1.x shouldBe v2.x +- tolerance
+        v1.y shouldBe v2.y +- tolerance
