@@ -29,6 +29,15 @@ extension [A <: Shape](self: A)
     case (p: Polygon, c: Circle) => p intersects c
     case (c: Circle, p: Polygon) => p intersects c
 
+  /** Moves the shape by a given delta vector.
+   *  @param delta the vector by which to move the shape
+   *  @return a new shape that is the result of moving the current shape by the specified delta
+   */
+  def move(delta: Vector2D): Shape = self match
+    case Polygon(vertices*) => Polygon(vertices.map(_ + delta)*)
+    case Circle(radius, center) => Circle(radius, center + delta)
+    case AABB(width, height, center) => AABB(width, height, center + delta)
+
 import com.unibo.scalaparty.core.geometry.Shape.*
 
 private type Segment = (Point2D, Point2D)
