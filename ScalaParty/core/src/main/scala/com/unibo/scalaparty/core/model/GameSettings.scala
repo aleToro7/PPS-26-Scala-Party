@@ -1,11 +1,21 @@
 package com.unibo.scalaparty.core.model
 
+/** Configuration settings for the game arena.
+ *
+ *  @param width  the horizontal width of the arena
+ *  @param height the vertical height of the arena
+ */
 final case class ArenaSettings(
                                 width: Int = 800,
                                 height: Int = 800
                               ):
   require(width > 0 && height > 0, "Arena dimensions must be positive")
 
+/** Configuration settings for spaceship dynamics.
+ *
+ *  @param speed         the constant movement speed of spaceships
+ *  @param rotationSpeed the angular rotation speed applied when changing direction
+ */
 final case class SpaceshipSettings(
                                     speed: Double = 50.0,
                                     rotationSpeed: Double = 180.0
@@ -13,6 +23,12 @@ final case class SpaceshipSettings(
   require(speed > 0.0, "Spaceship speed must be positive")
   require(rotationSpeed > 0.0, "Rotation speed must be positive")
 
+/** Configuration settings for weapons and projectile dynamics.
+ *
+ *  @param bulletPower   the damage or impact power of the bullets
+ *  @param bulletSpeed   the linear movement speed of the bullets
+ *  @param shootCooldown the minimum cooldown delay between shots, in milliseconds
+ */
 final case class ShootingSettings(
                                    bulletPower: Double = 10.0,
                                    bulletSpeed: Double = 100.0,
@@ -22,6 +38,12 @@ final case class ShootingSettings(
   require(bulletSpeed > 0.0, "Bullet speed must be positive")
   require(shootCooldown >= 0L, "Shoot cooldown cannot be negative")
 
+/** Unified configuration grouping all arena, entity, and gameplay mechanics parameters.
+ *
+ *  @param arena     settings controlling arena bounds
+ *  @param spaceship settings controlling spaceship dynamics
+ *  @param shooting  settings controlling weapon firing and bullet behavior
+ */
 final case class GameSettings(
                                arena: ArenaSettings = ArenaSettings(),
                                spaceship: SpaceshipSettings = SpaceshipSettings(),
