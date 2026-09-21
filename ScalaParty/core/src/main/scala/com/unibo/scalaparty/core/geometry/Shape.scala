@@ -10,7 +10,7 @@ enum Shape:
   case Circle(radius: Double, center: Point2D)
   case AABB(width: Double, height: Double, center: Point2D)
 
-extension [A <: Shape](self: A)
+extension [S <: Shape](self: S)
 
   /** Determines whether the current shape intersects with another shape.
    *
@@ -33,10 +33,19 @@ extension [A <: Shape](self: A)
    *  @param delta the vector by which to move the shape
    *  @return a new shape that is the result of moving the current shape by the specified delta
    */
-  def move(delta: Vector2D): Shape = self match
-    case Polygon(vertices*) => Polygon(vertices.map(_ + delta)*)
-    case Circle(radius, center) => Circle(radius, center + delta)
-    case AABB(width, height, center) => AABB(width, height, center + delta)
+  def move(delta: Vector2D): S = self match
+    case Polygon(vertices*) => Polygon(vertices.map(_ + delta)*).asInstanceOf[S]
+    case Circle(radius, center) => Circle(radius, center + delta).asInstanceOf[S]
+    case AABB(width, height, center) => AABB(width, height, center + delta).asInstanceOf[S]
+
+  /** Moves the shape to a specific point in space.
+   *  @param p the point to which the shape should be moved
+   *  @return a new shape that is the result of moving the current shape to the specified point
+   */
+  def moveTo(p: Point2D): S = self match
+    case shape: Polygon => self.move( p - shape.center)
+    case Circle(radius, center) => Circle(radius, p).asInstanceOf[S]
+    case AABB(width, height, center) => AABB(width, height, p).asInstanceOf[S]
 
 import com.unibo.scalaparty.core.geometry.Shape.*
 
@@ -103,6 +112,15 @@ extension (self: Polygon)
     val center = Point2D(minX + width.half, minY + height.half)
     AABB(width, height, center)
 
+  /** Computes and returns the center point of the polygon.
+   *  @return the computed center point of the polygon
+   */
+  def center: Point2D =
+    val vertices = self.vertices
+    vertices.foldLeft(Point2D(0.0, 0.0))((acc, v) =>
+      Point2D(acc.x + (v.x / vertices.size), acc.y + (v.y / vertices.size))
+    )
+
   /** Rotates the polygon by a given angle (in degrees) around its center.
    *  @param angle the angle in degrees by which to rotate the polygon
    *  @return a new [[Polygon]] that is the result of rotating the current polygon by the specified angle
@@ -111,13 +129,8 @@ extension (self: Polygon)
     val radians = math.toRadians(angle)
     val cosTheta = math.cos(radians)
     val sinTheta = math.sin(radians)
-    val vertices = self.vertices
-    val center = vertices.foldLeft(Point2D(0.0, 0.0))((acc, v) =>
-      println:
-        s"Accumulating vertex $v to center $acc"
-      Point2D(acc.x + (v.x / vertices.size), acc.y + (v.y / vertices.size))
-    )
-    val rotatedVertices = vertices.map { vertex =>
+    val center = self.center
+    val rotatedVertices = self.vertices.map { vertex =>
       val translatedX = vertex.x - center.x
       val translatedY = vertex.y - center.y
       val rotatedX = translatedX * cosTheta - translatedY * sinTheta
@@ -125,6 +138,19 @@ extension (self: Polygon)
       Point2D(rotatedX + center.x, rotatedY + center.y)
     }
     Polygon(rotatedVertices*)
+
+  def move(v: Vector2D): Polygon =
+    val movedVertices = self.vertices.map(_ + v)
+    Polygon(movedVertices*)
+
+  /** Moves the polygon to a specific point in space.
+   * @param p the point to which the polygon should be moved
+   * @return a new [[Polygon]] that is the result of moving the current polygon to the specified point
+   */
+  def moveTo(p: Point2D): Polygon =
+    val delta = p - self.center
+    val movedVertices = self.vertices.map(_ + delta)
+    Polygon(movedVertices*)
 
 extension (self: AABB)
   private def vertices: Seq[Point2D] =

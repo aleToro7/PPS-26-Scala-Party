@@ -77,6 +77,26 @@ class PolygonSpec extends AnyFlatSpec:
     val triangle = Triangle(Point2D(0.0, 0.0), Point2D(0.0, 0.0), Point2D(0.0, 0.0))
     triangle.boundingBox shouldBe AABB(0.0, 0.0, Point2D(0.0, 0.0))
 
+  "A Triangle" should "compute the correct center point" in:
+    val triangle = Triangle(Point2D(0.0, 0.0), Point2D(6.0, 0.0), Point2D(3.0, 6.0))
+    triangle.center shouldBe Point2D(3.0, 2.0)
+
+  it should "compute the correct center point for a triangle with negative coordinates" in:
+    val triangle = Triangle(Point2D(0.0, 0.0), Point2D(-6.0, 0.0), Point2D(-3.0, -6.0))
+    triangle.center shouldBe Point2D(-3.0, -2.0)
+
+  "A Triangle" should "be correctly moved to a new position" in:
+    val triangle = Triangle(Point2D(0.0, 0.0), Point2D(6.0, 0.0), Point2D(3.0, 6.0))
+    val newCenter = Point2D(3.0, 3.0)
+    val expectedTriangle = Triangle(Point2D(0.0, 1.0), Point2D(6.0, 1.0), Point2D(3.0, 7.0))
+    triangle.moveTo(newCenter) shouldEqual expectedTriangle
+
+  it should "be correctly moved to a new negative position" in:
+    val triangle = Triangle(Point2D(0.0, 0.0), Point2D(6.0, 0.0), Point2D(3.0, 6.0))
+    val newCenter = Point2D(-3.0, -3.0)
+    val expectedTriangle = Triangle(Point2D(-6.0, -5.0), Point2D(0.0, -5.0), Point2D(-3.0, 1.0))
+    triangle.moveTo(newCenter) shouldEqual expectedTriangle
+
   "A Triangle" should "correctly rotate around its center" in:
     val triangle = Triangle(Point2D(0.0, 0.0), Point2D(6.0, 0.0), Point2D(3.0, 6.0))
     val expectedTriangle = Triangle(Point2D(6.0, 4.0), Point2D(0.0, 4.0), Point2D(3.0, -2.0))
