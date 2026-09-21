@@ -31,10 +31,13 @@ private class SinglePlayerGameEngine(config: GameConfig) extends GameEngine:
   private var world: GameWorld = initializeWorld(config)
 
   private def initializeWorld(config: GameConfig): GameWorld =
+    val arena = config.settings.arena
+    val spaceship = config.settings.spaceship
+
     val playerSpaceship = EntityFactory.createSpaceship(
-      entityId = config.players.head,
-      position = Point2D(config.worldWidth / 2, config.worldHeight / 2),
-      velocity = Vector2D(config.spaceshipSpeed, 0)
+      position = Point2D(arena.width / 2, arena.height / 2),
+      velocity = Vector2D(spaceship.speed, 0),
+      entityId = config.players.head
     )
     GameWorld(List(playerSpaceship))
 
