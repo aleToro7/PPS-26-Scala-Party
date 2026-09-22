@@ -20,7 +20,7 @@ object ShootingSystem extends WorldSystem:
 
     private def canShoot(dt: Long): Boolean = component.isShooting && component.cooldownTimer - dt <= 0
 
-    private def shoot(): ShootingComponent = component.copy(cooldownTimer = component.shootCooldown, isShooting = false)
+    private def shoot(): ShootingComponent = component.copy(cooldownTimer = component.weapon.shootCooldown, isShooting = false)
 
     private def decreaseCooldownTimer(dt: Long): ShootingComponent =
       component.copy(cooldownTimer = Math.max(0, component.cooldownTimer - dt))
@@ -36,8 +36,9 @@ object ShootingSystem extends WorldSystem:
         for
           shootingComponent <- components.collectFirst { case sc: ShootingComponent => sc }
           positionComponent <- components.collectFirst { case pc: PositionComponent => pc }
+          movementComponent <- components.collectFirst { case mc: MovementComponent => mc }
           if shootingComponent.canShoot(dt)
-        yield world + getBullet(entityId, positionComponent, shootingComponent)
+        yield world + getBullet(entityId, positionComponent, movementComponent, shootingComponent)
       updatedWorld getOrElse world
 
     private def updateShootingComponent(
@@ -51,12 +52,24 @@ object ShootingSystem extends WorldSystem:
         case _ => world
 
   private def getBullet(
-      entityId: EntityId,
-      positionComponent: PositionComponent,
-      shootingComponent: ShootingComponent,
-  ): EntityWithComponents =
-    val PositionComponent(position) = positionComponent
-    val Point2D(x, y) = position
-    val ShootingComponent(power, speed, _, _, _) = shootingComponent
-    val velocity = Vector2D(x, y) * speed
-    EntityFactory.createBullet(entityId, position, velocity, power)
+                         entityId: EntityId,
+                         positionComponent: PositionComponent,
+                         movementComponent: MovementComponent,
+                         shootingComponent: ShootingComponent
+                       ): EntityWithComponents =
+    val position = positionComponent.position
+    val weapon = shootingComponent.weapon
+    val velocity = movementComponent.velocity
+    
+    val direction =
+      if velocity.module > 0.0 then velocity.normalized
+      else Vector2D(0.0, -1.0)
+
+    val bulletVelocity = direction * weapon.bulletSpeed
+
+    EntityFactory.createBullet(
+      shooterId = entityId,
+      position = position,
+      velocity = bulletVelocity,
+      power = weapon.bulletPower
+    )
