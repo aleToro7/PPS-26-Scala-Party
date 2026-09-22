@@ -40,11 +40,19 @@ class WeaponSpec extends AnyFlatSpec with Matchers:
       Weapon(bulletPower = validPower, bulletSpeed = validSpeed, shootCooldown = 0L)
 
   it should "provide default attributes that satisfy all domain invariants" in:
-    val defaultWeapon = Weapon.default()
+    val defaultWeapon = Weapon.default
 
     defaultWeapon.bulletPower should be > 0.0
     defaultWeapon.bulletSpeed should be > 0.0
     defaultWeapon.shootCooldown should be >= 0L
+
+  it should "map fields accurately from ShootingSettings" in :
+    val settings = ShootingSettings(bulletPower = 20.0, bulletSpeed = 150.0, shootCooldown = 500L)
+    val weapon = Weapon.fromSettings(settings)
+
+    weapon.bulletPower shouldBe settings.bulletPower
+    weapon.bulletSpeed shouldBe settings.bulletSpeed
+    weapon.shootCooldown shouldBe settings.shootCooldown
 
   it should "support immutable copy operations" in:
     val base = Weapon(bulletPower = validPower, bulletSpeed = validSpeed, shootCooldown = validCooldown)
