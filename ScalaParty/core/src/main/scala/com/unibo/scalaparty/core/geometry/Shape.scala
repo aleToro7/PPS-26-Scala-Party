@@ -46,6 +46,14 @@ extension [S <: Shape](self: S)
     case shape: Polygon => self.move( p - shape.center)
     case Circle(radius, center) => Circle(radius, p).asInstanceOf[S]
     case AABB(width, height, center) => AABB(width, height, p).asInstanceOf[S]
+    
+  /** Returns the bounding box of the shape.
+   *  @return the bounding box of the shape
+   */
+  def boundingBox: AABB = self match
+    case shape: Polygon => shape.boundingBox
+    case Circle(radius, center) => AABB(radius * 2, radius * 2, center)
+    case aabb: AABB => aabb
 
 import com.unibo.scalaparty.core.geometry.Shape.*
 
