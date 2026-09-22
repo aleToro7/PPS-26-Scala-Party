@@ -22,7 +22,8 @@ object CollisionSystem extends WorldSystem:
         (target, targetShape) <- entityWithShapes
         actorAABB = actorShape.boundingBox
         targetAABB = targetShape.boundingBox
-        if actor != target && actorAABB.intersects(targetAABB)
+        // This line performs collision detection starting from the most lightweight check to end up with precise shape intersection check.
+        if actor != target && actorAABB.intersects(targetAABB) && actorShape.intersects(targetShape)
       yield CollisionPair(actor, target)
     val collisionEvents = collisions.toSet.map(CollisionDetected.apply)
     (world, events ++ collisionEvents)
