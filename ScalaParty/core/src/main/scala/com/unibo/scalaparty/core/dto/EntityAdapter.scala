@@ -4,6 +4,7 @@ import com.unibo.scalaparty.core.dto.EntityDto.{Bullet as BulletDto, Spaceship a
 import com.unibo.scalaparty.core.ecs.*
 import com.unibo.scalaparty.core.ecs.EntityType.{Bullet, Spaceship}
 import com.unibo.scalaparty.core.geometry.{Point2D, Vector2D}
+import com.unibo.scalaparty.core.utils.collectFirstOfClass
 
 object EntityAdapter:
 
@@ -25,8 +26,8 @@ object EntityAdapter:
       components: List[Component]
   )(mapper: (entityId: EntityId, position: Point2D, velocity: Vector2D) => E): Option[E] =
     for
-      position <- components.collectFirst { case pc: PositionComponent => pc.position }
-      velocity <- components.collectFirst { case mc: MovementComponent => mc.velocity }
+      PositionComponent(position) <- components.collectFirstOfClass[PositionComponent]
+      MovementComponent(velocity) <- components.collectFirstOfClass[MovementComponent]
     yield mapper(entityId, position, velocity)
 
 extension (e: EntityWithComponents)

@@ -3,6 +3,7 @@ package com.unibo.scalaparty.core.engine.input
 import com.unibo.scalaparty.core.ecs.*
 import com.unibo.scalaparty.core.geometry.Vector2D
 import com.unibo.scalaparty.core.model.GameCommand.RotateCommand
+import com.unibo.scalaparty.core.utils.collectFirstOfClass
 
 /** The RotateCommandExecutor is responsible for executing the RotateCommand, which rotates an entity's movement component by a specified angle.
  *  It implements the CommandExecutor trait for the RotateCommand type.
@@ -15,7 +16,7 @@ object RotateCommandExecutor extends CommandExecutor[RotateCommand]:
     val updatedWorld =
       for
         components        <- world.findComponents(entityId)
-        movementComponent <- components.collectFirst { case mc: MovementComponent => mc }
+        movementComponent <- components.collectFirstOfClass[MovementComponent]
         if movementComponent.velocity != Vector2D.zero
       yield world.updateComponent(entityId, rotateMovementComponent(entityId, movementComponent, angle))
     updatedWorld getOrElse world

@@ -3,6 +3,7 @@ package com.unibo.scalaparty.core.ecs.systems
 import com.unibo.scalaparty.core.ecs
 import com.unibo.scalaparty.core.ecs.*
 import com.unibo.scalaparty.core.geometry.{Point2D, Vector2D}
+import com.unibo.scalaparty.core.utils.collectFirstOfClass
 
 object ShootingSystem extends WorldSystem:
 
@@ -34,8 +35,8 @@ object ShootingSystem extends WorldSystem:
     ): GameWorld =
       val updatedWorld =
         for
-          shootingComponent <- components.collectFirst { case sc: ShootingComponent => sc }
-          positionComponent <- components.collectFirst { case pc: PositionComponent => pc }
+          shootingComponent <- components.collectFirstOfClass[ShootingComponent]
+          positionComponent <- components.collectFirstOfClass[PositionComponent]
           if shootingComponent.canShoot(dt)
         yield world + getBullet(entityId, positionComponent, shootingComponent)
       updatedWorld getOrElse world
@@ -45,7 +46,7 @@ object ShootingSystem extends WorldSystem:
         components: List[Component],
         dt: Long
     ): GameWorld =
-      components.collectFirst({ case sc: ShootingComponent => sc }) match
+      components.collectFirstOfClass[ShootingComponent] match
         case Some(sc) if sc.canShoot(dt) => world.updateComponent(entityId, sc.shoot())
         case Some(sc) if sc.cooldownTimer > 0 => world.updateComponent(entityId, sc.decreaseCooldownTimer(dt))
         case _ => world
