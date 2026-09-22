@@ -5,6 +5,11 @@ import com.unibo.scalaparty.core.ecs.GameEvent.CollisionDetected
 import com.unibo.scalaparty.core.geometry.{boundingBox, intersects, moveTo, Shape}
 import com.unibo.scalaparty.core.utils.collectFirstOfClass
 
+type CollisionPair = (EntityId, EntityId)
+
+object CollisionPair:
+  def apply(a: EntityId, b: EntityId): CollisionPair = if a.value < b.value then (a, b) else (b, a)
+
 object CollisionSystem extends WorldSystem:
   /** @inheritdoc */
   override def update(world: GameWorld, events: Set[GameEvent], dt: Long): (GameWorld, Set[GameEvent]) =
@@ -18,8 +23,9 @@ object CollisionSystem extends WorldSystem:
         actorAABB = actorShape.boundingBox
         targetAABB = targetShape.boundingBox
         if actor != target && actorAABB.intersects(targetAABB)
-      yield CollisionDetected(actor, target)
-    (world, events ++ collisions)
+      yield CollisionPair(actor, target)
+    val collisionEvents = collisions.toSet.map(CollisionDetected.apply)
+    (world, events ++ collisionEvents)
 
   private def extractsShapes(entities: Iterable[EntityWithComponents]): Iterable[(EntityId, Shape)] =
     entities.flatMap: (entityId, components) =>

@@ -28,7 +28,7 @@ class CollisionSystemSpec extends AnyFlatSpec with Matchers:
     val (_, events) = CollisionSystem.update(world, Set.empty, 1000)
     val collisions = events.collect { case c: CollisionDetected => c }
     collisions should not be empty
-    collisions should contain allOf (
+    collisions should contain oneOf (
       CollisionDetected(id1, id2),
       CollisionDetected(id2, id1)
     )
@@ -40,3 +40,15 @@ class CollisionSystemSpec extends AnyFlatSpec with Matchers:
     val (_, events) = CollisionSystem.update(world, Set.empty, 1000)
     val collisions = events.collect { case c: CollisionDetected => c }
     collisions shouldBe empty
+
+  it should "emit exactly one CollisionEvent for a pair of overlapping entities, ignoring order" in :
+    val id1 = EntityId.generate()
+    val id2 = EntityId.generate()
+    // Spawn two entities at the exact same coordinates to guarantee a collision
+    val entity1 = spawnEntity(0.0, 0.0, id1)
+    val entity2 = spawnEntity(0.0, 0.0, id2)
+    val world = GameWorld(List(entity1, entity2))
+    val (_, events) = CollisionSystem.update(world, Set.empty, 1000)
+    val collisions = events.collect { case c: CollisionDetected => c }
+    // Should not emit duplicate collision events
+    collisions should have size 1
