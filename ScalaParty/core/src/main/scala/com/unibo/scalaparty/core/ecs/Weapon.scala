@@ -18,10 +18,11 @@ final case class Weapon(  //enum o trait extended by multiple case class in the 
 
 object Weapon:
 
-  /** Creates a weapon specification from the provided shooting settings,
-   * defaulting to baseline game settings if none are provided.
-   */
-  def default(settings: ShootingSettings = ShootingSettings()): Weapon =
+  /** Standard baseline weapon instance. */
+  val default: Weapon = fromSettings(ShootingSettings())
+
+  /** Creates a weapon specification directly from domain shooting settings. */
+  def fromSettings(settings: ShootingSettings): Weapon =
     Weapon(
       bulletPower = settings.bulletPower,
       bulletSpeed = settings.bulletSpeed,

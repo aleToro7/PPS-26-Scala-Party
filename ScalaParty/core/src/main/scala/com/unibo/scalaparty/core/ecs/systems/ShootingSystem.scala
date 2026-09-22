@@ -60,11 +60,8 @@ object ShootingSystem extends WorldSystem:
     val position = positionComponent.position
     val weapon = shootingComponent.weapon
     val velocity = movementComponent.velocity
-    
-    val direction =
-      if velocity.module > 0.0 then velocity.normalized
-      else Vector2D(0.0, -1.0)
 
+    val direction = movementComponent.velocity.normalized
     val bulletVelocity = direction * weapon.bulletSpeed
 
     EntityFactory.createBullet(
