@@ -55,6 +55,18 @@ extension [S <: Shape](self: S)
     case Circle(radius, center) => AABB(radius * 2, radius * 2, center)
     case aabb: AABB => aabb
 
+  def penetratingVector(other: Shape): Option[Vector2D] = (self, other) match
+//    case (p1: Polygon, p2: Polygon) => p1.penetratingVector(p2)
+//    case (p: Polygon, c: Circle) => p.penetratingVector(c)
+//    case (c: Circle, p: Polygon) => p.penetratingVector(c).map(-_)
+    case (r1: AABB, r2: AABB) => r1.penetratingVector(r2)
+//    case (c1: Circle, c2: Circle) => c1.penetratingVector(c2)
+//    case (r: AABB, c: Circle) => r.penetratingVector(c)
+//    case (c: Circle, r: AABB) => r.penetratingVector(c).map(-_)
+//    case (p: Polygon, r: AABB) => p.penetratingVector(r)
+//    case (r: AABB, p: Polygon) => p.penetratingVector(r).map(-_)
+    case _ => ???
+
 import com.unibo.scalaparty.core.geometry.Shape.*
 
 private type Segment = (Point2D, Point2D)
@@ -86,13 +98,25 @@ extension (self: Polygon)
       val d = point - v
       (d.x * d.x) + (d.y * d.y)
 
-  private def intersects(other: Polygon): Boolean =
+  /** Checks if the polygon intersects with another polygon using the Separating Axis Theorem (SAT).
+   *  @param other the other polygon to check for intersection
+   *  @return true if they intersect, false otherwise
+   */
+  def intersects(other: Polygon): Boolean =
     val axes = self.axes ++ other.axes
     !self.hasSeparatingAxis(axes)(other)
 
-  private def intersects(aabb: AABB): Boolean = self intersects Polygon(aabb.vertices*)
+  /** Checks if the polygon intersects with an AABB.
+   *  @param aabb the AABB to check for intersection
+   *  @return true if they intersect, false otherwise
+   */
+  def intersects(aabb: AABB): Boolean = self intersects Polygon(aabb.vertices*)
 
-  private def intersects(circle: Circle): Boolean =
+  /** Checks if the polygon intersects with a circle.
+   *  @param circle the circle to check for intersection
+   *  @return true if they intersect, false otherwise
+   */
+  def intersects(circle: Circle): Boolean =
     val polyHasSeparatingAxis = self.hasSeparatingAxis(self.axes)(circle)
     if polyHasSeparatingAxis then
       return false
@@ -174,18 +198,31 @@ extension (self: AABB)
 
   private def edges: Seq[Segment] = Polygon(self.vertices*).edges
 
-  private def intersects(other: AABB): Boolean =
+  /** Checks if this AABB intersects with another AABB.
+   *  @param other the other AABB to check for intersection
+   *  @return true if the two AABBs intersect, false otherwise
+   */
+  def intersects(other: AABB): Boolean =
     // This implementation could actually be much prettier, however the objective of AABB is performance
     val dx = math.abs(self.center.x - other.center.x)
     val dy = math.abs(self.center.y - other.center.y)
     dx <= self.width.half + other.width.half && dy <= self.height.half + other.height.half
 
+
 extension (self: Circle)
-  private def intersects(c: Circle): Boolean =
+  /** Checks if the circle intersects with another circle.
+   *  @param c the other circle to check for intersection
+   *  @return true if they intersect, false otherwise
+   */
+  def intersects(c: Circle): Boolean =
     val distance = (self.center - c.center).module
     distance <= self.radius + c.radius
 
-  private def intersects(aabb: AABB): Boolean =
+  /** Checks if the circle intersects with an AABB.
+   *  @param aabb the AABB to check for intersection
+   *  @return true if they intersect, false otherwise
+   */
+  def intersects(aabb: AABB): Boolean =
     val distanceBetweenCenters = self.center - aabb.center
     val halfWidth = aabb.width.half
     val halfHeight = aabb.height.half
