@@ -29,3 +29,13 @@ class ProtocolCodecsSpec extends AnyWordSpec with Matchers:
       json should include(""""tick":100""")
       json should include(""""id":1""")
       json should include(""""x":10.0""")
+
+    "tag each entity with its type so clients can distinguish them" in:
+      val spaceship = EntityDto.Spaceship(EntityId.fromLong(1L), Point2D(10.0, 20.0), Vector2D(1.0, 0.0))
+      val bullet    = EntityDto.Bullet(EntityId.fromLong(2L), Point2D(15.0, 20.0), Vector2D(100.0, 0.0))
+      val state     = MatchState(tick = 1L, entities = List(spaceship, bullet))
+
+      val json = state.asJson.noSpaces
+
+      json should include(""""Spaceship":{"id":1""")
+      json should include(""""Bullet":{"id":2""")
