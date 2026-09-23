@@ -208,6 +208,16 @@ extension (self: AABB)
     val dy = math.abs(self.center.y - other.center.y)
     dx <= self.width.half + other.width.half && dy <= self.height.half + other.height.half
 
+  def penetratingVector(other: AABB): Option[Vector2D] =
+    val delta = other.center - self.center
+    val overlapX = (self.width.half + other.width.half) - math.abs(delta.x)
+    val overlapY = (self.height.half + other.height.half) - math.abs(delta.y)
+    Option.when(overlapX > 0 && overlapY > 0):
+      // We're looking for the minimum vector, which is either on the x or y axis, depending on which overlap is smaller
+      if overlapX < overlapY then
+        Vector2D(if delta.x < 0 then -overlapX else overlapX, 0)
+      else
+        Vector2D(0, if delta.y < 0 then -overlapY else overlapY)
 
 extension (self: Circle)
   /** Checks if the circle intersects with another circle.
