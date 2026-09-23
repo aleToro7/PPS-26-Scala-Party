@@ -2,12 +2,12 @@ package com.unibo.scalaparty.infrastructure.application
 
 import scala.concurrent.duration.*
 
-import cats.effect.{FiberIO, IO, Ref}
+import cats.effect.{Deferred, FiberIO, IO, Ref}
 import cats.syntax.all.*
 import com.unibo.scalaparty.core.ecs.{EntityId, GameWorld}
 import com.unibo.scalaparty.core.engine.{GameConfig, GameEngine}
 import com.unibo.scalaparty.core.model.GameSettings
-import com.unibo.scalaparty.infrastructure.model.{ActiveMatch, JoinOutcome, PlayerId, ServerMessage}
+import com.unibo.scalaparty.infrastructure.model.{ActiveMatch, Admission, JoinOutcome, MatchId, PlayerId, ServerMessage}
 import com.unibo.scalaparty.infrastructure.network.ConnectionRegistry
 import com.unibo.scalaparty.infrastructure.ports.{AccessPort, MatchEventPublisher, PlayerNotifier}
 
@@ -15,11 +15,11 @@ import com.unibo.scalaparty.infrastructure.ports.{AccessPort, MatchEventPublishe
  *
  *  It is the piece that closes the loop: [[QueuedLobbyManager]] only decides *who* plays next, and
  *  [[MatchRunner]] only knows how to tick a match that already exists. This coordinator picks the
- *  players, spawns the runner on its own fiber, waits for it to finish and then hands the arena to
+ *  players, spawns the runner on its own fiber, waits for it to finish and then hands the room to
  *  whoever is next in the queue, so the queue keeps moving on its own.
  *
- *  Only one match runs at a time: starting a new one cancels whatever was still running, which
- *  matters when a match is cut short because everybody left it.
+ *  Several matches run side by side, each on its own fiber and independent of the others: a match
+ *  is stopped only when it ends or when everybody has left it.
  *
  *  @param lobby         Decides who plays and who waits.
  *  @param registry      Tracks which connection belongs to which match.
@@ -28,7 +28,7 @@ import com.unibo.scalaparty.infrastructure.ports.{AccessPort, MatchEventPublishe
  *  @param publisher     Broadcasts the authoritative state to everybody in the match.
  *  @param settings      Shared rules and arena dimensions for the engine.
  *  @param matchDuration How long a match lasts, there being no win condition yet.
- *  @param running       The fiber ticking the current match, if any.
+ *  @param running       The fiber ticking each match being played.
  */
 class MatchCoordinator(
     lobby: QueuedLobbyManager[IO],
@@ -38,21 +38,26 @@ class MatchCoordinator(
     publisher: MatchEventPublisher[IO],
     settings: GameSettings,
     matchDuration: FiniteDuration,
-    running: Ref[IO, Option[FiberIO[Unit]]]
+    running: Ref[IO, Map[MatchId, FiberIO[Unit]]]
 ) extends AccessPort[IO]:
 
   /** Takes a player in, joining the lobby and either starting a match immediately
-   *  or queueing the player with a notification of those ahead.
+   *  or queueing the player with a notification of those ahead. A player finding the queue full is
+   *  told so and turned away.
    *
    *  @param playerId the unique identifier of the joining player
-   *  @return an effect completing when the lobby action is handled
+   *  @return an effect reporting whether the player was taken in
    */
-  override def joinLobby(playerId: PlayerId): IO[Unit] =
+  override def joinLobby(playerId: PlayerId): IO[Admission] =
     lobby.join(playerId).flatMap:
-      case JoinOutcome.Playing(activeMatch) => startMatch(activeMatch)
-      case JoinOutcome.Queued(playersAhead) => notifier.send(playerId, ServerMessage.Queued(playersAhead))
+      case JoinOutcome.Playing(activeMatch) =>
+        startMatch(activeMatch).as(Admission.Admitted)
+      case JoinOutcome.Queued(playersAhead) =>
+        notifier.send(playerId, ServerMessage.Queued(playersAhead)).as(Admission.Admitted)
+      case JoinOutcome.Rejected =>
+        notifier.send(playerId, ServerMessage.QueueFull).as(Admission.Rejected)
 
-  /** Removes a player from the lobby or active match, cancelling running matches if emptied
+  /** Removes a player from the lobby or from its match, stopping that match if it was emptied
    *  and refreshing queues or starting successors as appropriate.
    *
    *  @param playerId the unique identifier of the leaving player
@@ -60,13 +65,12 @@ class MatchCoordinator(
    */
   override def leaveLobby(playerId: PlayerId): IO[Unit] =
     for
-      started <- lobby.leave(playerId)
-      current <- lobby.currentMatch
-      // The match may have died with nobody to take over: its runner would otherwise keep ticking
-      // for an arena no one is in. When a successor exists, starting it cancels the old one anyway.
-      _ <- IO.whenA(current.isEmpty)(cancelRunning)
+      outcome <- lobby.leave(playerId)
+      // The match may have died with its last player: its runner would otherwise keep ticking for a
+      // room no one is in.
+      _ <- outcome.disbanded.traverse_(stop)
       _ <- refreshQueue
-      _ <- started.traverse_(startMatch)
+      _ <- outcome.started.traverse_(startMatch)
     yield ()
 
   /** Tells every waiting player how many others are still ahead of it. */
@@ -81,10 +85,13 @@ class MatchCoordinator(
    */
   private def startMatch(activeMatch: ActiveMatch): IO[Unit] =
     for
-      _     <- cancelRunning
-      _     <- admit(activeMatch)
-      fiber <- play(activeMatch).start
-      _     <- running.set(Some(fiber))
+      _          <- admit(activeMatch)
+      registered <- Deferred[IO, Unit]
+      // The match waits for its fiber to be recorded: were it to end first, its cleanup would find
+      // nothing to forget and the finished fiber would be recorded afterwards, never to be removed.
+      fiber <- (registered.get *> play(activeMatch)).start
+      _     <- running.update(_ + (activeMatch.matchId -> fiber))
+      _     <- registered.complete(())
     yield ()
 
   /** Assigns each player in the match to the connection registry and notifies them that the match has started.
@@ -98,7 +105,7 @@ class MatchCoordinator(
         notifier.send(playerId, ServerMessage.MatchStarted(activeMatch.players.size))
     }
 
-  /** Runs the match to completion, then hands the arena over to the next group of players.
+  /** Runs the match to completion, then hands the room over to the next group of players.
    *
    *  @param activeMatch the active match to run
    *  @return an effect completing when the match finishes and cleanup concludes
@@ -122,9 +129,9 @@ class MatchCoordinator(
    */
   private def concludeMatch(activeMatch: ActiveMatch): IO[Unit] =
     for
-      // Forget the fiber first: this code runs inside it, and starting the next match cancels
-      // whatever is recorded here, which would otherwise cancel us halfway through.
-      _ <- running.set(None)
+      // Forget the fiber first: this code runs inside it, and a player leaving now would stop
+      // whatever is recorded for this match, which would otherwise cancel us halfway through.
+      _ <- running.update(_ - activeMatch.matchId)
       _ <- activeMatch.players.toList.traverse_ { playerId =>
         registry.clearMatch(playerId) *> notifier.send(playerId, ServerMessage.MatchEnded)
       }
@@ -133,16 +140,17 @@ class MatchCoordinator(
       _    <- next.traverse_(startMatch)
     yield ()
 
-  /** Cancels the currently running match fiber, if any.
+  /** Cancels the fiber ticking the given match, if it is still running.
    *
-   *  @return an effect completing when the running fiber is cancelled
+   *  @param matchId the match to stop
+   *  @return an effect completing when the fiber is cancelled
    */
-  private def cancelRunning: IO[Unit] =
-    running.getAndSet(None).flatMap(_.traverse_(_.cancel))
+  private def stop(matchId: MatchId): IO[Unit] =
+    running.modify(fibers => (fibers - matchId, fibers.get(matchId))).flatMap(_.traverse_(_.cancel))
 
 object MatchCoordinator:
 
-  /** Factory method that safely initializes the MatchCoordinator with a reference to track the running fiber.
+  /** Factory method that safely initializes the MatchCoordinator with a reference to track the running fibers.
    *
    *  @param lobby         the queued lobby manager deciding who plays
    *  @param registry      the connection registry tracking player sockets
@@ -163,5 +171,5 @@ object MatchCoordinator:
       matchDuration: FiniteDuration = MatchRunner.DefaultDuration
   ): IO[MatchCoordinator] =
     Ref
-      .of[IO, Option[FiberIO[Unit]]](None)
+      .of[IO, Map[MatchId, FiberIO[Unit]]](Map.empty)
       .map(new MatchCoordinator(lobby, registry, commands, notifier, publisher, settings, matchDuration, _))

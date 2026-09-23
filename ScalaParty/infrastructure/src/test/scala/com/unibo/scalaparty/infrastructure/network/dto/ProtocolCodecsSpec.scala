@@ -7,6 +7,7 @@ import com.unibo.scalaparty.core.dto.EntityDto
 import com.unibo.scalaparty.core.ecs.EntityId
 import com.unibo.scalaparty.core.geometry.{Point2D, Vector2D}
 import com.unibo.scalaparty.core.model.MatchState
+import com.unibo.scalaparty.infrastructure.model.ServerMessage
 import com.unibo.scalaparty.infrastructure.network.dto.ProtocolCodecs.given
 
 class ProtocolCodecsSpec extends AnyWordSpec with Matchers:
@@ -29,3 +30,8 @@ class ProtocolCodecsSpec extends AnyWordSpec with Matchers:
       json should include(""""tick":100""")
       json should include(""""id":1""")
       json should include(""""x":10.0""")
+
+    "serialize the rejection of a player as an object keyed by its name" in:
+      val message: ServerMessage = ServerMessage.QueueFull
+
+      message.asJson.noSpaces shouldEqual """{"QueueFull":{}}"""

@@ -7,7 +7,7 @@ import cats.effect.std.Queue
 import cats.effect.testing.scalatest.AsyncIOSpec
 import cats.syntax.all.*
 import com.unibo.scalaparty.core.model.{GameEvent, GameSettings, MatchState}
-import com.unibo.scalaparty.infrastructure.model.{MatchId, PlayerId, ServerMessage}
+import com.unibo.scalaparty.infrastructure.model.{Admission, MatchId, PlayerId, ServerMessage}
 import com.unibo.scalaparty.infrastructure.network.ConnectionRegistry
 import com.unibo.scalaparty.infrastructure.ports.{MatchEventPublisher, PlayerNotifier}
 import org.http4s.websocket.WebSocketFrame
@@ -24,12 +24,15 @@ class MatchCoordinatorSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
     def messagesFor(playerId: PlayerId): IO[List[ServerMessage]] =
       sent.get.map(_.collect { case (pId, message) if pId == playerId => message })
 
-  /** A publisher counting the broadcasts, to tell a ticking match from a stopped one. */
-  private class CountingPublisher(broadcasts: Ref[IO, Int]) extends MatchEventPublisher[IO]:
-    override def broadcastState(matchId: MatchId, state: MatchState): IO[Unit] = broadcasts.update(_ + 1)
+  /** A publisher counting the broadcasts of each match, to tell a ticking match from a stopped one. */
+  private class CountingPublisher(broadcasts: Ref[IO, Map[MatchId, Int]]) extends MatchEventPublisher[IO]:
+    override def broadcastState(matchId: MatchId, state: MatchState): IO[Unit] =
+      broadcasts.update(counts => counts.updated(matchId, counts.getOrElse(matchId, 0) + 1))
     override def broadcastEvent(matchId: MatchId, event: GameEvent): IO[Unit] = IO.unit
 
-    def count: IO[Int] = broadcasts.get
+    def count: IO[Int] = broadcasts.get.map(_.values.sum)
+
+    def countFor(matchId: MatchId): IO[Int] = broadcasts.get.map(_.getOrElse(matchId, 0))
 
   /** The whole wiring under test, with matches short enough to watch them come and go. */
   private class Fixture(
@@ -43,16 +46,21 @@ class MatchCoordinatorSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
     def connect(playerId: PlayerId): IO[Unit] =
       Queue.unbounded[IO, WebSocketFrame].flatMap(registry.register(playerId, _))
 
-    def join(playerId: PlayerId): IO[Unit] =
+    def join(playerId: PlayerId): IO[Admission] =
       connect(playerId) *> coordinator.joinLobby(playerId)
 
-  private def fixture(matchDuration: FiniteDuration = 50.millis, maxPlayers: Int = 1): IO[Fixture] =
+  private def fixture(
+      matchDuration: FiniteDuration = 50.millis,
+      maxPlayers: Int = 1,
+      maxMatches: Int = 1,
+      maxQueued: Int = Int.MaxValue
+  ): IO[Fixture] =
     for
       registry   <- ConnectionRegistry()
-      lobby      <- QueuedLobbyManager.of[IO](maxPlayers = maxPlayers)
+      lobby      <- QueuedLobbyManager.of[IO](maxPlayers = maxPlayers, maxMatches = maxMatches, maxQueued = maxQueued)
       commands   <- GameCommandService()
       sent       <- Ref.of[IO, List[(PlayerId, ServerMessage)]](List.empty)
-      broadcasts <- Ref.of[IO, Int](0)
+      broadcasts <- Ref.of[IO, Map[MatchId, Int]](Map.empty)
       notifier = RecordingNotifier(sent)
       publisher = CountingPublisher(broadcasts)
       settings = GameSettings.default
@@ -73,17 +81,17 @@ class MatchCoordinatorSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
       for
         f       <- fixture()
         _       <- f.join(playerId)
-        current <- f.lobby.currentMatch
-      yield current.map(_.players) shouldBe Some(Set(playerId))
+        matches <- f.lobby.activeMatches
+      yield matches.map(_.players) shouldBe Set(Set(playerId))
 
     "bind the playing player to its match in the registry".in:
       val playerId = PlayerId.random()
       for
         f       <- fixture()
         _       <- f.join(playerId)
-        current <- f.lobby.currentMatch
+        matches <- f.lobby.activeMatches
         bound   <- f.registry.matchOf(playerId)
-      yield bound shouldBe current.map(_.matchId)
+      yield bound shouldBe matches.headOption.map(_.matchId)
 
     "tell the playing player that its match has begun".in:
       val playerId = PlayerId.random()
@@ -113,6 +121,33 @@ class MatchCoordinatorSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
         bound <- f.registry.matchOf(waiting)
       yield bound shouldBe None
 
+    "admit a player it can host".in:
+      for
+        f         <- fixture()
+        admission <- f.join(PlayerId.random())
+      yield admission shouldBe Admission.Admitted
+
+    "turn a player away once the queue is full, telling it why".in:
+      val players = List.fill(3)(PlayerId.random())
+      for
+        f          <- fixture(matchDuration = 10.seconds, maxQueued = 1)
+        admissions <- players.traverse(f.join)
+        messages   <- f.notifier.messagesFor(players.last)
+      yield
+        admissions shouldBe List(Admission.Admitted, Admission.Admitted, Admission.Rejected)
+        messages shouldBe List(ServerMessage.QueueFull)
+
+    "keep a rejected player out of the queue and of every match".in:
+      val players = List.fill(3)(PlayerId.random())
+      for
+        f       <- fixture(matchDuration = 10.seconds, maxQueued = 1)
+        _       <- players.traverse(f.join)
+        waiting <- f.lobby.waitingPlayers
+        bound   <- f.registry.matchOf(players.last)
+      yield
+        waiting shouldBe Vector(players(1))
+        bound shouldBe None
+
   "the end of a match".should:
     "hand the arena to the player waiting in the queue".in:
       val playing = PlayerId.random()
@@ -121,8 +156,8 @@ class MatchCoordinatorSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
         f    <- fixture()
         _    <- f.join(playing)
         _    <- f.join(waiting)
-        next <- eventually(f.lobby.currentMatch)(_.exists(_.players == Set(waiting)))
-      yield next.map(_.players) shouldBe Some(Set(waiting))
+        next <- eventually(f.lobby.activeMatches)(_.exists(_.players == Set(waiting)))
+      yield next.map(_.players) shouldBe Set(Set(waiting))
 
     "tell the players of the finished match that it is over".in:
       val playing = PlayerId.random()
@@ -137,15 +172,15 @@ class MatchCoordinatorSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
       for
         f       <- fixture()
         _       <- f.join(playing)
-        current <- eventually(f.lobby.currentMatch)(_.isEmpty)
-      yield current shouldBe None
+        matches <- eventually(f.lobby.activeMatches)(_.isEmpty)
+      yield matches shouldBe empty
 
     "release the finished players from their match in the registry".in:
       val playing = PlayerId.random()
       for
         f     <- fixture()
         _     <- f.join(playing)
-        _     <- eventually(f.lobby.currentMatch)(_.isEmpty)
+        _     <- eventually(f.lobby.activeMatches)(_.isEmpty)
         bound <- f.registry.matchOf(playing)
       yield bound shouldBe None
 
@@ -159,10 +194,10 @@ class MatchCoordinatorSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
         _       <- f.join(giveUp)
         _       <- f.coordinator.leaveLobby(giveUp)
         waiting <- f.lobby.waitingPlayers
-        current <- eventually(f.lobby.currentMatch)(_.isEmpty)
+        matches <- eventually(f.lobby.activeMatches)(_.isEmpty)
       yield
         waiting shouldBe empty
-        current shouldBe None
+        matches shouldBe empty
 
     "hand the arena over at once when the playing player quits".in:
       val playing = PlayerId.random()
@@ -172,8 +207,8 @@ class MatchCoordinatorSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
         _       <- f.join(playing)
         _       <- f.join(waiting)
         _       <- f.coordinator.leaveLobby(playing)
-        current <- f.lobby.currentMatch
-      yield current.map(_.players) shouldBe Some(Set(waiting))
+        matches <- f.lobby.activeMatches
+      yield matches.map(_.players) shouldBe Set(Set(waiting))
 
     "stop ticking the match once its last player has quit and nobody is waiting".in:
       val playing = PlayerId.random()
@@ -198,3 +233,79 @@ class MatchCoordinatorSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
         _        <- f.coordinator.leaveLobby(giveUp)
         messages <- f.notifier.messagesFor(last)
       yield messages.last shouldBe ServerMessage.Queued(playersAhead = 0)
+
+  "several matches".should:
+    "run a match of its own for each player while rooms are free".in:
+      val first = PlayerId.random()
+      val second = PlayerId.random()
+      for
+        f           <- fixture(matchDuration = 10.seconds, maxMatches = 2)
+        _           <- f.join(first)
+        _           <- f.join(second)
+        firstBound  <- f.registry.matchOf(first)
+        secondBound <- f.registry.matchOf(second)
+        matches     <- f.lobby.activeMatches
+      yield
+        firstBound should not be secondBound
+        matches.map(m => Option(m.matchId)) shouldBe Set(firstBound, secondBound)
+
+    "tick every match being played".in:
+      val first = PlayerId.random()
+      val second = PlayerId.random()
+      for
+        f           <- fixture(matchDuration = 10.seconds, maxMatches = 2)
+        _           <- f.join(first)
+        _           <- f.join(second)
+        firstMatch  <- f.registry.matchOf(first)
+        secondMatch <- f.registry.matchOf(second)
+        ticked      <- eventually(List(firstMatch, secondMatch).flatten.traverse(f.publisher.countFor))(
+          _.forall(_ > 0)
+        )
+      yield ticked should have size 2
+
+    "queue the players arriving once every room is taken".in:
+      val players = List.fill(3)(PlayerId.random())
+      for
+        f        <- fixture(matchDuration = 10.seconds, maxMatches = 2)
+        _        <- players.traverse_(f.join)
+        messages <- f.notifier.messagesFor(players.last)
+        bound    <- f.registry.matchOf(players.last)
+      yield
+        messages should contain(ServerMessage.Queued(playersAhead = 0))
+        bound shouldBe None
+
+    "hand the room of a quitting player over while the other match keeps going".in:
+      val first = PlayerId.random()
+      val second = PlayerId.random()
+      val waiting = PlayerId.random()
+      for
+        f           <- fixture(matchDuration = 10.seconds, maxMatches = 2)
+        _           <- f.join(first)
+        _           <- f.join(second)
+        _           <- f.join(waiting)
+        secondMatch <- f.registry.matchOf(second)
+        _           <- f.coordinator.leaveLobby(first)
+        matches     <- f.lobby.activeMatches
+        stillBound  <- f.registry.matchOf(second)
+      yield
+        matches.map(_.players) shouldBe Set(Set(second), Set(waiting))
+        stillBound shouldBe secondMatch
+
+    "stop ticking only the match its last player has quit".in:
+      val quitting = PlayerId.random()
+      val staying = PlayerId.random()
+      for
+        f           <- fixture(matchDuration = 10.seconds, maxMatches = 2)
+        _           <- f.join(quitting)
+        _           <- f.join(staying)
+        quitMatch   <- f.registry.matchOf(quitting).map(_.get)
+        stayMatch   <- f.registry.matchOf(staying).map(_.get)
+        _           <- f.coordinator.leaveLobby(quitting)
+        quitSettled <- f.publisher.countFor(quitMatch)
+        staySettled <- f.publisher.countFor(stayMatch)
+        _           <- IO.sleep(200.millis)
+        quitLater   <- f.publisher.countFor(quitMatch)
+        stayLater   <- f.publisher.countFor(stayMatch)
+      yield
+        quitLater shouldBe quitSettled
+        stayLater should be > staySettled

@@ -9,6 +9,9 @@ enum ServerMessage:
   /** The player is waiting, with the given number of players to be served before it. */
   case Queued(playersAhead: Int)
 
+  /** The player has been turned away: every room is taken and the queue is full. */
+  case QueueFull
+
   /** A match the player takes part in has just begun, with the given number of participants. */
   case MatchStarted(players: Int)
 
