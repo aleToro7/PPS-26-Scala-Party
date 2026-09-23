@@ -16,9 +16,9 @@ object ServerApp extends IOApp.Simple:
 
   /** How many players a match is played by.
    *
-   * Kept at one on purpose: the only engine available is `SinglePlayerGameEngine`, which spawns a
-   * spaceship for `config.players.head` alone. Raising this would put several players in the same
-   * match while only the first of them gets a ship to fly.
+   *  Kept at one on purpose: the only engine available is `SinglePlayerGameEngine`, which spawns a
+   *  spaceship for `config.players.head` alone. Raising this would put several players in the same
+   *  match while only the first of them gets a ship to fly.
    */
   private val PlayersPerMatch = 1
 
@@ -29,7 +29,7 @@ object ServerApp extends IOApp.Simple:
   private val MaxQueuedPlayers = 1
 
   private val baseRoute: HttpRoutes[IO] = HttpRoutes.of[IO]:
-    case request@GET -> Root / gameRoute =>
+    case request @ GET -> Root / gameRoute =>
       StaticFile
         .fromResource("/public/index.html", Some(request))
         .getOrElseF(NotFound())
@@ -44,9 +44,9 @@ object ServerApp extends IOApp.Simple:
 
   val run: IO[Unit] =
     for
-      _ <- IO.println("Initializing services...")
+      _        <- IO.println("Initializing services...")
       registry <- ConnectionRegistry()
-      lobby <- QueuedLobbyManager.of[IO](
+      lobby    <- QueuedLobbyManager.of[IO](
         minPlayers = PlayersPerMatch,
         maxPlayers = PlayersPerMatch,
         maxMatches = MaxConcurrentMatches,
