@@ -9,36 +9,35 @@ import com.unibo.scalaparty.core.model.GameSettings
 class GameEngineSpec extends AnyFlatSpec with Matchers:
 
   private val emptyPipeline = SystemPipeline()
-  private val testSettings = GameSettings(
-    worldWidth = 800,
-    worldHeight = 600,
-    spaceshipSpeed = 5.0,
-    spaceshipRotationSpeed = 0.5
-  )
+  private val testSettings = GameSettings.default
+  private val someDeltaTime = 100L
 
   "A GameEngine" should "not create a new world if the pipeline is empty" in:
     val player = EntityId.generate()
-    val someTime = 100L // 100 milliseconds
     val engine = GameEngine(GameConfig(
       players = List(player),
       settings = testSettings,
       pipeline = emptyPipeline
     ))
-    val initialState = engine.update(Nil, 0)
-    val newState = engine.update(Nil, someTime)
+
+    val initialState = engine.update(Nil, 0L)
+    val newState = engine.update(Nil, someDeltaTime)
+
     newState shouldEqual initialState
 
-  "A GameEngine" should "update the world state according to the defined pipeline" in:
+  it should "update the world state according to the defined pipeline" in:
     val player = EntityId.generate()
     val clearWorldSystem: WorldSystem =
-      (world, events, dt) => if dt > 0 then (GameWorld(Nil), events) else (world, events)
-    val someTime = 100L // 100 milliseconds
+      (world, events, dt) => if dt > 0L then (GameWorld(Nil), events) else (world, events)
+
     val engine = GameEngine(GameConfig(
       players = List(player),
       settings = testSettings,
       pipeline = SystemPipeline(clearWorldSystem)
     ))
-    val initialState = engine.update(Nil, 0)
+
+    val initialState = engine.update(Nil, 0L)
     initialState should not be empty
-    val newState = engine.update(Nil, someTime)
+
+    val newState = engine.update(Nil, someDeltaTime)
     newState shouldBe empty

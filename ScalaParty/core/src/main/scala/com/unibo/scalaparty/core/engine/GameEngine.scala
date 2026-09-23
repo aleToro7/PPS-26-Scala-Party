@@ -1,7 +1,7 @@
 package com.unibo.scalaparty.core.engine
 
 import com.unibo.scalaparty.core.dto.{toDto, EntityDto}
-import com.unibo.scalaparty.core.ecs.{EntityFactory, EntityId, GameEvent, GameWorld}
+import com.unibo.scalaparty.core.ecs.{EntityFactory, EntityId, GameEvent, GameWorld, Weapon}
 import com.unibo.scalaparty.core.engine.input.InputGateway
 import com.unibo.scalaparty.core.geometry.{Point2D, Vector2D}
 import com.unibo.scalaparty.core.model.GameCommand
@@ -31,10 +31,14 @@ private class SinglePlayerGameEngine(config: GameConfig) extends GameEngine:
   private var world: GameWorld = initializeWorld(config)
 
   private def initializeWorld(config: GameConfig): GameWorld =
+    val arena = config.settings.arena
+    val spaceship = config.settings.spaceship
+
     val playerSpaceship = EntityFactory.createSpaceship(
+      position = Point2D(arena.width / 2, arena.height / 2),
+      velocity = Vector2D(spaceship.speed, 0),
       entityId = config.players.head,
-      position = Point2D(config.worldWidth / 2, config.worldHeight / 2),
-      velocity = Vector2D(config.spaceshipSpeed, 0)
+      weapon = Weapon.fromSettings(config.settings.shooting)
     )
     GameWorld(List(playerSpaceship))
 
