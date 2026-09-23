@@ -8,12 +8,12 @@ import com.unibo.scalaparty.core.model.ShootingSettings
  *  @param shootCooldown the delay in milliseconds before the next shot
  *  @param muzzleOffset  the distance from the shooter's center at which bullets are spawned
  */
-final case class Weapon(  //enum o trait extended by multiple case class in the eventuality of powerup implementation
-                             bulletPower: Double,
-                             bulletSpeed: Double,
-                             shootCooldown: Long,
-                             muzzleOffset: Double
-                           ):
+final case class Weapon( // enum o trait extended by multiple case class in the eventuality of powerup implementation
+    bulletPower: Double,
+    bulletSpeed: Double,
+    shootCooldown: Long,
+    muzzleOffset: Double
+):
   require(bulletPower > 0.0, "Bullet power must be positive")
   require(bulletSpeed > 0.0, "Bullet speed must be positive")
   require(shootCooldown >= 0L, "Shoot cooldown cannot be negative")

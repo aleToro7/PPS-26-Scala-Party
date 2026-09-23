@@ -8,8 +8,8 @@ import org.scalatest.matchers.should.Matchers
 
 class ShootingSystemSpec extends AnyFlatSpec with Matchers with OptionValues:
 
-  private val entityId          = EntityId.generate()
-  private val defaultDt         = 1_000L
+  private val entityId = EntityId.generate()
+  private val defaultDt = 1_000L
   private val positionComponent = PositionComponent(Point2D.origin)
   private val movementComponent = MovementComponent(Vector2D(1.0, 0.0))
   private val shipBaseComponents = List(positionComponent, movementComponent)
@@ -54,7 +54,7 @@ class ShootingSystemSpec extends AnyFlatSpec with Matchers with OptionValues:
 
   it should "decrease cooldown timer for shooting components" in:
     val cooldown = 10_000L
-    val world    = worldWith(ShootingComponent(weaponWith(cooldown), isShooting = false, cooldownTimer = cooldown))
+    val world = worldWith(ShootingComponent(weaponWith(cooldown), isShooting = false, cooldownTimer = cooldown))
 
     val (updatedWorld, _) = updateWorld(world)
 
@@ -81,7 +81,7 @@ class ShootingSystemSpec extends AnyFlatSpec with Matchers with OptionValues:
 
   it should "reset shooting component after successfully shooting" in:
     val cooldown = 100L
-    val world    = shipWorldWith(ShootingComponent(weapon = weaponWith(cooldown), isShooting = true))
+    val world = shipWorldWith(ShootingComponent(weapon = weaponWith(cooldown), isShooting = true))
 
     val (updatedWorld, _) = updateWorld(world)
 
@@ -90,7 +90,7 @@ class ShootingSystemSpec extends AnyFlatSpec with Matchers with OptionValues:
 
   it should "ignore the shoot intent if cooldown time is not met" in:
     val cooldown = 10_000L
-    val world    = shipWorldWith(ShootingComponent(weaponWith(cooldown), isShooting = true, cooldownTimer = cooldown))
+    val world = shipWorldWith(ShootingComponent(weaponWith(cooldown), isShooting = true, cooldownTimer = cooldown))
 
     val (updatedWorld, _) = updateWorld(world)
 
@@ -100,18 +100,18 @@ class ShootingSystemSpec extends AnyFlatSpec with Matchers with OptionValues:
 
   it should "spawn the bullet in front of the shooter at the muzzle offset" in:
     val weapon = weaponWith(shootCooldown = 500L, muzzleOffset = 12.0)
-    val world  = shipWorldWith(ShootingComponent(weapon, isShooting = true))
+    val world = shipWorldWith(ShootingComponent(weapon, isShooting = true))
 
     val (updatedWorld, _) = updateWorld(world)
 
     val (_, bulletComponents) = updatedWorld.findEntitiesWithComponent[BulletComponent].head
-    val bulletPosition        = bulletComponents.collectFirst { case pc: PositionComponent => pc.position }.value
+    val bulletPosition = bulletComponents.collectFirst { case pc: PositionComponent => pc.position }.value
     bulletPosition shouldBe Point2D(12.0, 0.0)
 
   it should "spawn bullet with correct velocity, power and shooterId" in:
-    val weapon      = weaponWith(shootCooldown = 500L, bulletPower = 25.0, bulletSpeed = 150.0)
+    val weapon = weaponWith(shootCooldown = 500L, bulletPower = 25.0, bulletSpeed = 150.0)
     val movingRight = MovementComponent(Vector2D(5.0, 0.0))
-    val world       = worldWith(ShootingComponent(weapon, isShooting = true), positionComponent, movingRight)
+    val world = worldWith(ShootingComponent(weapon, isShooting = true), positionComponent, movingRight)
 
     val (updatedWorld, _) = updateWorld(world, dt = 16L)
 

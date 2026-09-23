@@ -22,7 +22,11 @@ class EntityAdapterSpec extends AnyFlatSpec with Matchers:
   "EntityAdapter" should "convert a bullet entity to its corresponding DTO" in:
     val entityId = EntityId.generate()
     val components =
-      List(PositionComponent(Point2D(10, 20)), MovementComponent(Vector2D(1, 0)), EntityTypeComponent(EntityType.Bullet))
+      List(
+        PositionComponent(Point2D(10, 20)),
+        MovementComponent(Vector2D(1, 0)),
+        EntityTypeComponent(EntityType.Bullet)
+      )
     val entity = (entityId, components)
     val dto = entity.toDto
     dto should not be None

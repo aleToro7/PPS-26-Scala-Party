@@ -12,7 +12,7 @@ class GameEngineSpec extends AnyFlatSpec with Matchers:
   private val testSettings = GameSettings.default
   private val someDeltaTime = 100L
 
-  "A GameEngine" should "not create a new world if the pipeline is empty" in :
+  "A GameEngine" should "not create a new world if the pipeline is empty" in:
     val player = EntityId.generate()
     val engine = GameEngine(GameConfig(
       players = List(player),
@@ -25,7 +25,7 @@ class GameEngineSpec extends AnyFlatSpec with Matchers:
 
     newState shouldEqual initialState
 
-  it should "update the world state according to the defined pipeline" in :
+  it should "update the world state according to the defined pipeline" in:
     val player = EntityId.generate()
     val clearWorldSystem: WorldSystem =
       (world, events, dt) => if dt > 0L then (GameWorld(Nil), events) else (world, events)

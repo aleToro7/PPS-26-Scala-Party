@@ -7,10 +7,10 @@ import org.scalatest.matchers.should.Matchers
 class WeaponSpec extends AnyFlatSpec with Matchers:
 
   private val nonPositiveDoubles: List[Double] = List(0.0, -1.0)
-  private val validPower                       = 10.0
-  private val validSpeed                       = 100.0
-  private val validCooldown                    = 250L
-  private val validOffset                      = 12.0
+  private val validPower = 10.0
+  private val validSpeed = 100.0
+  private val validCooldown = 250L
+  private val validOffset = 12.0
 
   "A Weapon" should "instantiate correctly with valid attributes" in:
     val weapon = Weapon(
@@ -28,12 +28,22 @@ class WeaponSpec extends AnyFlatSpec with Matchers:
   it should "reject non-positive bullet power" in:
     nonPositiveDoubles.foreach: invalid =>
       an[IllegalArgumentException] should be thrownBy:
-        Weapon(bulletPower = invalid, bulletSpeed = validSpeed, shootCooldown = validCooldown, muzzleOffset = validOffset)
+        Weapon(
+          bulletPower = invalid,
+          bulletSpeed = validSpeed,
+          shootCooldown = validCooldown,
+          muzzleOffset = validOffset
+        )
 
   it should "reject non-positive bullet speed" in:
     nonPositiveDoubles.foreach: invalid =>
       an[IllegalArgumentException] should be thrownBy:
-        Weapon(bulletPower = validPower, bulletSpeed = invalid, shootCooldown = validCooldown, muzzleOffset = validOffset)
+        Weapon(
+          bulletPower = validPower,
+          bulletSpeed = invalid,
+          shootCooldown = validCooldown,
+          muzzleOffset = validOffset
+        )
 
   it should "validate shoot cooldown boundaries" in:
     an[IllegalArgumentException] should be thrownBy:
@@ -57,7 +67,7 @@ class WeaponSpec extends AnyFlatSpec with Matchers:
     defaultWeapon.shootCooldown should be >= 0L
     defaultWeapon.muzzleOffset should be >= 0.0
 
-  it should "map fields accurately from ShootingSettings" in :
+  it should "map fields accurately from ShootingSettings" in:
     val settings = ShootingSettings(bulletPower = 20.0, bulletSpeed = 150.0, shootCooldown = 500L, muzzleOffset = 8.0)
     val weapon = Weapon.fromSettings(settings)
 
@@ -67,7 +77,12 @@ class WeaponSpec extends AnyFlatSpec with Matchers:
     weapon.muzzleOffset shouldBe settings.muzzleOffset
 
   it should "support immutable copy operations" in:
-    val base = Weapon(bulletPower = validPower, bulletSpeed = validSpeed, shootCooldown = validCooldown, muzzleOffset = validOffset)
+    val base = Weapon(
+      bulletPower = validPower,
+      bulletSpeed = validSpeed,
+      shootCooldown = validCooldown,
+      muzzleOffset = validOffset
+    )
     val buffed = base.copy(bulletSpeed = 200.0)
 
     buffed.bulletSpeed shouldBe 200.0

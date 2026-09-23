@@ -5,7 +5,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 class GameSettingsSpec extends AnyWordSpec with Matchers:
 
-  private val nonPositiveInts: List[Int]       = List(0, -1)
+  private val nonPositiveInts: List[Int] = List(0, -1)
   private val nonPositiveDoubles: List[Double] = List(0.0, -1.0)
 
   "GameSettings" should:
@@ -18,9 +18,9 @@ class GameSettingsSpec extends AnyWordSpec with Matchers:
       settings.shooting shouldBe ShootingSettings()
 
     "compose custom configurations accurately" in:
-      val customArena     = ArenaSettings(width = 1920, height = 1080)
+      val customArena = ArenaSettings(width = 1920, height = 1080)
       val customSpaceship = SpaceshipSettings(speed = 75.0, rotationSpeed = 90.0)
-      val customShooting  = ShootingSettings(bulletPower = 20.0, bulletSpeed = 150.0, shootCooldown = 300L)
+      val customShooting = ShootingSettings(bulletPower = 20.0, bulletSpeed = 150.0, shootCooldown = 300L)
 
       val custom = GameSettings(customArena, customSpaceship, customShooting)
 

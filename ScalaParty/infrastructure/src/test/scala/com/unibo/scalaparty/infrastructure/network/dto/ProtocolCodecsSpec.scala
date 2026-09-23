@@ -32,8 +32,8 @@ class ProtocolCodecsSpec extends AnyWordSpec with Matchers:
 
     "tag each entity with its type so clients can distinguish them" in:
       val spaceship = EntityDto.Spaceship(EntityId.fromLong(1L), Point2D(10.0, 20.0), Vector2D(1.0, 0.0))
-      val bullet    = EntityDto.Bullet(EntityId.fromLong(2L), Point2D(15.0, 20.0), Vector2D(100.0, 0.0))
-      val state     = MatchState(tick = 1L, entities = List(spaceship, bullet))
+      val bullet = EntityDto.Bullet(EntityId.fromLong(2L), Point2D(15.0, 20.0), Vector2D(100.0, 0.0))
+      val state = MatchState(tick = 1L, entities = List(spaceship, bullet))
 
       val json = state.asJson.noSpaces
 
