@@ -3,7 +3,8 @@ package com.unibo.scalaparty.core.geometry
 import com.unibo.scalaparty.core.geometry.Shape.{AABB, Circle, Polygon}
 import org.scalactic.Tolerance.convertNumericToPlusOrMinusWrapper
 import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers.shouldBe
+import org.scalatest.matchers.must.Matchers.{be, defined}
+import org.scalatest.matchers.should.Matchers.{should, shouldBe}
 
 class PolygonSpec extends AnyFlatSpec:
 
@@ -114,6 +115,62 @@ class PolygonSpec extends AnyFlatSpec:
     val triangle = Triangle(Point2D(0.0, 0.0), Point2D(6.0, 0.0), Point2D(3.0, 6.0))
     val expectedTriangle = Triangle(Point2D(6.0, 4.0), Point2D(0.0, 4.0), Point2D(3.0, -2.0))
     triangle.rotate(-180) shouldEqual expectedTriangle
+
+  "A Triangle penetratingVector with AABB" should "return None when they do not intersect" in:
+    val triangle = Triangle(Point2D(0.0, 0.0), Point2D(2.0, 0.0), Point2D(1.0, 2.0))
+    val rectangle = AABB(2.0, 2.0, Point2D(5.0, 0.0))
+    triangle.penetratingVector(rectangle) shouldBe None
+
+  it should "return None when they touch only at the border" in:
+    val triangle = Triangle(Point2D(0.0, 0.0), Point2D(2.0, 0.0), Point2D(1.0, 2.0))
+    val rectangle = AABB(2.0, 2.0, Point2D(3.0, 0.0))
+    triangle.penetratingVector(rectangle) shouldBe None
+
+  it should "calculate the correct MTV along X axis when X overlap is minimal" in:
+    val triangle = Triangle(Point2D(0.0, 0.0), Point2D(4.0, 0.0), Point2D(2.0, 6.0))
+    val rectangle = AABB(4.0, 10.0, Point2D(-1.0, 2.0))
+    // Target AABB is to the left of Triangle center -> MTV = (-1.0, 0.0)
+    triangle.penetratingVector(rectangle) shouldBe Some(Vector2D(-1.0, 0.0))
+
+  it should "calculate the correct MTV along Y axis when Y overlap is minimal" in:
+    val triangle = Triangle(Point2D(0.0, 0.0), Point2D(6.0, 0.0), Point2D(3.0, 4.0))
+    val rectangle = AABB(10.0, 4.0, Point2D(3.0, -1.0))
+    // Target AABB is below Triangle center -> MTV = (0.0, -1.0)
+    triangle.penetratingVector(rectangle) shouldBe Some(Vector2D(0.0, -1.0))
+
+  "A Polygon penetratingVector with another Polygon" should "return None when polygons do not intersect" in :
+    val a = Triangle(Point2D(0.0, 0.0), Point2D(2.0, 0.0), Point2D(1.0, 2.0))
+    val b = Triangle(Point2D(5.0, 0.0), Point2D(7.0, 0.0), Point2D(6.0, 2.0))
+    a.penetratingVector(b) shouldBe None
+
+  it should "return None when polygons touch only at the border" in :
+    val a = Triangle(Point2D(0.0, 0.0), Point2D(2.0, 0.0), Point2D(1.0, 2.0))
+    val b = Triangle(Point2D(2.0, 0.0), Point2D(4.0, 0.0), Point2D(3.0, 2.0))
+    a.penetratingVector(b) shouldBe None
+
+  it should "return a Minimum Translation Vector when two triangles overlap" in :
+    val a = Triangle(Point2D(0.0, 0.0), Point2D(4.0, 0.0), Point2D(0.0, 4.0))
+    val b = Triangle(Point2D(1.0, 0.0), Point2D(5.0, 0.0), Point2D(1.0, 4.0))
+    val resultAtoB = a.penetratingVector(b)
+    val resultBtoA = b.penetratingVector(a)
+    resultBtoA shouldBe defined
+    resultAtoB shouldBe defined
+
+  it should "return opposite Minimum Translation Vectors for overlapping triangles" in :
+    val a = Triangle(Point2D(0.0, 0.0), Point2D(4.0, 0.0), Point2D(0.0, 4.0))
+    val b = Triangle(Point2D(1.0, 0.0), Point2D(5.0, 0.0), Point2D(1.0, 4.0))
+    val mtvA = a.penetratingVector(b).get
+    val mtvB = b.penetratingVector(a).get
+    mtvA.x shouldBe (-mtvB.x +- 1e-4)
+    mtvA.y shouldBe (-mtvB.y +- 1e-4)
+
+  it should "push the second triangle away from the first one" in :
+    val a = Triangle(Point2D(0.0, 0.0), Point2D(4.0, 0.0), Point2D(0.0, 4.0))
+    val b = Triangle(Point2D(1.0, 0.0), Point2D(5.0, 0.0), Point2D(1.0, 4.0))
+    val mtvA = a.penetratingVector(b).get
+    // The MTV should push b away from a
+    val direction = b.center - a.center
+    (mtvA.x * direction.x + mtvA.y * direction.y) should be > 0.0
 
   extension (self: Triangle)
     def shouldEqual(other: Triangle): Unit =

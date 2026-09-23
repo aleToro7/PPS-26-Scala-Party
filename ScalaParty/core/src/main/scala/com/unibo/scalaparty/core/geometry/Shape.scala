@@ -60,15 +60,15 @@ extension [S <: Shape](self: S)
    *  @return Some(MTV) if the shapes intersect, None otherwise
    */
   def penetratingVector(other: Shape): Option[Vector2D] = (self, other) match
-//    case (p1: Polygon, p2: Polygon) => p1.penetratingVector(p2)
+    case (p1: Polygon, p2: Polygon) => p1.penetratingVector(p2)
 //    case (p: Polygon, c: Circle) => p.penetratingVector(c)
 //    case (c: Circle, p: Polygon) => p.penetratingVector(c).map(-_)
     case (r1: AABB, r2: AABB) => r1.penetratingVector(r2)
     case (c1: Circle, c2: Circle) => c1.penetratingVector(c2)
     case (r: AABB, c: Circle) => c.penetratingVector(r).map(_ * -1)
     case (c: Circle, r: AABB) => c.penetratingVector(r)
-//    case (p: Polygon, r: AABB) => p.penetratingVector(r)
-//    case (r: AABB, p: Polygon) => p.penetratingVector(r).map(-_)
+    case (p: Polygon, r: AABB) => p.penetratingVector(r)
+    case (r: AABB, p: Polygon) => p.penetratingVector(r).map(_ * -1)
     case _ => ???
 
 import com.unibo.scalaparty.core.geometry.Shape.*
