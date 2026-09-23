@@ -65,8 +65,8 @@ extension [S <: Shape](self: S)
 //    case (c: Circle, p: Polygon) => p.penetratingVector(c).map(-_)
     case (r1: AABB, r2: AABB) => r1.penetratingVector(r2)
     case (c1: Circle, c2: Circle) => c1.penetratingVector(c2)
-//    case (r: AABB, c: Circle) => r.penetratingVector(c)
-//    case (c: Circle, r: AABB) => r.penetratingVector(c).map(-_)
+    case (r: AABB, c: Circle) => c.penetratingVector(r).map(_ * -1)
+    case (c: Circle, r: AABB) => c.penetratingVector(r)
 //    case (p: Polygon, r: AABB) => p.penetratingVector(r)
 //    case (r: AABB, p: Polygon) => p.penetratingVector(r).map(-_)
     case _ => ???
@@ -240,16 +240,7 @@ extension (self: Circle)
    *  @param aabb the AABB to check for intersection
    *  @return true if they intersect, false otherwise
    */
-  def intersects(aabb: AABB): Boolean =
-    val distanceBetweenCenters = self.center - aabb.center
-    val halfWidth = aabb.width.half
-    val halfHeight = aabb.height.half
-    val px = clamp(distanceBetweenCenters.x, -halfWidth, halfWidth)
-    val py = clamp(distanceBetweenCenters.y, -halfHeight, halfHeight)
-    val closestPoint = Point2D(aabb.center.x + px, aabb.center.y + py)
-    val distanceFromClosest = self.center - closestPoint
-    val squaredDistance = distanceFromClosest.x * distanceFromClosest.x + distanceFromClosest.y * distanceFromClosest.y
-    squaredDistance <= self.radius * self.radius
+  def intersects(aabb: AABB): Boolean = self.penetratingVector(aabb).isDefined
 
   /** Calculates the minimum translation vector needed to separate two intersecting circles.
    *  @param other the other circle
@@ -261,3 +252,21 @@ extension (self: Circle)
     val overlap = self.radius + other.radius - distance
     Option.when(overlap > 0):
       delta.normalized * overlap
+
+  /** Calculates the minimum translation vector needed to separate a circle and an AABB.
+   *  @param aabb the AABB
+   *  @return Some(MTV) if the circle and AABB intersect, None otherwise
+   */
+  def penetratingVector(aabb: AABB): Option[Vector2D] =
+    val distanceBetweenCenters = self.center - aabb.center
+    val halfWidth = aabb.width.half
+    val halfHeight = aabb.height.half
+    val px = clamp(distanceBetweenCenters.x, -halfWidth, halfWidth)
+    val py = clamp(distanceBetweenCenters.y, -halfHeight, halfHeight)
+    val closestPoint = Point2D(aabb.center.x + px, aabb.center.y + py)
+    val distanceFromClosest = self.center - closestPoint
+    val squaredDistance = distanceFromClosest.x * distanceFromClosest.x + distanceFromClosest.y * distanceFromClosest.y
+    Option.when(squaredDistance < self.radius * self.radius):
+      val distance = math.sqrt(squaredDistance)
+      val overlap = self.radius - distance
+      distanceFromClosest.normalized * overlap
