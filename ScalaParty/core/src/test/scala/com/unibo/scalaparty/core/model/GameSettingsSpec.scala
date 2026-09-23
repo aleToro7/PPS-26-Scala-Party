@@ -52,3 +52,7 @@ class GameSettingsSpec extends AnyWordSpec with Matchers:
     "validate shoot cooldown boundaries" in:
       an[IllegalArgumentException] should be thrownBy ShootingSettings(shootCooldown = -1L)
       noException should be thrownBy ShootingSettings(shootCooldown = 0L)
+
+    "validate muzzle offset boundaries" in:
+      an[IllegalArgumentException] should be thrownBy ShootingSettings(muzzleOffset = -1.0)
+      noException should be thrownBy ShootingSettings(muzzleOffset = 0.0)
