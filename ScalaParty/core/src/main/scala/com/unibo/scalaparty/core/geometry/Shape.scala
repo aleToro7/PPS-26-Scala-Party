@@ -61,15 +61,14 @@ extension [S <: Shape](self: S)
    */
   def penetratingVector(other: Shape): Option[Vector2D] = (self, other) match
     case (p1: Polygon, p2: Polygon) => p1.penetratingVector(p2)
-//    case (p: Polygon, c: Circle) => p.penetratingVector(c)
-//    case (c: Circle, p: Polygon) => p.penetratingVector(c).map(-_)
+    case (p: Polygon, c: Circle) => p.penetratingVector(c)
+    case (c: Circle, p: Polygon) => p.penetratingVector(c).map(_ * -1)
     case (r1: AABB, r2: AABB) => r1.penetratingVector(r2)
     case (c1: Circle, c2: Circle) => c1.penetratingVector(c2)
     case (r: AABB, c: Circle) => c.penetratingVector(r).map(_ * -1)
     case (c: Circle, r: AABB) => c.penetratingVector(r)
     case (p: Polygon, r: AABB) => p.penetratingVector(r)
     case (r: AABB, p: Polygon) => p.penetratingVector(r).map(_ * -1)
-    case _ => ???
 
 import com.unibo.scalaparty.core.geometry.Shape.*
 
@@ -133,6 +132,44 @@ extension (self: Polygon)
     val (cMin, cMax) = circle projectOnto circleAxis
     val circleHasSeparatingAxis = pMax < cMin || cMax < pMin
     !circleHasSeparatingAxis
+
+  /** Calculates the minimum translation vector needed to separate two intersecting polygons.
+   *
+   *  @param other the other polygon
+   *  @return [[Some]] containing the penetration vector if colliding, or [[None]] otherwise.
+   */
+  def penetratingVector(other: Polygon): Option[Vector2D] =
+    computeMtv(self.axes ++ other.axes, other, other.center)
+
+  /** Calculates the minimum translation vector needed to separate a polygon and a circle.
+   *
+   *  @param circle the target circle to check against
+   *  @return [[Some]] containing the penetration vector pointing towards the circle if colliding, or [[None]] otherwise.
+   */
+  def penetratingVector(circle: Circle): Option[Vector2D] =
+    val closestVertex = self.closestVertexTo(circle.center)
+    val vertexAxis = circle.center - closestVertex
+    val candidateAxes =
+      if vertexAxis.x == 0.0 && vertexAxis.y == 0.0 then self.axes
+      else self.axes :+ vertexAxis.normalized
+    computeMtv(candidateAxes, circle, circle.center)
+
+  private def computeMtv(
+      candidateAxes: Seq[Vector2D],
+      target: Projectable,
+      targetCenter: Point2D
+  ): Option[Vector2D] =
+    self.minOverlappingAxis(candidateAxes)(target).map: (axis, overlap) =>
+      val direction = targetCenter - self.center
+      val dotProduct = axis.x * direction.x + axis.y * direction.y
+      val alignedAxis = if dotProduct < 0 then axis * -1 else axis
+      alignedAxis * overlap
+
+  /** Calculates the minimum translation vector needed to separate a polygon and an AABB.
+   *  @param aabb the AABB
+   *  @return Some(MTV) if the polygon and AABB intersect, None otherwise
+   */
+  def penetratingVector(aabb: AABB): Option[Vector2D] = self.penetratingVector(Polygon(aabb.vertices*))
 
   /** Computes and returns the polygon's bounding box.
    *  The computed bounded box is the smallest [[AABB]] object fitting the polygon.

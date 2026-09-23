@@ -138,17 +138,17 @@ class PolygonSpec extends AnyFlatSpec:
     // Target AABB is below Triangle center -> MTV = (0.0, -1.0)
     triangle.penetratingVector(rectangle) shouldBe Some(Vector2D(0.0, -1.0))
 
-  "A Polygon penetratingVector with another Polygon" should "return None when polygons do not intersect" in :
+  "A Polygon penetratingVector with another Polygon" should "return None when polygons do not intersect" in:
     val a = Triangle(Point2D(0.0, 0.0), Point2D(2.0, 0.0), Point2D(1.0, 2.0))
     val b = Triangle(Point2D(5.0, 0.0), Point2D(7.0, 0.0), Point2D(6.0, 2.0))
     a.penetratingVector(b) shouldBe None
 
-  it should "return None when polygons touch only at the border" in :
+  it should "return None when polygons touch only at the border" in:
     val a = Triangle(Point2D(0.0, 0.0), Point2D(2.0, 0.0), Point2D(1.0, 2.0))
     val b = Triangle(Point2D(2.0, 0.0), Point2D(4.0, 0.0), Point2D(3.0, 2.0))
     a.penetratingVector(b) shouldBe None
 
-  it should "return a Minimum Translation Vector when two triangles overlap" in :
+  it should "return a Minimum Translation Vector when two triangles overlap" in:
     val a = Triangle(Point2D(0.0, 0.0), Point2D(4.0, 0.0), Point2D(0.0, 4.0))
     val b = Triangle(Point2D(1.0, 0.0), Point2D(5.0, 0.0), Point2D(1.0, 4.0))
     val resultAtoB = a.penetratingVector(b)
@@ -156,7 +156,7 @@ class PolygonSpec extends AnyFlatSpec:
     resultBtoA shouldBe defined
     resultAtoB shouldBe defined
 
-  it should "return opposite Minimum Translation Vectors for overlapping triangles" in :
+  it should "return opposite Minimum Translation Vectors for overlapping triangles" in:
     val a = Triangle(Point2D(0.0, 0.0), Point2D(4.0, 0.0), Point2D(0.0, 4.0))
     val b = Triangle(Point2D(1.0, 0.0), Point2D(5.0, 0.0), Point2D(1.0, 4.0))
     val mtvA = a.penetratingVector(b).get
@@ -164,13 +164,32 @@ class PolygonSpec extends AnyFlatSpec:
     mtvA.x shouldBe (-mtvB.x +- 1e-4)
     mtvA.y shouldBe (-mtvB.y +- 1e-4)
 
-  it should "push the second triangle away from the first one" in :
+  it should "push the second triangle away from the first one" in:
     val a = Triangle(Point2D(0.0, 0.0), Point2D(4.0, 0.0), Point2D(0.0, 4.0))
     val b = Triangle(Point2D(1.0, 0.0), Point2D(5.0, 0.0), Point2D(1.0, 4.0))
     val mtvA = a.penetratingVector(b).get
     // The MTV should push b away from a
     val direction = b.center - a.center
     (mtvA.x * direction.x + mtvA.y * direction.y) should be > 0.0
+
+  "A Polygon penetratingVector with Circle" should "return None when they do not intersect" in:
+    val triangle = Triangle(Point2D(0.0, 0.0), Point2D(4.0, 0.0), Point2D(2.0, 4.0))
+    val circle = Circle(1.0, Point2D(8.0, 8.0))
+    triangle.penetratingVector(circle) shouldBe None
+
+  it should "return None when they touch only at the border" in:
+    val triangle = Triangle(Point2D(0.0, 0.0), Point2D(4.0, 0.0), Point2D(2.0, 4.0))
+    val circle = Circle(1.0, Point2D(-1.0, 0.0))
+    triangle.penetratingVector(circle) shouldBe None
+
+  it should "calculate the correct MTV when overlapping along a flat edge" in:
+    val triangle = Triangle(Point2D(0.0, 0.0), Point2D(4.0, 0.0), Point2D(2.0, 4.0))
+    val circle = Circle(2.0, Point2D(-1.0, 0.0))
+    // Vector pointing towards circle center = (0.0, -1.0)
+    val result = triangle.penetratingVector(circle)
+    result shouldBe defined
+    result.get.y shouldBe (0.0 +- 1e-4)
+    result.get.x shouldBe (-1.0 +- 1e-4)
 
   extension (self: Triangle)
     def shouldEqual(other: Triangle): Unit =
