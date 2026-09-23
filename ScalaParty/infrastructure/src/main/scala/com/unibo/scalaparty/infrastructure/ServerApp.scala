@@ -4,12 +4,17 @@ import cats.effect.{IO, IOApp}
 import com.comcast.ip4s.*
 import com.unibo.scalaparty.core.model.GameSettings
 import com.unibo.scalaparty.infrastructure.application.{GameCommandService, MatchCoordinator, QueuedLobbyManager}
-import com.unibo.scalaparty.infrastructure.network.{ConnectionRegistry, WebSocketBroadcaster, WebSocketNotifier, WebSocketServer}
+import com.unibo.scalaparty.infrastructure.network.{
+  ConnectionRegistry,
+  WebSocketBroadcaster,
+  WebSocketNotifier,
+  WebSocketServer
+}
+import org.http4s.{HttpRoutes, StaticFile}
 import org.http4s.dsl.io.*
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.server.Router
 import org.http4s.server.websocket.WebSocketBuilder2
-import org.http4s.{HttpRoutes, StaticFile}
 
 object ServerApp extends IOApp.Simple:
   private val gameRoute = "scalaparty"
