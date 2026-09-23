@@ -43,10 +43,10 @@ extension [S <: Shape](self: S)
    *  @return a new shape that is the result of moving the current shape to the specified point
    */
   def moveTo(p: Point2D): S = self match
-    case shape: Polygon => self.move( p - shape.center)
+    case shape: Polygon => self.move(p - shape.center)
     case Circle(radius, center) => Circle(radius, p).asInstanceOf[S]
     case AABB(width, height, center) => AABB(width, height, p).asInstanceOf[S]
-    
+
   /** Returns the bounding box of the shape.
    *  @return the bounding box of the shape
    */
@@ -55,12 +55,16 @@ extension [S <: Shape](self: S)
     case Circle(radius, center) => AABB(radius * 2, radius * 2, center)
     case aabb: AABB => aabb
 
+  /** Calculates the minimum translation vector needed to separate two intersecting shapes.
+   *  @param other the other shape
+   *  @return Some(MTV) if the shapes intersect, None otherwise
+   */
   def penetratingVector(other: Shape): Option[Vector2D] = (self, other) match
 //    case (p1: Polygon, p2: Polygon) => p1.penetratingVector(p2)
 //    case (p: Polygon, c: Circle) => p.penetratingVector(c)
 //    case (c: Circle, p: Polygon) => p.penetratingVector(c).map(-_)
     case (r1: AABB, r2: AABB) => r1.penetratingVector(r2)
-//    case (c1: Circle, c2: Circle) => c1.penetratingVector(c2)
+    case (c1: Circle, c2: Circle) => c1.penetratingVector(c2)
 //    case (r: AABB, c: Circle) => r.penetratingVector(c)
 //    case (c: Circle, r: AABB) => r.penetratingVector(c).map(-_)
 //    case (p: Polygon, r: AABB) => p.penetratingVector(r)
@@ -176,8 +180,8 @@ extension (self: Polygon)
     Polygon(movedVertices*)
 
   /** Moves the polygon to a specific point in space.
-   * @param p the point to which the polygon should be moved
-   * @return a new [[Polygon]] that is the result of moving the current polygon to the specified point
+   *  @param p the point to which the polygon should be moved
+   *  @return a new [[Polygon]] that is the result of moving the current polygon to the specified point
    */
   def moveTo(p: Point2D): Polygon =
     val delta = p - self.center
@@ -208,6 +212,10 @@ extension (self: AABB)
     val dy = math.abs(self.center.y - other.center.y)
     dx <= self.width.half + other.width.half && dy <= self.height.half + other.height.half
 
+  /** Calculates the minimum translation vector needed to separate two intersecting AABBs.
+   *  @param other the other AABB
+   *  @return Some(MTV) if the AABBs intersect, None otherwise
+   */
   def penetratingVector(other: AABB): Option[Vector2D] =
     val delta = other.center - self.center
     val overlapX = (self.width.half + other.width.half) - math.abs(delta.x)
@@ -242,3 +250,14 @@ extension (self: Circle)
     val distanceFromClosest = self.center - closestPoint
     val squaredDistance = distanceFromClosest.x * distanceFromClosest.x + distanceFromClosest.y * distanceFromClosest.y
     squaredDistance <= self.radius * self.radius
+
+  /** Calculates the minimum translation vector needed to separate two intersecting circles.
+   *  @param other the other circle
+   *  @return Some(MTV) if the circles intersect, None otherwise
+   */
+  def penetratingVector(other: Circle): Option[Vector2D] =
+    val delta = other.center - self.center
+    val distance = delta.module
+    val overlap = self.radius + other.radius - distance
+    Option.when(overlap > 0):
+      delta.normalized * overlap
