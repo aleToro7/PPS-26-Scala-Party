@@ -1,9 +1,7 @@
 package com.unibo.scalaparty.core.engine.input
 
 import com.unibo.scalaparty.core.ecs.*
-import com.unibo.scalaparty.core.geometry.Vector2D
 import com.unibo.scalaparty.core.model.GameCommand.RotateCommand
-import com.unibo.scalaparty.core.utils.collectFirstOfClass
 
 /** The RotateCommandExecutor is responsible for executing the RotateCommand, which rotates an entity's movement component by a specified angle.
  *  It implements the CommandExecutor trait for the RotateCommand type.
@@ -11,18 +9,22 @@ import com.unibo.scalaparty.core.utils.collectFirstOfClass
 object RotateCommandExecutor extends CommandExecutor[RotateCommand]:
 
   override def executeCommand(world: GameWorld, command: RotateCommand): GameWorld =
-    val entityId = command.entityId
-    val angle = command.angle
-    val updatedWorld =
-      for
-        components        <- world.findComponents(entityId)
-        movementComponent <- components.collectFirstOfClass[MovementComponent]
-        if movementComponent.velocity != Vector2D.zero
-      yield world.updateComponent(entityId, rotateMovementComponent(entityId, movementComponent, angle))
-    updatedWorld getOrElse world
+    val RotateCommand(entityId, angle) = command
+    world
+      .rotateEntity(entityId, angle)
+      .updateEntityVelocity(entityId, angle)
 
-  private def rotateMovementComponent(
-      entityId: EntityId,
-      component: MovementComponent,
-      angle: Double
-  ): MovementComponent = component.copy(velocity = component.velocity.rotated(angle))
+extension (world: GameWorld)
+
+  private def updateEntityVelocity(entityId: EntityId, angle: Double): GameWorld =
+    world.findComponent[MovementComponent](entityId) match
+      case Some(MovementComponent(velocity)) =>
+        world.updateComponent(entityId, MovementComponent(velocity.rotated(angle)))
+      case None => world
+
+  private def rotateEntity(entityId: EntityId, angle: Double): GameWorld =
+    world.findComponent[RotationComponent](entityId) match
+      case Some(RotationComponent(currentAngle)) =>
+        val newAngle = (currentAngle + angle) % 360.0
+        world.updateComponent(entityId, RotationComponent(newAngle))
+      case None => world
