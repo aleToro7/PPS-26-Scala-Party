@@ -67,17 +67,17 @@ class CircleSpec extends AnyFlatSpec with Matchers:
     result.get.x shouldBe (0.6 +- tolerance)
     result.get.y shouldBe (0.8 +- tolerance)
 
-  "Circle and AABB penetratingVector" should "return None when Circle and AABB do not intersect" in :
+  "Circle and AABB penetratingVector" should "return None when Circle and AABB do not intersect" in:
     val circle = Circle(2.0, Point2D(0.0, 0.0))
     val rectangle = AABB(4.0, 2.0, Point2D(5.0, 0.0))
     circle.penetratingVector(rectangle) shouldBe None
 
-  it should "return None when Circle and AABB touch only at the border" in :
+  it should "return None when Circle and AABB touch only at the border" in:
     val circle = Circle(2.0, Point2D(0.0, 0.0))
     val rectangle = AABB(4.0, 2.0, Point2D(4.0, 0.0))
     circle.penetratingVector(rectangle) shouldBe None
 
-  it should "calculate the correct MTV when overlapping along a face" in :
+  it should "calculate the correct MTV when overlapping along a face" in:
     val circle = Circle(2.0, Point2D(0.0, 0.0))
     val rectangle = AABB(4.0, 4.0, Point2D(3.0, 0.0))
     // Circle radius = 2.0, center = (0,0)
@@ -86,7 +86,7 @@ class CircleSpec extends AnyFlatSpec with Matchers:
     circle.penetratingVector(rectangle) shouldBe Some(Vector2D(-1.0, 0.0))
     rectangle.penetratingVector(circle) shouldBe Some(Vector2D(1.0, 0.0))
 
-  it should "calculate the correct MTV when overlapping at a corner" in :
+  it should "calculate the correct MTV when overlapping at a corner" in:
     // Circle centered at origin with radius 2.5 to ensure overlap with corner (2,2)
     val radius = 4.0
     val circle = Circle(radius, Point2D(0.0, 0.0))

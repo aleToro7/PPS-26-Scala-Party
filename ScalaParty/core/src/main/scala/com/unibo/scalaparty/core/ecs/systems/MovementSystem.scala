@@ -20,7 +20,7 @@ object MovementSystem extends WorldSystem:
         val newPosition = updatePosition(entityId, components, dt)
         newPosition match
           case Some(pos) =>
-            val newWorld = currentWorld.updateComponent(entityId,PositionComponent(pos))
+            val newWorld = currentWorld.updateComponent(entityId, PositionComponent(pos))
             (newWorld, events)
           case None => (currentWorld, events)
 
