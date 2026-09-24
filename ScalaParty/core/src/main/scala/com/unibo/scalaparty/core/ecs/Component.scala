@@ -23,9 +23,7 @@ case class PositionComponent(position: Point2D) extends Component
 case class EntityTypeComponent(entityType: EntityType) extends Component
 
 /** Represents an entity's capacity to shoot.
- *  @param bulletPower the power of the bullets
- *  @param bulletSpeed the speed of the bullets
- *  @param shootCooldown the cooldown time between shots
+ *  @param weapon specify the shot's values to apply
  *  @param isShooting whether the entity is currently shooting
  *  @param cooldownTimer the current cooldown timer
  */
@@ -50,3 +48,31 @@ case class ShapeComponent(shape: Shape) extends Component
  *  @param angle the angle of rotation in degrees
  */
 case class RotationComponent(angle: Double) extends Component
+/** Represents the health of an entity that can be damaged.
+ *  @param current the remaining health points, between zero and max
+ *  @param max the maximum health points
+ */
+case class HealthComponent(current: Double, max: Double) extends Component:
+  require(max > 0.0, "Max health must be positive")
+  require(current >= 0.0 && current <= max, "Current health must be between zero and max health")
+
+  /** Applies the given damage, never letting the health drop below zero.
+   *  @param amount the non-negative damage to apply
+   *  @return a new component with the reduced health
+   */
+  def damaged(amount: Double): HealthComponent =
+    require(amount >= 0.0, "Damage cannot be negative")
+    copy(current = math.max(0.0, current - amount))
+
+object HealthComponent:
+  /** Creates a health component at full health.
+   *  @param max the maximum health points
+   *  @return a new component whose current health equals its maximum
+   */
+  def full(max: Double): HealthComponent = HealthComponent(max, max)
+
+/** Represents the damage an entity deals to the entities it collides with.
+ *  @param damage the damage dealt on impact
+ */
+case class CollisionDamageComponent(damage: Double) extends Component:
+  require(damage >= 0.0, "Collision damage cannot be negative")

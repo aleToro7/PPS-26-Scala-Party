@@ -38,7 +38,9 @@ private class SinglePlayerGameEngine(config: GameConfig) extends GameEngine:
       position = Point2D(arena.width / 2, arena.height / 2),
       velocity = Vector2D(spaceship.speed, 0),
       entityId = config.players.head,
-      weapon = Weapon.fromSettings(config.settings.shooting)
+      weapon = Weapon.fromSettings(config.settings.shooting),
+      maxHealth = spaceship.maxHealth,
+      collisionDamage = spaceship.collisionDamage
     )
     GameWorld(List(playerSpaceship))
 
