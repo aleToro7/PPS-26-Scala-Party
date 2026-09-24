@@ -1,11 +1,14 @@
 package com.unibo.scalaparty.infrastructure.application
 
+import java.util.concurrent.atomic.AtomicReference
+
 import scala.concurrent.duration.*
 
 import cats.effect.{Deferred, IO, Ref}
 import cats.effect.std.Queue
 import cats.effect.testing.scalatest.AsyncIOSpec
 import cats.syntax.all.*
+import com.unibo.scalaparty.core.map.{GameMap, GameMapProvider}
 import com.unibo.scalaparty.core.model.{GameEvent, GameSettings, MatchState}
 import com.unibo.scalaparty.infrastructure.model.{Admission, MatchId, PlayerId, ServerMessage}
 import com.unibo.scalaparty.infrastructure.network.ConnectionRegistry
@@ -34,6 +37,16 @@ class MatchCoordinatorSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
 
     def countFor(matchId: MatchId): IO[Int] = broadcasts.get.map(_.getOrElse(matchId, 0))
 
+  /** A map provider giving the same answer to every request, remembering how many players each map was requested for. */
+  private class RecordingMapProvider(answer: Option[GameMap]) extends GameMapProvider:
+    private val requests = AtomicReference(List.empty[Int])
+
+    override def mapFor(players: Int): Option[GameMap] =
+      requests.updateAndGet(_ :+ players)
+      answer
+
+    def requested: IO[List[Int]] = IO(requests.get)
+
   /** The whole wiring under test, with matches short enough to watch them come and go. */
   private class Fixture(
       val lobby: QueuedLobbyManager[IO],
@@ -53,7 +66,8 @@ class MatchCoordinatorSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
       matchDuration: FiniteDuration = 50.millis,
       maxPlayers: Int = 1,
       maxMatches: Int = 1,
-      maxQueued: Int = Int.MaxValue
+      maxQueued: Int = Int.MaxValue,
+      maps: GameMapProvider = GameMapProvider.fixed(GameMap.default)
   ): IO[Fixture] =
     for
       registry   <- ConnectionRegistry()
@@ -64,7 +78,7 @@ class MatchCoordinatorSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
       notifier = RecordingNotifier(sent)
       publisher = CountingPublisher(broadcasts)
       settings = GameSettings.default
-      coordinator <- MatchCoordinator(lobby, registry, commands, notifier, publisher, settings, matchDuration)
+      coordinator <- MatchCoordinator(lobby, registry, commands, notifier, publisher, settings, maps, matchDuration)
     yield Fixture(lobby, registry, notifier, publisher, coordinator)
 
   /** Retries the given check until it holds, rather than guessing how long a match takes. */
@@ -147,6 +161,23 @@ class MatchCoordinatorSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
       yield
         waiting shouldBe Vector(players(1))
         bound shouldBe None
+
+  "the start of a match".should:
+    "ask for a map hosting the players of the match".in:
+      val maps = RecordingMapProvider(Some(GameMap.default))
+      for
+        f         <- fixture(maps = maps)
+        _         <- f.join(PlayerId.random())
+        requested <- eventually(maps.requested)(_.nonEmpty)
+      yield requested shouldBe List(1)
+
+    "play the match on the default map when no map is available".in:
+      val playerId = PlayerId.random()
+      for
+        f      <- fixture(matchDuration = 10.seconds, maps = RecordingMapProvider(None))
+        _      <- f.join(playerId)
+        ticked <- eventually(f.publisher.count)(_ > 0)
+      yield ticked should be > 0
 
   "the end of a match".should:
     "hand the arena to the player waiting in the queue".in:
@@ -235,7 +266,8 @@ class MatchCoordinatorSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
             case ServerMessage.MatchStarted(_) => coordinator.get.flatMap(_.leaveLobby(pId))
             case _ => IO.unit
         publisher = CountingPublisher(broadcasts)
-        created <- MatchCoordinator(lobby, registry, commands, quitting, publisher, GameSettings.default, 10.seconds)
+        maps = GameMapProvider.fixed(GameMap.default)
+        created <- MatchCoordinator(lobby, registry, commands, quitting, publisher, GameSettings.default, maps, 10.seconds)
         _       <- coordinator.complete(created)
         _       <- Queue.unbounded[IO, WebSocketFrame].flatMap(registry.register(playerId, _))
         _       <- created.joinLobby(playerId)
