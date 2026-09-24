@@ -1,14 +1,14 @@
 package com.unibo.scalaparty.infrastructure.network.dto
 
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpec
-import io.circe.syntax.*
 import com.unibo.scalaparty.core.dto.EntityDto
 import com.unibo.scalaparty.core.ecs.EntityId
 import com.unibo.scalaparty.core.geometry.{Point2D, Vector2D}
+import com.unibo.scalaparty.core.geometry.Shape.AABB
 import com.unibo.scalaparty.core.model.MatchState
-import com.unibo.scalaparty.infrastructure.model.ServerMessage
 import com.unibo.scalaparty.infrastructure.network.dto.ProtocolCodecs.given
+import io.circe.syntax.*
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 class ProtocolCodecsSpec extends AnyWordSpec with Matchers:
 
@@ -22,20 +22,34 @@ class ProtocolCodecsSpec extends AnyWordSpec with Matchers:
 
     "correctly serialize a MatchState containing DTOs" in:
       val entityId = EntityId.fromLong(1L)
-      val spaceship = EntityDto.Spaceship(entityId, Point2D(10.0, 20.0), Vector2D(1.0, 0.0))
+      val spaceship = EntityDto.Spaceship(
+        entityId,
+        Point2D(10.0, 20.0),
+        Vector2D(1.0, 0.0),
+        AABB(2.0, 2.0, Point2D.origin),
+        45.0
+      )
       val state = MatchState(tick = 100L, entities = List(spaceship))
 
       val json = state.asJson.noSpaces
 
       json should include(""""tick":100""")
-      json should include(""""id":1""")
+      json should include("""Spaceship":""")
+      json should include(""""type":"AABB"""")
       json should include(""""x":10.0""")
+      json should include(""""y":20.0""")
+      json should include(""""rotation":45.0""")
 
     "tag each entity with its type so clients can distinguish them" in:
-      val spaceship = EntityDto.Spaceship(EntityId.fromLong(1L), Point2D(10.0, 20.0), Vector2D(1.0, 0.0))
+      val spaceship = EntityDto.Spaceship(
+        EntityId.fromLong(1L),
+        Point2D(10.0, 20.0),
+        Vector2D(1.0, 0.0),
+        AABB(2.0, 2.0, Point2D.origin),
+        45.0
+      )
       val bullet = EntityDto.Bullet(EntityId.fromLong(2L), Point2D(15.0, 20.0), Vector2D(100.0, 0.0))
       val state = MatchState(tick = 1L, entities = List(spaceship, bullet))
-
       val json = state.asJson.noSpaces
 
       json should include(""""Spaceship":{"id":1""")
