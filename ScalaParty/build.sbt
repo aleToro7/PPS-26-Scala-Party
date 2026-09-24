@@ -11,6 +11,15 @@ lazy val core = (project in file("core"))
     assembly / skip := true,
   )
 
+// --- PROLOG MODULE ---
+lazy val prolog = (project in file("prolog"))
+  .dependsOn(core)
+  .settings(
+    name := "scalaparty-prolog",
+    assembly / skip := true,
+    libraryDependencies += "it.unibo.alice.tuprolog" % "tuprolog" % "3.3.0"
+  )
+
 // --- INFRASTRUCTURE MODULE ---
 lazy val infrastructure = (project in file("infrastructure"))
   .dependsOn(core)
@@ -38,7 +47,7 @@ lazy val infrastructure = (project in file("infrastructure"))
   )
 
 lazy val root = (project in file("."))
-  .aggregate(core, infrastructure)
+  .aggregate(core, prolog, infrastructure)
   .settings(
     name := "scalaparty",
     assembly / skip := true
