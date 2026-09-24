@@ -3,6 +3,7 @@ package com.unibo.scalaparty.core.ecs.systems
 import com.unibo.scalaparty.core.ecs.*
 import com.unibo.scalaparty.core.ecs.GameEvent.CollisionDetected
 import com.unibo.scalaparty.core.geometry.*
+import com.unibo.scalaparty.core.geometry.Shape.Polygon
 import com.unibo.scalaparty.core.utils.collectFirstOfClass
 
 type CollisionPair = (EntityId, EntityId)
@@ -64,15 +65,25 @@ object CollisionSystem extends WorldSystem:
       case _ => world
 
   /** Extracts and transform the shapes of all entities in the world, moving them to their current positions.
-   * @param world the game world containing entities and their components
-   * @return an iterable of entities with their shapes transformed to their current positions
+   *  @param world the game world containing entities and their components
+   *  @return an iterable of entities with their shapes transformed to their current positions
    */
   private def extractShapes(world: GameWorld): Iterable[EntityWithShape] =
     for
       (entityId, components) <- world.findEntitiesWithComponent[ShapeComponent]
       shape                  <- components.collectFirstOfClass[ShapeComponent].map(_.shape)
       PositionComponent(pos) <- components.collectFirstOfClass[PositionComponent]
-    yield (entityId, shape moveTo pos)
+      rotation = components.collectFirstOfClass[RotationComponent].map(c =>
+        println(s"Entity $entityId has rotation: ${c.angle}");
+        c.angle
+      ).getOrElse(0.0)
+      rotatedShape = rotateShape(shape, rotation)
+    yield (entityId, rotatedShape moveTo pos)
+
+  private def rotateShape(shape: Shape, rotation: Double): Shape =
+    shape match
+      case polygon: Polygon => polygon.rotate(rotation)
+      case _ => shape
 
 private type EntityWithShape = (EntityId, Shape)
 
