@@ -47,3 +47,8 @@ case class BulletComponent(power: Double, shooterId: EntityId) extends Component
  *  @param shape the shape of the entity
  */
 case class ShapeComponent(shape: Shape) extends Component
+
+/** Represents the rotation of an entity.
+ *  @param angle the angle of rotation in degrees
+ */
+case class RotationComponent(angle: Double) extends Component
