@@ -275,12 +275,13 @@ class MatchCoordinatorSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
             case _ => IO.unit
         publisher = CountingPublisher(broadcasts)
         maps = GameMapProvider.fixed(GameMap.default)
-        created <- MatchCoordinator(lobby, registry, commands, quitting, publisher, GameSettings.default, maps, 10.seconds)
-        _       <- coordinator.complete(created)
-        _       <- Queue.unbounded[IO, WebSocketFrame].flatMap(registry.register(playerId, _))
-        _       <- created.joinLobby(playerId)
-        _       <- IO.sleep(200.millis)
-        ticks   <- publisher.count
+        created <-
+          MatchCoordinator(lobby, registry, commands, quitting, publisher, GameSettings.default, maps, 10.seconds)
+        _     <- coordinator.complete(created)
+        _     <- Queue.unbounded[IO, WebSocketFrame].flatMap(registry.register(playerId, _))
+        _     <- created.joinLobby(playerId)
+        _     <- IO.sleep(200.millis)
+        ticks <- publisher.count
       yield ticks shouldBe 0
 
     "tell the players still waiting that they moved up the queue".in:

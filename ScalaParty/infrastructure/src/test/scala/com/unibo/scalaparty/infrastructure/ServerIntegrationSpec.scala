@@ -72,7 +72,8 @@ class ServerIntegrationSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers
         publisher = WebSocketBroadcaster(registry)
         settings = GameSettings.default
 
-        coordinator <- MatchCoordinator(lobby, registry, commandService, notifier, publisher, settings, maps, 10.seconds)
+        coordinator <-
+          MatchCoordinator(lobby, registry, commandService, notifier, publisher, settings, maps, 10.seconds)
 
         wsServer = WebSocketServer(registry, coordinator, commandService)
 
