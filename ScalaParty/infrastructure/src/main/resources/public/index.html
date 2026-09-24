@@ -66,6 +66,7 @@
 
     const SHIP_HEIGHT = 24;
     const SHIP_BASE = 14;
+    const BULLET_RADIUS = 3;
     const MAX_LOG_LINES = 50;
 
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
@@ -90,42 +91,53 @@
       velocity: { x: 0, y: 0 },
       angle: 0
     };
+    let currentBullets = [];
 
-    function extractShip(payload) {
-      const list = Array.isArray(payload)
+    // The server tags every entity DTO with its case name (e.g. { Spaceship: {...} }, { Bullet: {...} }).
+    function extractEntities(payload) {
+      return Array.isArray(payload)
         ? payload
         : Array.isArray(payload?.entities)
           ? payload.entities
           : [];
+    }
 
-      for (const entry of list) {
-        if (entry && typeof entry === 'object' && 'Spaceship' in entry) {
-          return entry.Spaceship;
-        }
-      }
-      return null;
+    function toShipState(ship, previous) {
+      const pos = ship.position ?? previous.position;
+      const vel = ship.velocity ?? { x: 0, y: 0 };
+      return {
+        position: {
+          x: Number(pos.x ?? previous.position.x),
+          y: Number(pos.y ?? previous.position.y)
+        },
+        velocity: {
+          x: Number(vel.x ?? previous.velocity.x),
+          y: Number(vel.y ?? previous.velocity.y)
+        },
+        angle: Math.atan2(Number(vel.y ?? 0), Number(vel.x ?? 1))
+      };
+    }
+
+    function toPosition(entity) {
+      return {
+        x: Number(entity.position?.x ?? 0),
+        y: Number(entity.position?.y ?? 0)
+      };
     }
 
     function updateFromServer(rawMessage) {
       try {
         const payload = JSON.parse(rawMessage);
-        const ship = extractShip(payload);
-        if (!ship) return;
+        const entities = extractEntities(payload);
 
-        const pos = ship.position ?? { x: currentShip.position.x, y: currentShip.position.y };
-        const vel = ship.velocity ?? { x: 0, y: 0 };
+        const shipEntry = entities.find(entry => entry && 'Spaceship' in entry);
+        if (shipEntry) {
+          currentShip = toShipState(shipEntry.Spaceship, currentShip);
+        }
 
-        currentShip = {
-          position: {
-            x: Number(pos.x ?? currentShip.position.x),
-            y: Number(pos.y ?? currentShip.position.y)
-          },
-          velocity: {
-            x: Number(vel.x ?? currentShip.velocity.x),
-            y: Number(vel.y ?? currentShip.velocity.y)
-          },
-          angle: Math.atan2(Number(vel.y ?? 0), Number(vel.x ?? 1))
-        };
+        currentBullets = entities
+          .filter(entry => entry && 'Bullet' in entry)
+          .map(entry => toPosition(entry.Bullet));
       } catch (error) {
         console.error('Invalid server payload', error);
       }
@@ -150,9 +162,17 @@
       ctx.restore();
     }
 
+    function drawBullet(x, y) {
+      ctx.beginPath();
+      ctx.arc(x, y, BULLET_RADIUS, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffcc00';
+      ctx.fill();
+    }
+
     function render() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       drawSpaceship(currentShip.position.x, currentShip.position.y, currentShip.angle);
+      currentBullets.forEach(bullet => drawBullet(bullet.x, bullet.y));
     }
 
     function gameLoop() {
@@ -179,20 +199,37 @@
       updateFromServer(event.data);
     });
 
-    document.addEventListener('keydown', (event) => {
-      if (event.key.toLowerCase() !== 'r') return;
-      event.preventDefault();
-
+    // Sends a PlayerInput command to the server, doing nothing if the socket is not ready yet.
+    function sendCommand(command, label) {
       if (socket.readyState !== WebSocket.OPEN) {
         statusEl.textContent = 'Socket not ready yet';
-        appendLog('Rotate skipped: socket not open');
-        return;
+        appendLog(`${label} skipped: socket not open`);
+        return false;
       }
-      const angle = 2.0
-      const command = JSON.stringify({ Rotate: { angle } });
-      socket.send(command);
-      appendLog(`Sent: ${command}`);
-      statusEl.textContent = `Rotated by ${angle}°`;
+      const json = JSON.stringify(command);
+      socket.send(json);
+      appendLog(`Sent: ${json}`);
+      return true;
+    }
+
+    document.addEventListener('keydown', (event) => {
+      switch (event.key.toLowerCase()) {
+        case 'r': {
+          event.preventDefault();
+          const angle = 2.0;
+          if (sendCommand({ Rotate: { angle } }, 'Rotate')) {
+            statusEl.textContent = `Rotated by ${angle}°`;
+          }
+          break;
+        }
+        case ' ': {
+          event.preventDefault();
+          if (sendCommand({ Shoot: {} }, 'Shoot')) {
+            statusEl.textContent = 'Fired!';
+          }
+          break;
+        }
+      }
     });
 
     appendLog(`Connecting to WebSocket at ${protocol}://${host}:${port}/scalaparty/ws`);

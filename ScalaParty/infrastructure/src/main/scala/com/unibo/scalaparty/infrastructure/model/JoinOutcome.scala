@@ -8,3 +8,6 @@ enum JoinOutcome:
 
   /** The player waits for its turn, with the given number of players to be served before it. */
   case Queued(playersAhead: Int)
+
+  /** The player is turned away, the queue being full. */
+  case Rejected

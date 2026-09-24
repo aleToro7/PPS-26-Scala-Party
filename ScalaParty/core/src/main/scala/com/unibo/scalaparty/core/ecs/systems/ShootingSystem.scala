@@ -1,62 +1,63 @@
 package com.unibo.scalaparty.core.ecs.systems
 
-import com.unibo.scalaparty.core.ecs
 import com.unibo.scalaparty.core.ecs.*
-import com.unibo.scalaparty.core.geometry.{Point2D, Vector2D}
 
+/** A system responsible for firing bullets and managing the weapon cooldown of shooting entities.
+ *
+ *  A shoot intent is consumed on every update: if the weapon is ready a bullet is spawned in front of the shooter,
+ *  otherwise the intent is discarded, so shots requested during the cooldown are ignored.
+ */
 object ShootingSystem extends WorldSystem:
 
   /** @inheritdoc */
-  override def update(world: GameWorld, events: Set[GameEvent], dt: Long): (GameWorld, Set[GameEvent]) =
+  override def update(world: GameWorld, events: Set[GameEvent], dt: Long): SystemOutput =
     val updatedWorld = world.findEntitiesWithComponent[ShootingComponent]
       .foldLeft(world):
         case (currentWorld, (entityId, components)) =>
-          currentWorld
-            .fireBulletIfNeeded(entityId, components, dt)
-            .updateShootingComponent(entityId, components, dt)
+          components
+            .collectFirst { case sc: ShootingComponent => sc }
+            .fold(currentWorld)(currentWorld.updateShooter(entityId, components, _, dt))
     (updatedWorld, events)
 
   extension (component: ShootingComponent)
 
-    private def canShoot(dt: Long): Boolean = component.isShooting && component.cooldownTimer - dt <= 0
+    private def isReady(dt: Long): Boolean = component.cooldownTimer - dt <= 0
 
-    private def shoot(): ShootingComponent = component.copy(cooldownTimer = component.shootCooldown, isShooting = false)
+    private def reloaded: ShootingComponent =
+      component.copy(isShooting = false, cooldownTimer = component.weapon.shootCooldown)
 
-    private def decreaseCooldownTimer(dt: Long): ShootingComponent =
-      component.copy(cooldownTimer = Math.max(0, component.cooldownTimer - dt))
+    private def cooledDown(dt: Long): ShootingComponent =
+      component.copy(isShooting = false, cooldownTimer = Math.max(0, component.cooldownTimer - dt))
 
   extension (world: GameWorld)
 
-    private def fireBulletIfNeeded(
+    private def updateShooter(
         entityId: EntityId,
         components: List[Component],
+        shooting: ShootingComponent,
         dt: Long
     ): GameWorld =
-      val updatedWorld =
-        for
-          shootingComponent <- components.collectFirst { case sc: ShootingComponent => sc }
-          positionComponent <- components.collectFirst { case pc: PositionComponent => pc }
-          if shootingComponent.canShoot(dt)
-        yield world + getBullet(entityId, positionComponent, shootingComponent)
-      updatedWorld getOrElse world
+      val bullet =
+        if shooting.isShooting && shooting.isReady(dt) then bulletFor(entityId, components, shooting.weapon)
+        else None
+      bullet match
+        case Some(b) => (world + b).updateComponent(entityId, shooting.reloaded)
+        case None =>
+          val cooled = shooting.cooledDown(dt)
+          if cooled == shooting then world else world.updateComponent(entityId, cooled)
 
-    private def updateShootingComponent(
-        entityId: EntityId,
-        components: List[Component],
-        dt: Long
-    ): GameWorld =
-      components.collectFirst({ case sc: ShootingComponent => sc }) match
-        case Some(sc) if sc.canShoot(dt) => world.updateComponent(entityId, sc.shoot())
-        case Some(sc) if sc.cooldownTimer > 0 => world.updateComponent(entityId, sc.decreaseCooldownTimer(dt))
-        case _ => world
-
-  private def getBullet(
-      entityId: EntityId,
-      positionComponent: PositionComponent,
-      shootingComponent: ShootingComponent,
-  ): EntityWithComponents =
-    val PositionComponent(position) = positionComponent
-    val Point2D(x, y) = position
-    val ShootingComponent(power, speed, _, _, _) = shootingComponent
-    val velocity = Vector2D(x, y) * speed
-    EntityFactory.createBullet(entityId, position, velocity, power)
+  private def bulletFor(
+      shooterId: EntityId,
+      components: List[Component],
+      weapon: Weapon
+  ): Option[EntityWithComponents] =
+    for
+      position <- components.collectFirst { case pc: PositionComponent => pc.position }
+      velocity <- components.collectFirst { case mc: MovementComponent => mc.velocity }
+      direction = velocity.normalized
+    yield EntityFactory.createBullet(
+      shooterId = shooterId,
+      position = position + direction * weapon.muzzleOffset,
+      velocity = direction * weapon.bulletSpeed,
+      power = weapon.bulletPower
+    )
