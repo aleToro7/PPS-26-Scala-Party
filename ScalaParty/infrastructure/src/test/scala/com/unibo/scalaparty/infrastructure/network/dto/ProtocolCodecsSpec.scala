@@ -1,13 +1,14 @@
 package com.unibo.scalaparty.infrastructure.network.dto
 
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpec
-import io.circe.syntax.*
 import com.unibo.scalaparty.core.dto.EntityDto
 import com.unibo.scalaparty.core.ecs.EntityId
 import com.unibo.scalaparty.core.geometry.{Point2D, Vector2D}
+import com.unibo.scalaparty.core.geometry.Shape.AABB
 import com.unibo.scalaparty.core.model.MatchState
 import com.unibo.scalaparty.infrastructure.network.dto.ProtocolCodecs.given
+import io.circe.syntax.*
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 class ProtocolCodecsSpec extends AnyWordSpec with Matchers:
 
@@ -21,7 +22,8 @@ class ProtocolCodecsSpec extends AnyWordSpec with Matchers:
 
     "correctly serialize a MatchState containing DTOs" in:
       val entityId = EntityId.fromLong(1L)
-      val spaceship = EntityDto.Spaceship(entityId, Point2D(10.0, 20.0), Vector2D(1.0, 0.0))
+      val spaceship =
+        EntityDto.Spaceship(entityId, Point2D(10.0, 20.0), Vector2D(1.0, 0.0), AABB(2.0, 2.0, Point2D.origin), 0.0)
       val state = MatchState(tick = 100L, entities = List(spaceship))
 
       val json = state.asJson.noSpaces

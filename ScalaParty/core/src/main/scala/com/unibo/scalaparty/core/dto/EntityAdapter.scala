@@ -3,7 +3,6 @@ package com.unibo.scalaparty.core.dto
 import com.unibo.scalaparty.core.dto.EntityDto.{Bullet as BulletDto, Spaceship as SpaceshipDto}
 import com.unibo.scalaparty.core.ecs.*
 import com.unibo.scalaparty.core.ecs.EntityType.{Bullet, Spaceship}
-import com.unibo.scalaparty.core.geometry.{Point2D, Vector2D}
 import com.unibo.scalaparty.core.utils.collectFirstOfClass
 
 object EntityAdapter:
@@ -15,20 +14,28 @@ object EntityAdapter:
    *  @return an Option containing the EntityDto if successful, or None otherwise
    */
   def toDto(entityId: EntityId, components: List[Component]): Option[EntityDto] =
-    components.collectFirst { case c: EntityTypeComponent => c.entityType } match
-      case Some(Spaceship) => extractEntity(entityId, components)(SpaceshipDto.apply)
-      case Some(Bullet) => extractEntity(entityId, components)(BulletDto.apply)
+    val entityType = components.collectFirstOfClass[EntityTypeComponent].map(_.entityType)
+    entityType match
+      case Some(Spaceship) => extractSpaceship(entityId, components)
+      case Some(Bullet) => extractBullet(entityId, components)
       case None => None
 
-  // TODO: this is a really weak logic that will need to be refactored as soon a the entity will have different components
-  private def extractEntity[E <: EntityDto](
+  private def extractBullet(
       entityId: EntityId,
       components: List[Component]
-  )(mapper: (entityId: EntityId, position: Point2D, velocity: Vector2D) => E): Option[E] =
+  ): Option[BulletDto] =
     for
       PositionComponent(position) <- components.collectFirstOfClass[PositionComponent]
       MovementComponent(velocity) <- components.collectFirstOfClass[MovementComponent]
-    yield mapper(entityId, position, velocity)
+    yield BulletDto(entityId, position, velocity)
+
+  private def extractSpaceship(entityId: EntityId, components: List[Component]): Option[SpaceshipDto] =
+    for
+      position <- components.collectFirstOfClass[PositionComponent].map(_.position)
+      velocity <- components.collectFirstOfClass[MovementComponent].map(_.velocity)
+      shape    <- components.collectFirstOfClass[ShapeComponent].map(_.shape)
+      rotation = components.collectFirstOfClass[RotationComponent].map(_.angle) getOrElse 0.0
+    yield SpaceshipDto(entityId, position, velocity, shape, rotation)
 
 extension (e: EntityWithComponents)
   /** Converts the entity ID and its associated components to an EntityDto based on the specified entity type.
