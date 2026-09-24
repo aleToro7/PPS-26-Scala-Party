@@ -7,40 +7,43 @@ import org.scalatest.matchers.should.Matchers
 
 class MovementSystemSpec extends AnyFlatSpec with Matchers:
 
-  private def createEntity(position: Point2D, velocity: Vector2D): EntityWithComponents =
+  private val OneSecondMillis: Long = 1_000L
+
+  private def createMovingEntity(position: Point2D, velocity: Vector2D): EntityWithComponents =
     (EntityId.generate(), List(PositionComponent(position), MovementComponent(velocity)))
 
+  private def createWorld(entities: EntityWithComponents*): GameWorld =
+    GameWorld(entities.toList)
+
+  private def updateWorld(world: GameWorld, dt: Long = OneSecondMillis): SystemOutput =
+    MovementSystem.update(world, Set.empty, dt)
+
+  extension (world: GameWorld)
+    private def getPosition(entityId: EntityId): Option[Point2D] =
+      world.findComponents(entityId).flatMap: components =>
+        components.collectFirst { case PositionComponent(pos) => pos }
+  
+
   "MovementSystem" should "not modify the world if there are no entities with movement components" in:
-    val world = GameWorld(Nil)
-    val dt = 1_000L // 1 second in milliseconds
-    val (updatedWorld, events) = MovementSystem.update(world, Set.empty, dt)
+    val emptyWorld = createWorld()
+    val (updatedWorld, events) = updateWorld(emptyWorld)
     events shouldBe empty
-    updatedWorld shouldBe world
+    updatedWorld shouldBe emptyWorld
 
   it should "update the position of entities based on their velocity" in:
-    val pos = Point2D.origin
-    val vel = Vector2D(1.0, 1.0)
-    val entity = createEntity(pos, vel)
-    val world = GameWorld(List(entity))
-    val dt = 1_000L // 1 second in milliseconds
-    val dtInSeconds = dt.toDouble / 1_000.0
-    val expectedPosition = pos + (vel * dtInSeconds)
-    val (updatedWorld, events) = MovementSystem.update(world, Set.empty, dt)
+    val startPos = Point2D.origin
+    val velocity = Vector2D(1.0, 1.0)
+    val entity@(entityId, _) = createMovingEntity(startPos, velocity)
+    val world = createWorld(entity)
+    val expectedPos = startPos + (velocity * (OneSecondMillis.toDouble / 1_000.0))
+    val (updatedWorld, events) = updateWorld(world)
     events shouldBe empty
     updatedWorld.id should not be world.id
-    val actualPosition = updatedWorld
-      .findComponents(entity._1)
-      .get
-      .collectFirst { case pc: PositionComponent => pc.position }
-    actualPosition should not be empty
-    actualPosition.get shouldBe expectedPosition
+    updatedWorld.getPosition(entityId) shouldBe Some(expectedPos)
 
   it should "not generate a new world if an entity does not actually move" in:
-    val pos = Point2D.origin
-    val vel = Vector2D.zero
-    val entity = createEntity(pos, vel)
-    val world = GameWorld(List(entity))
-    val dt = 1_000L // 1 second in milliseconds
-    val (updatedWorld, events) = MovementSystem.update(world, Set.empty, dt)
+    val stationaryEntity = createMovingEntity(Point2D.origin, Vector2D.zero)
+    val world = createWorld(stationaryEntity)
+    val (updatedWorld, events) = updateWorld(world)
     events shouldBe empty
     updatedWorld.id shouldBe world.id
