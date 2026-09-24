@@ -24,7 +24,7 @@ class CollisionSystemSpec extends AnyFlatSpec with Matchers:
     val id1 = EntityId.generate()
     val id2 = EntityId.generate()
     val entity1 = spawnEntity(-1.0, 0.0, id = id1)
-    val entity2 = spawnEntity(1.0, 0.0, id = id2)
+    val entity2 = spawnEntity(0.0, 0.0, id = id2)
     val world = GameWorld(List(entity1, entity2))
     val (_, events) = CollisionSystem.update(world, Set.empty, 1000)
     val collisions = events.collect { case c: CollisionDetected => c }
@@ -52,7 +52,6 @@ class CollisionSystemSpec extends AnyFlatSpec with Matchers:
     val world = GameWorld(List(entity1, entity2))
     val (_, events) = CollisionSystem.update(world, Set.empty, 1000)
     val collisions = events.collect { case c: CollisionDetected => c }
-
     collisions should have size 1
 
   it should "not emit a CollisionEvent when bounding boxes overlap but exact polygons do not intersect" in:
@@ -61,17 +60,32 @@ class CollisionSystemSpec extends AnyFlatSpec with Matchers:
       Point2D(2.0, 0.0),
       Point2D(0.0, 2.0)
     )
-    // The bounding boxes intersect, however the geometries do not touch.
     val triangle2: Polygon = Polygon(
       Point2D(1.0, 1.5),
       Point2D(3.0, 1.5),
       Point2D(3.0, 3.0)
     )
     val center1 = triangle1.center
-    val entity1 = spawnEntity(center1.x, center1.y, shape = triangle1)
     val center2 = triangle2.center
+    val entity1 = spawnEntity(center1.x, center1.y, shape = triangle1)
     val entity2 = spawnEntity(center2.x, center2.y, shape = triangle2)
     val world = GameWorld(List(entity1, entity2))
     val (_, events) = CollisionSystem.update(world, Set.empty, 1000)
     val collisions = events.collect { case c: CollisionDetected => c }
     collisions shouldBe empty
+
+  it should "resolve collisions between entities correctly and maintain world immutability invariants" in:
+    val id1 = EntityId.generate()
+    val id2 = EntityId.generate()
+    val entity1 = spawnEntity(-1.0, 0.0, id = id1)
+    val entity2 = spawnEntity(0.0, 0.0, id = id2)
+    val world = GameWorld(List(entity1, entity2))
+    // Tick 1: Collision detected, position resolved, new world snapshot generated with a new ID
+    val (updatedWorld, events) = CollisionSystem.update(world, Set.empty, 1000)
+    val collisions = events.collect { case c: CollisionDetected => c }
+    collisions should have size 1
+    world.id should not equal updatedWorld.id
+    // Tick 2: Entities are separated, no new collision detected, world instance remains unchanged
+    val (sameWorld, newEvents) = CollisionSystem.update(updatedWorld, Set.empty, 1000)
+    newEvents shouldBe empty
+    sameWorld.id shouldBe updatedWorld.id
