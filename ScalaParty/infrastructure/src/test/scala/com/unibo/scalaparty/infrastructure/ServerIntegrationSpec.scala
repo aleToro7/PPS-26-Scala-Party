@@ -5,6 +5,7 @@ import scala.concurrent.duration.*
 import cats.effect.IO
 import cats.effect.std.Queue
 import cats.effect.testing.scalatest.AsyncIOSpec
+import com.unibo.scalaparty.core.map.{GameMap, GameMapProvider}
 import com.unibo.scalaparty.core.model.GameSettings
 import com.unibo.scalaparty.infrastructure.application.{GameCommandService, MatchCoordinator, QueuedLobbyManager}
 import com.unibo.scalaparty.infrastructure.model.{Admission, PlayerId}
@@ -25,6 +26,8 @@ import org.typelevel.ci.CIString
 
 class ServerIntegrationSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers:
 
+  private val maps = GameMapProvider.fixed(GameMap.default)
+
   "The integrated WebSocket Server" - {
     "should handle a connection request and assign the player to a match" in (
       for
@@ -36,7 +39,7 @@ class ServerIntegrationSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers
         publisher = WebSocketBroadcaster(registry)
         settings = GameSettings.default
 
-        coordinator <- MatchCoordinator(lobby, registry, commandService, notifier, publisher, settings, 50.millis)
+        coordinator <- MatchCoordinator(lobby, registry, commandService, notifier, publisher, settings, maps, 50.millis)
 
         wsServer = WebSocketServer(registry, coordinator, commandService)
 
@@ -69,7 +72,7 @@ class ServerIntegrationSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers
         publisher = WebSocketBroadcaster(registry)
         settings = GameSettings.default
 
-        coordinator <- MatchCoordinator(lobby, registry, commandService, notifier, publisher, settings, 10.seconds)
+        coordinator <- MatchCoordinator(lobby, registry, commandService, notifier, publisher, settings, maps, 10.seconds)
 
         wsServer = WebSocketServer(registry, coordinator, commandService)
 
