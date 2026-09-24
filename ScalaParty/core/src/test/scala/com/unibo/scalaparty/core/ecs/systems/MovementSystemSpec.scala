@@ -17,7 +17,7 @@ class MovementSystemSpec extends AnyFlatSpec with Matchers:
     events shouldBe empty
     updatedWorld shouldBe world
 
-  "MovementSystem" should "update the position of entities based on their velocity" in:
+  it should "update the position of entities based on their velocity" in:
     val pos = Point2D.origin
     val vel = Vector2D(1.0, 1.0)
     val entity = createEntity(pos, vel)
@@ -35,7 +35,7 @@ class MovementSystemSpec extends AnyFlatSpec with Matchers:
     actualPosition should not be empty
     actualPosition.get shouldBe expectedPosition
 
-  "MovementSystem" should "not generate a new world if an entity does not actually move" in:
+  it should "not generate a new world if an entity does not actually move" in:
     val pos = Point2D.origin
     val vel = Vector2D.zero
     val entity = createEntity(pos, vel)
