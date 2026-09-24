@@ -2,7 +2,6 @@ package com.unibo.scalaparty.infrastructure
 
 import cats.effect.{IO, IOApp}
 import com.comcast.ip4s.*
-import com.unibo.scalaparty.core.map.{GameMap, GameMapProvider}
 import com.unibo.scalaparty.core.model.GameSettings
 import com.unibo.scalaparty.infrastructure.application.{GameCommandService, MatchCoordinator, QueuedLobbyManager}
 import com.unibo.scalaparty.infrastructure.network.{
@@ -11,6 +10,7 @@ import com.unibo.scalaparty.infrastructure.network.{
   WebSocketNotifier,
   WebSocketServer
 }
+import com.unibo.scalaparty.prolog.PrologGameMapProvider
 import org.http4s.{HttpRoutes, StaticFile}
 import org.http4s.dsl.io.*
 import org.http4s.ember.server.EmberServerBuilder
@@ -59,11 +59,11 @@ object ServerApp extends IOApp.Simple:
         maxQueued = MaxQueuedPlayers
       )
       commandService <- GameCommandService()
+      maps           <- IO.blocking(PrologGameMapProvider())
 
       notifier = WebSocketNotifier(registry)
       publisher = WebSocketBroadcaster(registry)
       settings = GameSettings.default
-      maps = GameMapProvider.fixed(GameMap.default)
 
       coordinator <- MatchCoordinator(lobby, registry, commandService, notifier, publisher, settings, maps)
 
