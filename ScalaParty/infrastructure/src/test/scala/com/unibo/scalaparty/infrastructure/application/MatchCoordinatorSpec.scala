@@ -179,6 +179,14 @@ class MatchCoordinatorSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
         ticked <- eventually(f.publisher.count)(_ > 0)
       yield ticked should be > 0
 
+    "play the match on the default map when providing a map fails".in:
+      val failing: GameMapProvider = _ => throw IllegalStateException("Malformed game map")
+      for
+        f      <- fixture(matchDuration = 10.seconds, maps = failing)
+        _      <- f.join(PlayerId.random())
+        ticked <- eventually(f.publisher.count)(_ > 0)
+      yield ticked should be > 0
+
   "the end of a match".should:
     "hand the arena to the player waiting in the queue".in:
       val playing = PlayerId.random()

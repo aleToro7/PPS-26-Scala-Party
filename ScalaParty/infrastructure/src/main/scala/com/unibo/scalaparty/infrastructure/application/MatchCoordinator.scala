@@ -131,7 +131,8 @@ class MatchCoordinator(
       val runner = new MatchRunner(session, commands, engine, publisher, matchDuration)
       runner.run.compile.drain *> concludeMatch(activeMatch)
 
-  /** Obtains the map the match is played on, falling back to the default map when no map fits its players.
+  /** Obtains the map the match is played on, falling back to the default map when no map fits its players or
+   *  providing it fails: a match is never lost, and its players never stuck, because of its map.
    *  Providing a map may be expensive, e.g. when it is generated through Prolog, so it runs on the blocking pool.
    *
    *  @param activeMatch the match about to be played
@@ -139,9 +140,13 @@ class MatchCoordinator(
    */
   private def mapFor(activeMatch: ActiveMatch): IO[GameMap] =
     val players = activeMatch.players.size
-    IO.blocking(maps.mapFor(players)).flatMap:
-      case Some(map) => IO.pure(map)
-      case None => IO.println(s"No map available for $players players, using the default one").as(GameMap.default)
+    IO.blocking(maps.mapFor(players)).attempt.flatMap:
+      case Right(Some(map)) => IO.pure(map)
+      case Right(None) => defaultMap(s"No map available for $players players")
+      case Left(error) => defaultMap(s"Providing a map for $players players failed (${error.getMessage})")
+
+  private def defaultMap(reason: String): IO[GameMap] =
+    IO.println(s"$reason, using the default map").as(GameMap.default)
 
   /** Releases the players of a finished match and lets the next one in.
    *
