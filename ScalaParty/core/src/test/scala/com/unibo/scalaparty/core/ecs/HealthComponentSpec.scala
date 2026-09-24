@@ -16,6 +16,9 @@ class HealthComponentSpec extends AnyFlatSpec with Matchers:
   it should "never drop below zero health" in:
     HealthComponent.full(maxHealth).damaged(maxHealth * 2).current shouldBe 0.0
 
+  it should "reject a negative damage" in:
+    an[IllegalArgumentException] should be thrownBy HealthComponent.full(maxHealth).damaged(-1.0)
+
   it should "reject a non-positive max health" in:
     an[IllegalArgumentException] should be thrownBy HealthComponent.full(0.0)
 

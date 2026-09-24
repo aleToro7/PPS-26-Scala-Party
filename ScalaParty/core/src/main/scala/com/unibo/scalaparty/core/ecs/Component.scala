@@ -48,10 +48,12 @@ case class HealthComponent(current: Double, max: Double) extends Component:
   require(current >= 0.0 && current <= max, "Current health must be between zero and max health")
 
   /** Applies the given damage, never letting the health drop below zero.
-   *  @param amount the damage to apply
+   *  @param amount the non-negative damage to apply
    *  @return a new component with the reduced health
    */
-  def damaged(amount: Double): HealthComponent = copy(current = math.max(0.0, current - amount))
+  def damaged(amount: Double): HealthComponent =
+    require(amount >= 0.0, "Damage cannot be negative")
+    copy(current = math.max(0.0, current - amount))
 
 object HealthComponent:
   /** Creates a health component at full health.
