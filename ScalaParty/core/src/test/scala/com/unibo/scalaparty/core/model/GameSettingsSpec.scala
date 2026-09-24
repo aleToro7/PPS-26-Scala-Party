@@ -42,6 +42,14 @@ class GameSettingsSpec extends AnyWordSpec with Matchers:
         an[IllegalArgumentException] should be thrownBy SpaceshipSettings(speed = invalid)
         an[IllegalArgumentException] should be thrownBy SpaceshipSettings(rotationSpeed = invalid)
 
+    "reject non-positive max health" in:
+      nonPositiveDoubles.foreach: invalid =>
+        an[IllegalArgumentException] should be thrownBy SpaceshipSettings(maxHealth = invalid)
+
+    "validate collision damage boundaries" in:
+      an[IllegalArgumentException] should be thrownBy SpaceshipSettings(collisionDamage = -1.0)
+      noException should be thrownBy SpaceshipSettings(collisionDamage = 0.0)
+
   "ShootingSettings" should:
 
     "reject non-positive bullet power or speed" in:
