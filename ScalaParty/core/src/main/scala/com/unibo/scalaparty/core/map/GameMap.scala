@@ -10,6 +10,18 @@ import com.unibo.scalaparty.core.model.ArenaSettings
  */
 final case class SpawnPoint(position: Point2D, heading: Double)
 
+object SpawnPoint:
+
+  /** Creates a spawn point facing towards a given target.
+   *
+   *  @param position the initial position of the entity
+   *  @param target   the point the entity initially faces
+   *  @return a new [[SpawnPoint]] whose heading points from `position` to `target`
+   */
+  def facing(position: Point2D, target: Point2D): SpawnPoint =
+    val direction = target - position
+    SpawnPoint(position, Math.toDegrees(Math.atan2(direction.y, direction.x)))
+
 /** The static layout of an arena in which a match takes place.
  *
  *  @param arena        the bounds of the arena
@@ -21,3 +33,16 @@ final case class GameMap(arena: ArenaSettings, playerSpawns: List[SpawnPoint]):
 
   /** The maximum number of players the map can host. */
   def capacity: Int = playerSpawns.size
+
+object GameMap:
+
+  /** An empty arena with four player spawn points placed symmetrically around the center, all facing it.
+   *  Spawn points are ordered so that any prefix of them keeps players on opposite sides of the arena.
+   */
+  val default: GameMap =
+    val arena = ArenaSettings()
+    val (near, far) = (0.25, 0.75)
+    val center = Point2D(arena.width * 0.5, arena.height * 0.5)
+    val spawns = List((near, near), (far, far), (far, near), (near, far)).map: (x, y) =>
+      SpawnPoint.facing(Point2D(arena.width * x, arena.height * y), center)
+    GameMap(arena, spawns)

@@ -13,6 +13,34 @@ class GameMapSpec extends AnyWordSpec with Matchers:
     SpawnPoint(Point2D(700, 500), heading = 180.0)
   )
 
+  "SpawnPoint" should:
+
+    "face the given target" in:
+      val origin = Point2D(100, 100)
+      val headingTowards = (target: Point2D) => SpawnPoint.facing(origin, target).heading
+
+      headingTowards(Point2D(200, 100)) shouldBe 0.0
+      headingTowards(Point2D(100, 200)) shouldBe 90.0
+      headingTowards(Point2D(0, 100)) shouldBe 180.0
+      headingTowards(Point2D(100, 0)) shouldBe -90.0
+
+  "The default GameMap" should:
+
+    val default = GameMap.default
+    val center = Point2D(default.arena.width / 2.0, default.arena.height / 2.0)
+
+    "host up to four players" in:
+      default.capacity shouldBe 4
+
+    "place every spawn point facing the center of the arena" in:
+      default.playerSpawns.foreach: spawn =>
+        spawn shouldBe SpawnPoint.facing(spawn.position, center)
+
+    "place consecutive pairs of spawn points on opposite sides of the center" in:
+      default.playerSpawns.grouped(2).foreach:
+        case List(first, second) => (first.position - center) shouldBe (center - second.position)
+        case _ => fail("The default map should define an even number of spawn points")
+
   "GameMap" should:
 
     "expose a capacity equal to the number of player spawn points" in:
