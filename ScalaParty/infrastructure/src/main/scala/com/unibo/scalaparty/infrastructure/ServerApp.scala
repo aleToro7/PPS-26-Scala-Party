@@ -27,6 +27,12 @@ object ServerApp extends IOApp.Simple:
    */
   private val PlayersPerMatch = 1
 
+  /** How many matches the server plays at the same time; whoever arrives beyond them waits in the queue. */
+  private val MaxConcurrentMatches = 2
+
+  /** How many players can wait for a free room at the same time; whoever arrives beyond them is turned away. */
+  private val MaxQueuedPlayers = 1
+
   private val baseRoute: HttpRoutes[IO] = HttpRoutes.of[IO]:
     case request @ GET -> Root / gameRoute =>
       StaticFile
@@ -43,9 +49,14 @@ object ServerApp extends IOApp.Simple:
 
   val run: IO[Unit] =
     for
-      _              <- IO.println("Initializing services...")
-      registry       <- ConnectionRegistry()
-      lobby          <- QueuedLobbyManager.of[IO](minPlayers = PlayersPerMatch, maxPlayers = PlayersPerMatch)
+      _        <- IO.println("Initializing services...")
+      registry <- ConnectionRegistry()
+      lobby    <- QueuedLobbyManager.of[IO](
+        minPlayers = PlayersPerMatch,
+        maxPlayers = PlayersPerMatch,
+        maxMatches = MaxConcurrentMatches,
+        maxQueued = MaxQueuedPlayers
+      )
       commandService <- GameCommandService()
 
       notifier = WebSocketNotifier(registry)

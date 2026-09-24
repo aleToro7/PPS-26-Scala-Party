@@ -9,7 +9,7 @@ import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.websocket.WebSocketFrame
 import io.circe.generic.auto.*
 import io.circe.parser.decode
-import com.unibo.scalaparty.infrastructure.model.PlayerId
+import com.unibo.scalaparty.infrastructure.model.{Admission, PlayerId}
 import com.unibo.scalaparty.infrastructure.network.dto.PlayerInput
 import com.unibo.scalaparty.infrastructure.network.dto.ProtocolCodecs.given
 import com.unibo.scalaparty.infrastructure.ports.{AccessPort, CommandPort}
@@ -33,17 +33,37 @@ class WebSocketServer(
 ):
 
   /** Handles a new player connection by registering their outbound message queue
-   *  and admitting them into the matchmaking access port.
+   *  and admitting them into the matchmaking access port, or closing the connection if the access
+   *  port turns them away.
    *
    *  @param playerId the unique identifier of the connecting player
    *  @param queue    the concurrent queue used to push outbound WebSocket frames to the client
-   *  @return an effect completing when the connection setup is finished
+   *  @return an effect reporting whether the player was taken in, once the connection setup is finished
    */
-  def onConnect(playerId: PlayerId, queue: MessageQueue): IO[Unit] =
+  def onConnect(playerId: PlayerId, queue: MessageQueue): IO[Admission] =
     for
-      _ <- connections.register(playerId, queue)
-      _ <- accessPort.joinLobby(playerId)
-      _ <- IO.println(s"Player $playerId connected")
+      _         <- connections.register(playerId, queue)
+      admission <- accessPort.joinLobby(playerId)
+      _         <- admission match
+        case Admission.Admitted => IO.println(s"Player $playerId connected")
+        case Admission.Rejected => turnAway(playerId, queue)
+    yield admission
+
+  /** Closes the connection of a player there is no room for, once whatever it was told is delivered.
+   *
+   *  The session is dropped right away rather than on close, so the player is not addressed again
+   *  whether or not the client completes the closing handshake.
+   *
+   *  @param playerId the unique identifier of the rejected player
+   *  @param queue    the outbound queue of that player, to close the connection through
+   *  @return an effect completing when the closing frame is queued
+   */
+  private def turnAway(playerId: PlayerId, queue: MessageQueue): IO[Unit] =
+    for
+      _     <- connections.removeSession(playerId)
+      close <- IO.fromEither(WebSocketFrame.Close(WebSocketServer.TryAgainLater, "the queue is full"))
+      _     <- queue.offer(close)
+      _     <- IO.println(s"Player $playerId turned away: the queue is full")
     yield ()
 
   /** Handles player disconnection by removing their active session from the registry
@@ -93,13 +113,23 @@ class WebSocketServer(
         // Create an unbounded concurrent queue for outbound messages
         outboundQueue <- Queue.unbounded[IO, WebSocketFrame]
 
-        _ <- onConnect(playerId, outboundQueue)
+        admission <- onConnect(playerId, outboundQueue)
+
+        // A rejected player never entered the lobby and its session is already gone: leaving on close
+        // would only make the lobby re-send their position to everybody waiting.
+        onClose = admission match
+          case Admission.Admitted => onDisconnect(playerId)
+          case Admission.Rejected => IO.println(s"Player $playerId closed after being turned away")
 
         response <- wsb
-          .withOnClose(onDisconnect(playerId))
+          .withOnClose(onClose)
           .build(
             // Pipe the queue directly into the outbound WebSocket stream
             send = Stream.fromQueueUnterminated(outboundQueue),
             receive = stream => stream.evalMap(frame => onMessage(playerId, frame))
           )
       yield response
+
+object WebSocketServer:
+  /** Close code telling the client the server is overloaded and it may retry later (RFC 6455, 7.4). */
+  val TryAgainLater: Int = 1013
