@@ -2,19 +2,24 @@ package com.unibo.scalaparty.core.engine
 
 import com.unibo.scalaparty.core.ecs.EntityId
 import com.unibo.scalaparty.core.ecs.systems.{MovementSystem, ShootingSystem, SystemPipeline}
+import com.unibo.scalaparty.core.map.GameMap
 import com.unibo.scalaparty.core.model.GameSettings
 
 /** Configuration for the game engine.
  *
  *  @param settings               the default game settings for world size and components
  *  @param players                the list of player entity IDs in the match
+ *  @param map                    the map the match is played on, providing one spawn point per player
  *  @param pipeline               the ordered pipeline of systems to execute sequentially
  */
 final case class GameConfig(
     settings: GameSettings,
     players: List[EntityId],
+    map: GameMap = GameMap.default,
     pipeline: SystemPipeline = GameConfig.defaultPipeline
 ):
+  require(players.size <= map.capacity, s"The map hosts at most ${map.capacity} players, got ${players.size}")
+
   export settings.* // VALUTARE SE MANTENERE
 
 object GameConfig:
