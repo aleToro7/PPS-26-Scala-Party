@@ -73,10 +73,7 @@ object CollisionSystem extends WorldSystem:
       (entityId, components) <- world.findEntitiesWithComponent[ShapeComponent]
       shape                  <- components.collectFirstOfClass[ShapeComponent].map(_.shape)
       PositionComponent(pos) <- components.collectFirstOfClass[PositionComponent]
-      rotation = components.collectFirstOfClass[RotationComponent].map(c =>
-        println(s"Entity $entityId has rotation: ${c.angle}");
-        c.angle
-      ).getOrElse(0.0)
+      rotation = components.collectFirstOfClass[RotationComponent].map(_.angle).getOrElse(0.0)
       rotatedShape = rotateShape(shape, rotation)
     yield (entityId, rotatedShape moveTo pos)
 
@@ -86,7 +83,3 @@ object CollisionSystem extends WorldSystem:
       case _ => shape
 
 private type EntityWithShape = (EntityId, Shape)
-
-extension (e: EntityWithShape)
-  def entityId: EntityId = e._1
-  def shape: Shape = e._2
