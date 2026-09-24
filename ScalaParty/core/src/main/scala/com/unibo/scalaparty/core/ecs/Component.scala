@@ -1,6 +1,6 @@
 package com.unibo.scalaparty.core.ecs
 
-import com.unibo.scalaparty.core.geometry.{Point2D, Vector2D}
+import com.unibo.scalaparty.core.geometry.{Point2D, Shape, Vector2D}
 
 /** A marker trait for all components in the Entity-Component-System (ECS) architecture.
  *  A Component represents a specific aspect of an entity's state or behavior, such as position, movement, health, etc.
@@ -38,6 +38,16 @@ case class ShootingComponent(
  *  @param shooterId the unique identifier of the entity that shot the bullet
  */
 case class BulletComponent(power: Double, shooterId: EntityId) extends Component
+
+/** Represents a shape associated with an entity.
+ *  @param shape the shape of the entity
+ */
+case class ShapeComponent(shape: Shape) extends Component
+
+/** Represents the rotation of an entity.
+ *  @param angle the angle of rotation in degrees
+ */
+case class RotationComponent(angle: Double) extends Component
 
 /** Represents the health of an entity that can be damaged.
  *  @param current the remaining health points, between zero and max

@@ -24,3 +24,6 @@ final case class Point2D(x: Double, y: Double):
 object Point2D:
   /** A constant point representing the origin `(0.0, 0.0)`. */
   val origin: Point2D = Point2D(0.0, 0.0)
+
+given Conversion[(Double, Double), Point2D] with
+  def apply(t: (Double, Double)): Point2D = Point2D(t._1, t._2)

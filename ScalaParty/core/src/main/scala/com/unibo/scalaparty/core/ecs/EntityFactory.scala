@@ -1,6 +1,7 @@
 package com.unibo.scalaparty.core.ecs
 
-import com.unibo.scalaparty.core.geometry.{Point2D, Vector2D}
+import com.unibo.scalaparty.core.geometry.{Point2D, Shape, Vector2D}
+import com.unibo.scalaparty.core.geometry.given
 import com.unibo.scalaparty.core.model.GameSettings
 
 object EntityFactory:
@@ -26,6 +27,8 @@ object EntityFactory:
       MovementComponent(velocity),
       EntityTypeComponent(EntityType.Spaceship),
       ShootingComponent(weapon = weapon),
+      EntityTypeComponent(EntityType.Spaceship),
+      ShapeComponent(Shape.Polygon((-3.0, -4.0), (3.0, -4.0), (0.0, 5.0))),
       HealthComponent.full(maxHealth),
       CollisionDamageComponent(collisionDamage)
     )
@@ -50,6 +53,7 @@ object EntityFactory:
       PositionComponent(position),
       MovementComponent(velocity),
       EntityTypeComponent(EntityType.Bullet),
-      BulletComponent(power, shooterId)
+      BulletComponent(power, shooterId),
+      ShapeComponent(Shape.Circle(1.0, (0.0, 0.0)))
     )
     (entityId, components)
