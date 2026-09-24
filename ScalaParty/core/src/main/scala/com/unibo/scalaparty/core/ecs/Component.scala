@@ -59,3 +59,9 @@ object HealthComponent:
    *  @return a new component whose current health equals its maximum
    */
   def full(max: Double): HealthComponent = HealthComponent(max, max)
+
+/** Represents the damage an entity deals to the entities it collides with.
+ *  @param damage the damage dealt on impact
+ */
+case class CollisionDamageComponent(damage: Double) extends Component:
+  require(damage >= 0.0, "Collision damage cannot be negative")
