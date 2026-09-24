@@ -1,5 +1,7 @@
 package com.unibo.scalaparty.core.model
 
+import com.unibo.scalaparty.core.geometry.Point2D
+
 /** Configuration settings for the game arena.
  *
  *  @param width  the horizontal width of the arena
@@ -10,6 +12,14 @@ final case class ArenaSettings(
     height: Int = 800
 ):
   require(width > 0 && height > 0, "Arena dimensions must be positive")
+
+  /** Checks whether a point lies within the arena bounds, edges included.
+   *
+   *  @param point the point to check
+   *  @return true if the point is inside the arena, false otherwise
+   */
+  def contains(point: Point2D): Boolean =
+    point.x >= 0 && point.x <= width && point.y >= 0 && point.y <= height
 
 /** Configuration settings for spaceship dynamics.
  *

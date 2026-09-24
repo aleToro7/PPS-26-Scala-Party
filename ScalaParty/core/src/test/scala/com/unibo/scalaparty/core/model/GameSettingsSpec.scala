@@ -1,5 +1,6 @@
 package com.unibo.scalaparty.core.model
 
+import com.unibo.scalaparty.core.geometry.Point2D
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -34,6 +35,14 @@ class GameSettingsSpec extends AnyWordSpec with Matchers:
       nonPositiveInts.foreach: invalid =>
         an[IllegalArgumentException] should be thrownBy ArenaSettings(width = invalid)
         an[IllegalArgumentException] should be thrownBy ArenaSettings(height = invalid)
+
+    "contain only the points within its bounds, edges included" in:
+      val arena = ArenaSettings(width = 800, height = 600)
+
+      List(Point2D(0, 0), Point2D(400, 300), Point2D(800, 600)).foreach: inside =>
+        arena.contains(inside) shouldBe true
+      List(Point2D(-1, 300), Point2D(801, 300), Point2D(400, -1), Point2D(400, 601)).foreach: outside =>
+        arena.contains(outside) shouldBe false
 
   "SpaceshipSettings" should:
 
