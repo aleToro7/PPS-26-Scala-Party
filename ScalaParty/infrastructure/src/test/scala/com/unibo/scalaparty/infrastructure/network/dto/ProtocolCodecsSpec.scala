@@ -22,8 +22,13 @@ class ProtocolCodecsSpec extends AnyWordSpec with Matchers:
 
     "correctly serialize a MatchState containing DTOs" in:
       val entityId = EntityId.fromLong(1L)
-      val spaceship =
-        EntityDto.Spaceship(entityId, Point2D(10.0, 20.0), Vector2D(1.0, 0.0), AABB(2.0, 2.0, Point2D.origin), 45.0)
+      val spaceship = EntityDto.Spaceship(
+        entityId,
+        Point2D(10.0, 20.0),
+        Vector2D(1.0, 0.0),
+        AABB(2.0, 2.0, Point2D.origin),
+        45.0
+      )
       val state = MatchState(tick = 100L, entities = List(spaceship))
 
       val json = state.asJson.noSpaces
@@ -34,3 +39,18 @@ class ProtocolCodecsSpec extends AnyWordSpec with Matchers:
       json should include(""""x":10.0""")
       json should include(""""y":20.0""")
       json should include(""""rotation":45.0""")
+
+    "tag each entity with its type so clients can distinguish them" in:
+      val spaceship = EntityDto.Spaceship(
+        EntityId.fromLong(1L),
+        Point2D(10.0, 20.0),
+        Vector2D(1.0, 0.0),
+        AABB(2.0, 2.0, Point2D.origin),
+        45.0
+      )
+      val bullet = EntityDto.Bullet(EntityId.fromLong(2L), Point2D(15.0, 20.0), Vector2D(100.0, 0.0))
+      val state = MatchState(tick = 1L, entities = List(spaceship, bullet))
+      val json = state.asJson.noSpaces
+
+      json should include(""""Spaceship":{"id":1""")
+      json should include(""""Bullet":{"id":2""")

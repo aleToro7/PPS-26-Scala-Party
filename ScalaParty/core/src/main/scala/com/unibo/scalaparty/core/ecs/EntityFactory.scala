@@ -14,11 +14,14 @@ object EntityFactory:
   def createSpaceship(
       position: Point2D,
       velocity: Vector2D,
-      entityId: EntityId = EntityId.generate()
+      entityId: EntityId = EntityId.generate(),
+      weapon: Weapon = Weapon.default
   ): (EntityId, List[Component]) =
     val components: List[Component] = List(
       PositionComponent(position),
       MovementComponent(velocity),
+      EntityTypeComponent(EntityType.Spaceship),
+      ShootingComponent(weapon = weapon),
       EntityTypeComponent(EntityType.Spaceship),
       ShapeComponent(Shape.Polygon((-3.0, -4.0), (3.0, -4.0), (0.0, 5.0)))
     )

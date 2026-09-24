@@ -30,9 +30,7 @@ case class EntityTypeComponent(entityType: EntityType) extends Component
  *  @param cooldownTimer the current cooldown timer
  */
 case class ShootingComponent(
-    bulletPower: Double,
-    bulletSpeed: Double,
-    shootCooldown: Long,
+    weapon: Weapon = Weapon.default,
     isShooting: Boolean = false,
     cooldownTimer: Long = 0L
 ) extends Component

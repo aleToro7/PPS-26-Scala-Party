@@ -28,8 +28,8 @@ private object LobbyState:
  *  Concurrency is handled internally via a purely functional Ref state.
  *
  *  Not currently wired into the running server: the application is driven by [[QueuedLobbyManager]]
- *  through [[MatchCoordinator]], which serves one match at a time out of a queue of players. This
- *  manager is kept for the multi-match scenario it was written for, and no longer implements
+ *  through [[MatchCoordinator]], which serves several matches at once out of a queue of players.
+ *  This manager predates it, and no longer implements
  *  `AccessPort`, whose `joinLobby` cannot report that a player has been queued rather than admitted.
  */
 final class LobbyManager[F[_]: Sync] private (state: Ref[F, LobbyState]):
