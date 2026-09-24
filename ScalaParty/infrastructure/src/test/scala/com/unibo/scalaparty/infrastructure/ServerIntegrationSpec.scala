@@ -7,7 +7,7 @@ import cats.effect.std.Queue
 import cats.effect.testing.scalatest.AsyncIOSpec
 import com.unibo.scalaparty.core.model.GameSettings
 import com.unibo.scalaparty.infrastructure.application.{GameCommandService, MatchCoordinator, QueuedLobbyManager}
-import com.unibo.scalaparty.infrastructure.model.PlayerId
+import com.unibo.scalaparty.infrastructure.model.{Admission, PlayerId}
 import com.unibo.scalaparty.infrastructure.network.{
   ConnectionRegistry,
   WebSocketBroadcaster,
@@ -75,12 +75,14 @@ class ServerIntegrationSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers
 
         playingQueue  <- Queue.unbounded[IO, WebSocketFrame]
         rejectedQueue <- Queue.unbounded[IO, WebSocketFrame]
-        _             <- wsServer.onConnect(playing, playingQueue)
-        _             <- wsServer.onConnect(rejected, rejectedQueue)
+        admitted      <- wsServer.onConnect(playing, playingQueue)
+        refused       <- wsServer.onConnect(rejected, rejectedQueue)
 
         frames  <- rejectedQueue.tryTakeN(None)
         session <- registry.queueFor(rejected)
       yield
+        admitted shouldBe Admission.Admitted
+        refused shouldBe Admission.Rejected
         frames.collect { case WebSocketFrame.Text(text, _) => text } shouldBe List("""{"QueueFull":{}}""")
         session shouldBe None
         frames.last match

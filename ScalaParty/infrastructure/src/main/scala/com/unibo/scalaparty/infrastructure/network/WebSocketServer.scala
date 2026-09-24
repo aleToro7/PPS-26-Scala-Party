@@ -38,16 +38,16 @@ class WebSocketServer(
    *
    *  @param playerId the unique identifier of the connecting player
    *  @param queue    the concurrent queue used to push outbound WebSocket frames to the client
-   *  @return an effect completing when the connection setup is finished
+   *  @return an effect reporting whether the player was taken in, once the connection setup is finished
    */
-  def onConnect(playerId: PlayerId, queue: MessageQueue): IO[Unit] =
+  def onConnect(playerId: PlayerId, queue: MessageQueue): IO[Admission] =
     for
       _         <- connections.register(playerId, queue)
       admission <- accessPort.joinLobby(playerId)
       _         <- admission match
         case Admission.Admitted => IO.println(s"Player $playerId connected")
         case Admission.Rejected => turnAway(playerId, queue)
-    yield ()
+    yield admission
 
   /** Closes the connection of a player there is no room for, once whatever it was told is delivered.
    *
@@ -113,10 +113,16 @@ class WebSocketServer(
         // Create an unbounded concurrent queue for outbound messages
         outboundQueue <- Queue.unbounded[IO, WebSocketFrame]
 
-        _ <- onConnect(playerId, outboundQueue)
+        admission <- onConnect(playerId, outboundQueue)
+
+        // A rejected player never entered the lobby and its session is already gone: leaving on close
+        // would only make the lobby re-send their position to everybody waiting.
+        onClose = admission match
+          case Admission.Admitted => onDisconnect(playerId)
+          case Admission.Rejected => IO.println(s"Player $playerId closed after being turned away")
 
         response <- wsb
-          .withOnClose(onDisconnect(playerId))
+          .withOnClose(onClose)
           .build(
             // Pipe the queue directly into the outbound WebSocket stream
             send = Stream.fromQueueUnterminated(outboundQueue),

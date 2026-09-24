@@ -2,7 +2,7 @@ package com.unibo.scalaparty.infrastructure.application
 
 import scala.concurrent.duration.*
 
-import cats.effect.{IO, Ref}
+import cats.effect.{Deferred, IO, Ref}
 import cats.effect.std.Queue
 import cats.effect.testing.scalatest.AsyncIOSpec
 import cats.syntax.all.*
@@ -220,6 +220,28 @@ class MatchCoordinatorSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
         _       <- IO.sleep(200.millis)
         later   <- f.publisher.count
       yield later shouldBe settled
+
+    "stop the match its only player quit while it was being started".in:
+      val playerId = PlayerId.random()
+      for
+        registry    <- ConnectionRegistry()
+        lobby       <- QueuedLobbyManager.of[IO](maxPlayers = 1, maxMatches = 1)
+        commands    <- GameCommandService()
+        broadcasts  <- Ref.of[IO, Map[MatchId, Int]](Map.empty)
+        coordinator <- Deferred[IO, MatchCoordinator]
+        // The player quits on hearing that its match has begun, before the match fiber is recorded.
+        quitting = new PlayerNotifier[IO]:
+          override def send(pId: PlayerId, message: ServerMessage): IO[Unit] = message match
+            case ServerMessage.MatchStarted(_) => coordinator.get.flatMap(_.leaveLobby(pId))
+            case _ => IO.unit
+        publisher = CountingPublisher(broadcasts)
+        created <- MatchCoordinator(lobby, registry, commands, quitting, publisher, GameSettings.default, 10.seconds)
+        _       <- coordinator.complete(created)
+        _       <- Queue.unbounded[IO, WebSocketFrame].flatMap(registry.register(playerId, _))
+        _       <- created.joinLobby(playerId)
+        _       <- IO.sleep(200.millis)
+        ticks   <- publisher.count
+      yield ticks shouldBe 0
 
     "tell the players still waiting that they moved up the queue".in:
       val playing = PlayerId.random()

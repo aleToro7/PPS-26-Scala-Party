@@ -91,7 +91,11 @@ class MatchCoordinator(
       // nothing to forget and the finished fiber would be recorded afterwards, never to be removed.
       fiber <- (registered.get *> play(activeMatch)).start
       _     <- running.update(_ + (activeMatch.matchId -> fiber))
-      _     <- registered.complete(())
+      // Its last player may have left while it was being started: that leave found no fiber to stop,
+      // so the match would tick for its whole duration with nobody in it. Any leave coming later
+      // finds the fiber recorded above and stops it on its own.
+      stillActive <- lobby.activeMatches.map(_.exists(_.matchId == activeMatch.matchId))
+      _           <- if stillActive then registered.complete(()).void else stop(activeMatch.matchId)
     yield ()
 
   /** Assigns each player in the match to the connection registry and notifies them that the match has started.
