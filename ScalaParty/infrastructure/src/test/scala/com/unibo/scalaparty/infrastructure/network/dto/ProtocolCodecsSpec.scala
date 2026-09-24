@@ -7,6 +7,7 @@ import com.unibo.scalaparty.core.dto.EntityDto
 import com.unibo.scalaparty.core.ecs.EntityId
 import com.unibo.scalaparty.core.geometry.{Point2D, Vector2D}
 import com.unibo.scalaparty.core.model.MatchState
+import com.unibo.scalaparty.infrastructure.model.ServerMessage
 import com.unibo.scalaparty.infrastructure.network.dto.ProtocolCodecs.given
 
 class ProtocolCodecsSpec extends AnyWordSpec with Matchers:
