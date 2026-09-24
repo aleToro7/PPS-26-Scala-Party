@@ -22,7 +22,7 @@ lazy val prolog = (project in file("prolog"))
 
 // --- INFRASTRUCTURE MODULE ---
 lazy val infrastructure = (project in file("infrastructure"))
-  .dependsOn(core)
+  .dependsOn(core, prolog)
   .settings(
     name := "scalaparty-infrastructure",
     libraryDependencies ++= Seq(
