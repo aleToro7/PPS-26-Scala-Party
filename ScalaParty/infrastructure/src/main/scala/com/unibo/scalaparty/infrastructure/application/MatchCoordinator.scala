@@ -120,7 +120,7 @@ class MatchCoordinator(
     val engine = GameEngine(
       GameConfig(
         players = mapping.values.toList,
-        settings = GameSettings.default
+        settings = settings
       )
     )
     val runner = new MatchRunner(session, commands, engine, publisher, matchDuration)

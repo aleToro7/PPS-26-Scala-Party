@@ -21,21 +21,28 @@ class ShootCommandExecutorSpec extends AnyFlatSpec with Matchers:
     updatedWorld.id shouldBe world.id
 
   "ShootCommandExecutor" should "update the world if the entity has a shooting component" in:
-    val shootingComponent = ShootingComponent(0, 0, 0)
+    val shootingComponent = ShootingComponent()
     val entity = (entityId, List(shootingComponent))
     val world = GameWorld(List(entity))
+
     shootingComponent.isShooting shouldBe false
+
     val updatedWorld = ShootCommandExecutor.executeCommand(world, shootCommand)
+
     updatedWorld.id should not be world.id
-    val updatedComponents = updatedWorld.findComponents(entityId).getOrElse(Nil)
-    updatedComponents should not be empty
-    val updatedShootingComponent = updatedComponents.collectFirst { case sc: ShootingComponent => sc }
-    updatedShootingComponent should not be empty
-    updatedShootingComponent.get.isShooting shouldBe true
+
+    val updatedShooting = updatedWorld
+      .findComponents(entityId)
+      .getOrElse(Nil)
+      .collectFirst { case sc: ShootingComponent => sc }
+
+    updatedShooting.map(_.isShooting) shouldBe Some(true)
 
   "ShootCommandExecutor" should "not update the world if the entity has a shooting component but is already shooting" in:
-    val shootingComponent = ShootingComponent(0, 0, 0, isShooting = true)
+    val shootingComponent = ShootingComponent(isShooting = true)
     val entity = (entityId, List(shootingComponent))
     val world = GameWorld(List(entity))
+
     val updatedWorld = ShootCommandExecutor.executeCommand(world, shootCommand)
+
     updatedWorld.id shouldBe world.id

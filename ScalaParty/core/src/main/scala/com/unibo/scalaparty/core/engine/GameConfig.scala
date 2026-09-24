@@ -6,11 +6,8 @@ import com.unibo.scalaparty.core.model.GameSettings
 
 /** Configuration for the game engine.
  *
+ *  @param settings               the default game settings for world size and components
  *  @param players                the list of player entity IDs in the match
- *  @param worldWidth             the width of the arena
- *  @param worldHeight            the height of the arena
- *  @param spaceshipSpeed         the constant movement speed of spaceships
- *  @param spaceshipRotationSpeed the rotation speed applied when changing direction
  *  @param pipeline               the ordered pipeline of systems to execute sequentially
  */
 final case class GameConfig(
@@ -26,10 +23,7 @@ object GameConfig:
   /** Helper to quickly create a single-player configuration.
    *
    *  @param playerId               the unique identifier of the single player
-   *  @param worldWidth             the width of the arena
-   *  @param worldHeight            the height of the arena
-   *  @param spaceshipSpeed         the constant movement speed of the spaceship
-   *  @param spaceshipRotationSpeed the rotation speed applied when changing direction
+   *  @param settings               the default game settings for world size and components
    *  @param pipeline               the ordered pipeline of systems to execute sequentially
    *  @return a new [[GameConfig]] configured for a single player
    */
