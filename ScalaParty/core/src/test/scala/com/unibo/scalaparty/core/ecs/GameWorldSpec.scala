@@ -108,3 +108,23 @@ class GameWorldSpec extends AnyFlatSpec with Matchers:
     val updatedWorld = gameWorld.updateComponent(nonExistingEntityId, newComponent)
     updatedWorld.entities shouldBe empty
     updatedWorld.id shouldBe gameWorld.id
+    
+  "findComponent" should "return the first component of the specified class associated with the given EntityId" in:
+    val entityId = EntityId.generate()
+    val components = List(EmptyComponent(), AnotherComponent())
+    val gameWorld = emptyWorld + (entityId, components)
+    val retrievedComponent = gameWorld.findComponent[EmptyComponent](entityId)
+    retrievedComponent shouldBe Some(EmptyComponent())
+    
+  it should "return None when no component of the specified class is associated with the given EntityId" in:
+    val entityId = EntityId.generate()
+    val components = List(EmptyComponent())
+    val gameWorld = emptyWorld + (entityId, components)
+    val retrievedComponent = gameWorld.findComponent[AnotherComponent](entityId)
+    retrievedComponent shouldBe None
+    
+  it should "return None when the EntityId does not exist in the GameWorld" in:
+    val nonExistingEntityId = EntityId.generate()
+    val gameWorld = emptyWorld
+    val retrievedComponent = gameWorld.findComponent[EmptyComponent](nonExistingEntityId)
+    retrievedComponent shouldBe None
