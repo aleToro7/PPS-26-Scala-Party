@@ -51,14 +51,13 @@ final case class ShootingSettings(
   require(shootCooldown >= 0L, "Shoot cooldown cannot be negative")
   require(muzzleOffset >= 0.0, "Muzzle offset cannot be negative")
 
-/** Unified configuration grouping all arena, entity, and gameplay mechanics parameters.
+/** Unified configuration grouping all entity and gameplay mechanics parameters.
+ *  The arena bounds are not part of it, as they belong to the map a match is played on.
  *
- *  @param arena     settings controlling arena bounds
  *  @param spaceship settings controlling spaceship dynamics
  *  @param shooting  settings controlling weapon firing and bullet behavior
  */
 final case class GameSettings(
-    arena: ArenaSettings = ArenaSettings(),
     spaceship: SpaceshipSettings = SpaceshipSettings(),
     shooting: ShootingSettings = ShootingSettings()
 )

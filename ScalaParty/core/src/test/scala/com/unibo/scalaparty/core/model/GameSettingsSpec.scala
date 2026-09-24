@@ -14,18 +14,15 @@ class GameSettingsSpec extends AnyWordSpec with Matchers:
     "initialize with default nested configurations" in:
       val settings = GameSettings.default
 
-      settings.arena shouldBe ArenaSettings()
       settings.spaceship shouldBe SpaceshipSettings()
       settings.shooting shouldBe ShootingSettings()
 
     "compose custom configurations accurately" in:
-      val customArena = ArenaSettings(width = 1920, height = 1080)
       val customSpaceship = SpaceshipSettings(speed = 75.0, rotationSpeed = 90.0)
       val customShooting = ShootingSettings(bulletPower = 20.0, bulletSpeed = 150.0, shootCooldown = 300L)
 
-      val custom = GameSettings(customArena, customSpaceship, customShooting)
+      val custom = GameSettings(customSpaceship, customShooting)
 
-      custom.arena shouldBe customArena
       custom.spaceship shouldBe customSpaceship
       custom.shooting shouldBe customShooting
 
