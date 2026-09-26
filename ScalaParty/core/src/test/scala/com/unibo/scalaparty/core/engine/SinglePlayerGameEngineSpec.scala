@@ -9,10 +9,10 @@ class SinglePlayerGameEngineSpec extends GameEngineSpec:
 
   "A GameEngine with a single player" should "use a SinglePlayerGameEngine" in:
     val player = EntityId.generate()
-    val engine = GameEngine(GameConfig.singlePlayer(player, pipeline = emptyPipeline))
+    val engine = GameEngine(GameConfig.singlePlayer(player))
     engine shouldBe a[SinglePlayerGameEngine]
 
   "A SinglePlayerGameEngine" should "place the player in the center of the world" in:
     val player = EntityId.generate()
-    val engine = GameEngine(GameConfig.singlePlayer(player, pipeline = emptyPipeline))
+    val engine = GameEngine(GameConfig.singlePlayer(player))
     val state = engine.update(Nil, 0)
