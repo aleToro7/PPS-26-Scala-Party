@@ -18,24 +18,26 @@ trait GameEngine:
   def update(list: List[GameCommand], dt: Long): List[EntityDto]
 
 object GameEngine:
-
   /** Creates a new instance of the game engine based on the provided game configuration.
    *
    *  @param config the game configuration
    *  @return a new instance of GameEngine
    */
   def apply(config: GameConfig): GameEngine =
-    new SinglePlayerGameEngine(config)
+    GameEngine(config, SystemPipeline.default(config.settings))
 
-private class SinglePlayerGameEngine(config: GameConfig) extends GameEngine:
+  /** Creates a new instance of the game engine based on the provided game configuration and system pipeline.
+   *
+   *  @param config   the game configuration
+   *  @param pipeline the system pipeline to be used for updating the game world
+   *  @return a new instance of GameEngine
+   */
+  def apply(config: GameConfig, pipeline: SystemPipeline): GameEngine =
+    new SinglePlayerGameEngine(config, pipeline)
+
+private class SinglePlayerGameEngine(config: GameConfig, pipeline: SystemPipeline) extends GameEngine:
 
   private var world: GameWorld = initializeWorld(config)
-  private val pipeline: SystemPipeline =
-    MovementSystem // Move entities
-      >> ArenaSystem(config.settings) // Check computed positions against arena boundaries
-      >> CollisionSystem // Detect collisions between entities
-      >> ShootingSystem
-      >> DamageSystem
 
   private def initializeWorld(config: GameConfig): GameWorld =
     val arena = config.settings.arena
