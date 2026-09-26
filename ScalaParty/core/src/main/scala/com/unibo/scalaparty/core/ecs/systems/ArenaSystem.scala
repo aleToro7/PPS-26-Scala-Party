@@ -26,8 +26,13 @@ class ArenaSystem(private val settings: GameSettings) extends WorldSystem:
       val entityType = components.collectFirstOfClass[EntityTypeComponent].map(_.entityType)
       newPosition.fold(currentWorld): pos =>
         entityType match
-          case Some(EntityType.Bullet) => currentWorld.removeEntity(entityId) // If the entity is a bullet and exceeds the arena, remove it from the world
-          case _ => currentWorld.updateComponent(entityId, PositionComponent(pos)) // If the entity is not a bullet, update its position to be inside the arena
+          case Some(EntityType.Bullet) => currentWorld.removeEntity(
+              entityId
+            ) // If the entity is a bullet and exceeds the arena, remove it from the world
+          case _ => currentWorld.updateComponent(
+              entityId,
+              PositionComponent(pos)
+            ) // If the entity is not a bullet, update its position to be inside the arena
     (updatedWorld, events)
 
   private def getNewPositionIfOutsideArena(components: Iterable[Component]) =
