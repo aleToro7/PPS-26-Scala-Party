@@ -20,8 +20,6 @@ final case class GameConfig(
 ):
   require(players.size <= map.capacity, s"The map hosts at most ${map.capacity} players, got ${players.size}")
 
-  export settings.* // VALUTARE SE MANTENERE
-
 object GameConfig:
   private val defaultPipeline = MovementSystem >> ShootingSystem
 
