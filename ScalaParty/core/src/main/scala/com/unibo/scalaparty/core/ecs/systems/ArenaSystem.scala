@@ -22,16 +22,21 @@ class ArenaSystem(private val settings: GameSettings) extends WorldSystem:
     val movingEntities = world.findEntitiesWithComponent[MovementComponent]
     val updatedWorld = movingEntities.foldLeft(world): (currentWorld, entity) =>
       val (entityId, components) = entity
-      val newPosition =
-        for
-          position <- components.collectFirstOfClass[PositionComponent].map(_.position)
-          shape    <- components.collectFirstOfClass[ShapeComponent].map(_.shape)
-          boundingBox = shape.boundingBox.moveTo(position)
-          if exceedsArena(boundingBox)
-        yield repositionInsideArena(position, boundingBox)
+      val newPosition = getNewPositionIfOutsideArena(components)
+      val entityType = components.collectFirstOfClass[EntityTypeComponent].map(_.entityType)
       newPosition.fold(currentWorld): pos =>
-        currentWorld.updateComponent(entityId, PositionComponent(pos))
+        entityType match
+          case Some(EntityType.Bullet) => currentWorld.removeEntity(entityId) // If the entity is a bullet and exceeds the arena, remove it from the world
+          case _ => currentWorld.updateComponent(entityId, PositionComponent(pos)) // If the entity is not a bullet, update its position to be inside the arena
     (updatedWorld, events)
+
+  private def getNewPositionIfOutsideArena(components: Iterable[Component]) =
+    for
+      position <- components.collectFirstOfClass[PositionComponent].map(_.position)
+      shape    <- components.collectFirstOfClass[ShapeComponent].map(_.shape)
+      boundingBox = shape.boundingBox.moveTo(position)
+      if exceedsArena(boundingBox)
+    yield repositionInsideArena(position, boundingBox)
 
   private def exceedsArena(aabb: AABB): Boolean = aabb.vertices.exists: v =>
     v.x < minArenaX || v.x > maxArenaX || v.y < minArenaY || v.y > maxArenaY

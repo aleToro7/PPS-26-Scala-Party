@@ -80,3 +80,12 @@ class ArenaSystemSpec extends AnyFlatSpec with Matchers:
     val (updatedWorld, _) = arenaSystem.update(world, Set.empty, dt)
     val expectedPos = Point2D(maxArenaX - entityRadius, maxArenaY - entityRadius)
     updatedWorld.getPosition(entityId) shouldBe expectedPos
+
+  it should "remove bullet when it exceeds arena bounds" in:
+    val arenaSystem = ArenaSystem(settings)
+    val entityId = EntityId.generate()
+    val outOfBoundsPos = Point2D(maxArenaX + entityRadius + 1.0, 0.0)
+    val (_, components) = createBoundedEntity(entityId, outOfBoundsPos)
+    val world = createWorld((entityId, components :+ EntityTypeComponent(EntityType.Bullet)))
+    val (updatedWorld, _) = arenaSystem.update(world, Set.empty, dt)
+    updatedWorld.entities should not contain entityId
