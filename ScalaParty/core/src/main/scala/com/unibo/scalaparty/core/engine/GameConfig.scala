@@ -1,19 +1,16 @@
 package com.unibo.scalaparty.core.engine
 
 import com.unibo.scalaparty.core.ecs.EntityId
-import com.unibo.scalaparty.core.ecs.systems.*
 import com.unibo.scalaparty.core.model.GameSettings
 
 /** Configuration for the game engine.
  *
  *  @param settings               the default game settings for world size and components
  *  @param players                the list of player entity IDs in the match
- *  @param pipeline               the ordered pipeline of systems to execute sequentially
  */
 final case class GameConfig(
     settings: GameSettings,
     players: List[EntityId],
-    pipeline: SystemPipeline
 ):
   export settings.* // VALUTARE SE MANTENERE
 
@@ -31,10 +28,4 @@ object GameConfig:
     GameConfig(
       players = List(playerId),
       settings = settings,
-      pipeline =
-        MovementSystem // Move entities
-          >> ArenaSystem(settings) // Check computed positions against arena boundaries
-          >> CollisionSystem // Detect collisions between entities
-          >> ShootingSystem
-          >> DamageSystem
     )

@@ -1,7 +1,8 @@
 package com.unibo.scalaparty.core.engine
 
 import com.unibo.scalaparty.core.dto.{toDto, EntityDto}
-import com.unibo.scalaparty.core.ecs.{EntityFactory, EntityId, GameEvent, GameWorld, Weapon}
+import com.unibo.scalaparty.core.ecs.*
+import com.unibo.scalaparty.core.ecs.systems.*
 import com.unibo.scalaparty.core.engine.input.InputGateway
 import com.unibo.scalaparty.core.geometry.{Point2D, Vector2D}
 import com.unibo.scalaparty.core.model.GameCommand
@@ -29,6 +30,12 @@ object GameEngine:
 private class SinglePlayerGameEngine(config: GameConfig) extends GameEngine:
 
   private var world: GameWorld = initializeWorld(config)
+  private val pipeline: SystemPipeline =
+    MovementSystem // Move entities
+      >> ArenaSystem(config.settings) // Check computed positions against arena boundaries
+      >> CollisionSystem // Detect collisions between entities
+      >> ShootingSystem
+      >> DamageSystem
 
   private def initializeWorld(config: GameConfig): GameWorld =
     val arena = config.settings.arena
@@ -48,7 +55,7 @@ private class SinglePlayerGameEngine(config: GameConfig) extends GameEngine:
     // Process player commands and update the world state
     world = InputGateway.processCommands(this.world, list)
     // Execute pipeline of systems
-    val (updatedWorld, _) = config.pipeline
+    val (updatedWorld, _) = pipeline
       .toList
       .foldLeft((world, Set.empty[GameEvent])):
         case ((currentWorld, events), system) => system.update(currentWorld, events, dt)
