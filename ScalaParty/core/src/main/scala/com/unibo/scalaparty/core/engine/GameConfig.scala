@@ -13,13 +13,11 @@ import com.unibo.scalaparty.core.model.GameSettings
 final case class GameConfig(
     settings: GameSettings,
     players: List[EntityId],
-    pipeline: SystemPipeline = GameConfig.defaultPipeline
+    pipeline: SystemPipeline
 ):
   export settings.* // VALUTARE SE MANTENERE
 
 object GameConfig:
-  private val defaultPipeline = MovementSystem >> CollisionSystem >> ShootingSystem >> DamageSystem
-
   /** Helper to quickly create a single-player configuration.
    *
    *  @param playerId               the unique identifier of the single player
@@ -33,5 +31,10 @@ object GameConfig:
     GameConfig(
       players = List(playerId),
       settings = settings,
-      pipeline = defaultPipeline >> ArenaSystem(settings)
+      pipeline =
+        MovementSystem // Move entities
+          >> ArenaSystem(settings) // Check computed positions against arena boundaries
+          >> CollisionSystem // Detect collisions between entities
+          >> ShootingSystem
+          >> DamageSystem
     )
