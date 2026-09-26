@@ -1,7 +1,7 @@
 package com.unibo.scalaparty.core.engine
 
 import com.unibo.scalaparty.core.ecs.EntityId
-import com.unibo.scalaparty.core.ecs.systems.{MovementSystem, ShootingSystem, SystemPipeline}
+import com.unibo.scalaparty.core.ecs.systems.{DamageSystem, MovementSystem, ShootingSystem, SystemPipeline}
 import com.unibo.scalaparty.core.map.GameMap
 import com.unibo.scalaparty.core.model.GameSettings
 
@@ -21,7 +21,7 @@ final case class GameConfig(
   require(players.size <= map.capacity, s"The map hosts at most ${map.capacity} players, got ${players.size}")
 
 object GameConfig:
-  private val defaultPipeline = MovementSystem >> ShootingSystem
+  private val defaultPipeline = MovementSystem >> ShootingSystem >> DamageSystem
 
   /** Helper to quickly create a single-player configuration.
    *

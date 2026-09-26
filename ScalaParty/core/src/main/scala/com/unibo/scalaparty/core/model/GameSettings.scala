@@ -23,15 +23,21 @@ final case class ArenaSettings(
 
 /** Configuration settings for spaceship dynamics.
  *
- *  @param speed         the constant movement speed of spaceships
- *  @param rotationSpeed the angular rotation speed applied when changing direction
+ *  @param speed           the constant movement speed of spaceships
+ *  @param rotationSpeed   the angular rotation speed applied when changing direction
+ *  @param maxHealth       the health points spaceships spawn with
+ *  @param collisionDamage the damage a spaceship deals to the entities it collides with
  */
 final case class SpaceshipSettings(
     speed: Double = 50.0,
-    rotationSpeed: Double = 180.0
+    rotationSpeed: Double = 180.0,
+    maxHealth: Double = 100.0,
+    collisionDamage: Double = 20.0
 ):
   require(speed > 0.0, "Spaceship speed must be positive")
   require(rotationSpeed > 0.0, "Rotation speed must be positive")
+  require(maxHealth > 0.0, "Max health must be positive")
+  require(collisionDamage >= 0.0, "Collision damage cannot be negative")
 
 /** Configuration settings for weapons and projectile dynamics.
  *

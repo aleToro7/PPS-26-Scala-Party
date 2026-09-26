@@ -2,6 +2,7 @@ package com.unibo.scalaparty.core.ecs.systems
 
 import com.unibo.scalaparty.core.ecs.*
 import com.unibo.scalaparty.core.geometry.{Point2D, Vector2D}
+import com.unibo.scalaparty.core.utils.collectFirstOfClass
 
 /** A system responsible for updating the positions of entities in the game world based on their movement components and the elapsed time.
  */
@@ -19,20 +20,14 @@ object MovementSystem extends WorldSystem:
         val newPosition = updatePosition(entityId, components, dt)
         newPosition match
           case Some(pos) =>
-            val updatedComponents = replacePositionComponent(components, pos)
-            val newWorld = currentWorld + (entityId, updatedComponents)
+            val newWorld = currentWorld.updateComponent(entityId, PositionComponent(pos))
             (newWorld, events)
           case None => (currentWorld, events)
 
   private def updatePosition(entityId: EntityId, components: List[Component], dt: Long): Option[Point2D] =
     val dtInSeconds = dt * 0.001
     for
-      position <- components.collectFirst({ case pc: PositionComponent => pc.position })
-      velocity <- components.collectFirst({ case mc: MovementComponent => mc.velocity })
+      position <- components.collectFirstOfClass[PositionComponent].map(_.position)
+      velocity <- components.collectFirstOfClass[MovementComponent].map(_.velocity)
       if velocity != Vector2D.zero
     yield position + (velocity * dtInSeconds)
-
-  private def replacePositionComponent(components: List[Component], newPosition: Point2D): List[Component] =
-    components.map:
-      case _: PositionComponent => PositionComponent(newPosition)
-      case other => other

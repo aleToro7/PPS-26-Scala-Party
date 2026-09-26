@@ -1,6 +1,8 @@
 package com.unibo.scalaparty.core.ecs
 
-import com.unibo.scalaparty.core.geometry.{Point2D, Vector2D}
+import com.unibo.scalaparty.core.geometry.{Point2D, Shape, Vector2D}
+import com.unibo.scalaparty.core.geometry.given
+import com.unibo.scalaparty.core.model.GameSettings
 
 object EntityFactory:
 
@@ -8,19 +10,27 @@ object EntityFactory:
    *
    *  @param position the initial position of the spaceship
    *  @param velocity the initial velocity of the spaceship
+   *  @param maxHealth the health points the spaceship spawns with
+   *  @param collisionDamage the damage the spaceship deals to the entities it collides with
    *  @return a tuple containing the unique identifier of the created spaceship entity and its associated list of components
    */
   def createSpaceship(
       position: Point2D,
       velocity: Vector2D,
       entityId: EntityId = EntityId.generate(),
-      weapon: Weapon = Weapon.default
+      weapon: Weapon = Weapon.default,
+      maxHealth: Double = GameSettings.default.spaceship.maxHealth,
+      collisionDamage: Double = GameSettings.default.spaceship.collisionDamage
   ): (EntityId, List[Component]) =
     val components: List[Component] = List(
       PositionComponent(position),
       MovementComponent(velocity),
       EntityTypeComponent(EntityType.Spaceship),
-      ShootingComponent(weapon = weapon)
+      ShootingComponent(weapon = weapon),
+      EntityTypeComponent(EntityType.Spaceship),
+      ShapeComponent(Shape.Polygon((-3.0, -4.0), (3.0, -4.0), (0.0, 5.0))),
+      HealthComponent.full(maxHealth),
+      CollisionDamageComponent(collisionDamage)
     )
     (entityId, components)
 
@@ -43,6 +53,7 @@ object EntityFactory:
       PositionComponent(position),
       MovementComponent(velocity),
       EntityTypeComponent(EntityType.Bullet),
-      BulletComponent(power, shooterId)
+      BulletComponent(power, shooterId),
+      ShapeComponent(Shape.Circle(1.0, (0.0, 0.0)))
     )
     (entityId, components)

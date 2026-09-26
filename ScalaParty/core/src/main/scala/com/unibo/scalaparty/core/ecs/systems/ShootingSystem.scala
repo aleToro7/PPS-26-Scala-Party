@@ -1,6 +1,8 @@
 package com.unibo.scalaparty.core.ecs.systems
 
 import com.unibo.scalaparty.core.ecs.*
+import com.unibo.scalaparty.core.geometry.{Point2D, Vector2D}
+import com.unibo.scalaparty.core.utils.collectFirstOfClass
 
 /** A system responsible for firing bullets and managing the weapon cooldown of shooting entities.
  *
@@ -52,8 +54,8 @@ object ShootingSystem extends WorldSystem:
       weapon: Weapon
   ): Option[EntityWithComponents] =
     for
-      position <- components.collectFirst { case pc: PositionComponent => pc.position }
-      velocity <- components.collectFirst { case mc: MovementComponent => mc.velocity }
+      position <- components.collectFirstOfClass[PositionComponent].map(_.position)
+      velocity <- components.collectFirstOfClass[MovementComponent].map(_.velocity)
       direction = velocity.normalized
     yield EntityFactory.createBullet(
       shooterId = shooterId,

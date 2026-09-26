@@ -32,12 +32,15 @@ private class SinglePlayerGameEngine(config: GameConfig) extends GameEngine:
 
   private def initializeWorld(config: GameConfig): GameWorld =
     val spawn = config.map.playerSpawns.head
+    val spaceship = config.settings.spaceship
 
     val playerSpaceship = EntityFactory.createSpaceship(
       position = spawn.position,
-      velocity = Vector2D(config.settings.spaceship.speed, 0).rotated(spawn.heading),
+      velocity = Vector2D(spaceship.speed, 0).rotated(spawn.heading),
       entityId = config.players.head,
-      weapon = Weapon.fromSettings(config.settings.shooting)
+      weapon = Weapon.fromSettings(config.settings.shooting),
+      maxHealth = spaceship.maxHealth,
+      collisionDamage = spaceship.collisionDamage
     )
     GameWorld(List(playerSpaceship))
 
