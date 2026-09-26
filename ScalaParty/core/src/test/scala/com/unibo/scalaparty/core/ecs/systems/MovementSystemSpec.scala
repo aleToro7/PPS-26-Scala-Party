@@ -22,7 +22,6 @@ class MovementSystemSpec extends AnyFlatSpec with Matchers:
     private def getPosition(entityId: EntityId): Option[Point2D] =
       world.findComponents(entityId).flatMap: components =>
         components.collectFirst { case PositionComponent(pos) => pos }
-  
 
   "MovementSystem" should "not modify the world if there are no entities with movement components" in:
     val emptyWorld = createWorld()
@@ -33,7 +32,7 @@ class MovementSystemSpec extends AnyFlatSpec with Matchers:
   it should "update the position of entities based on their velocity" in:
     val startPos = Point2D.origin
     val velocity = Vector2D(1.0, 1.0)
-    val entity@(entityId, _) = createMovingEntity(startPos, velocity)
+    val entity @ (entityId, _) = createMovingEntity(startPos, velocity)
     val world = createWorld(entity)
     val expectedPos = startPos + (velocity * (OneSecondMillis.toDouble / 1_000.0))
     val (updatedWorld, events) = updateWorld(world)
