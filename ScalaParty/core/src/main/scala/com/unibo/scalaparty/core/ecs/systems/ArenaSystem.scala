@@ -6,6 +6,10 @@ import com.unibo.scalaparty.core.geometry.Shape.AABB
 import com.unibo.scalaparty.core.model.GameSettings
 import com.unibo.scalaparty.core.utils.collectFirstOfClass
 
+/** A system that ensures entities remain within the defined arena boundaries.
+ *  It checks the position of entities with a `MovementComponent` and adjusts their position if they exceed the arena limits, taking into account their bounding box.
+ *  @param settings the game settings containing arena dimensions
+ */
 class ArenaSystem(private val settings: GameSettings) extends WorldSystem:
   private val arena = settings.arena
   private val maxArenaY = arena.height / 2.0
@@ -25,8 +29,8 @@ class ArenaSystem(private val settings: GameSettings) extends WorldSystem:
           boundingBox = shape.boundingBox.moveTo(position)
           if exceedsArena(boundingBox)
         yield repositionInsideArena(position, boundingBox)
-      if newPosition.isDefined then currentWorld.updateComponent(entityId, PositionComponent(newPosition.get))
-      else currentWorld
+      newPosition.fold(currentWorld): pos =>
+        currentWorld.updateComponent(entityId, PositionComponent(pos))
     (updatedWorld, events)
 
   private def exceedsArena(aabb: AABB): Boolean = aabb.vertices.exists: v =>
