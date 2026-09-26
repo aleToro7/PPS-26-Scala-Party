@@ -6,6 +6,7 @@ import cats.effect.{Deferred, FiberIO, IO, Ref}
 import cats.syntax.all.*
 import com.unibo.scalaparty.core.ecs.{EntityId, GameWorld}
 import com.unibo.scalaparty.core.engine.{GameConfig, GameEngine}
+import com.unibo.scalaparty.core.map.{GameMap, GameMapProvider}
 import com.unibo.scalaparty.core.model.GameSettings
 import com.unibo.scalaparty.infrastructure.model.{ActiveMatch, Admission, JoinOutcome, MatchId, PlayerId, ServerMessage}
 import com.unibo.scalaparty.infrastructure.network.ConnectionRegistry
@@ -26,7 +27,8 @@ import com.unibo.scalaparty.infrastructure.ports.{AccessPort, MatchEventPublishe
  *  @param commands      Buffer the gameplay inputs are drained from.
  *  @param notifier      Tells a single player what is happening to it.
  *  @param publisher     Broadcasts the authoritative state to everybody in the match.
- *  @param settings      Shared rules and arena dimensions for the engine.
+ *  @param settings      Shared rules for the engine.
+ *  @param maps          Provides the map each match is played on.
  *  @param matchDuration How long a match lasts, there being no win condition yet.
  *  @param running       The fiber ticking each match being played.
  */
@@ -37,6 +39,7 @@ class MatchCoordinator(
     notifier: PlayerNotifier[IO],
     publisher: MatchEventPublisher[IO],
     settings: GameSettings,
+    maps: GameMapProvider,
     matchDuration: FiniteDuration,
     running: Ref[IO, Map[MatchId, FiberIO[Unit]]]
 ) extends AccessPort[IO]:
@@ -110,21 +113,36 @@ class MatchCoordinator(
     }
 
   /** Runs the match to completion, then hands the room over to the next group of players.
+   *  A match that fails, even before its first tick, is concluded all the same: its players are never
+   *  left stuck in a room nobody plays in. A cancelled match is not, as whoever stopped it already did.
    *
    *  @param activeMatch the active match to run
    *  @return an effect completing when the match finishes and cleanup concludes
    */
   private def play(activeMatch: ActiveMatch): IO[Unit] =
+    val reportFailure = (error: Throwable) => IO.println(s"Match ${activeMatch.matchId} failed: ${error.getMessage}")
+    run(activeMatch).handleErrorWith(reportFailure) *> concludeMatch(activeMatch)
+
+  /** Ticks the match on the map chosen for its players until it ends.
+   *
+   *  @param activeMatch the active match to run
+   *  @return an effect completing when the match ends, failing if it cannot be played
+   */
+  private def run(activeMatch: ActiveMatch): IO[Unit] =
     val mapping = activeMatch.players.map(_ -> EntityId.generate()).toMap
     val session = MatchSession(activeMatch.matchId, mapping, GameWorld(Map.empty))
-    val engine = GameEngine(
-      GameConfig(
-        players = mapping.values.toList,
-        settings = settings
-      )
-    )
-    val runner = new MatchRunner(session, commands, engine, publisher, matchDuration)
-    runner.run.compile.drain *> concludeMatch(activeMatch)
+    mapFor(activeMatch).flatMap: map =>
+      val engine = GameEngine(GameConfig(players = mapping.values.toList, settings = settings, map = map))
+      MatchRunner(session, commands, engine, publisher, matchDuration).run.compile.drain
+
+  /** Obtains the map the match is played on.
+   *
+   *  @param activeMatch the match about to be played
+   *  @return an effect yielding the map of the match, failing if no map can host its players
+   */
+  private def mapFor(activeMatch: ActiveMatch): IO[GameMap] =
+    val players = activeMatch.players.size
+    IO(maps.mapFor(players)).flatMap(IO.fromOption(_)(IllegalStateException(s"No map can host $players players")))
 
   /** Releases the players of a finished match and lets the next one in.
    *
@@ -161,7 +179,8 @@ object MatchCoordinator:
    *  @param commands      the service buffering player inputs
    *  @param notifier      the port delivering personal messages to players
    *  @param publisher     the publisher broadcasting match states
-   *  @param settings      Shared rules and arena dimensions for the engine
+   *  @param settings      Shared rules for the engine
+   *  @param maps          the provider of the map each match is played on
    *  @param matchDuration the duration of each match session
    *  @return an IO effect containing the instantiated MatchCoordinator
    */
@@ -172,8 +191,9 @@ object MatchCoordinator:
       notifier: PlayerNotifier[IO],
       publisher: MatchEventPublisher[IO],
       settings: GameSettings,
+      maps: GameMapProvider,
       matchDuration: FiniteDuration = MatchRunner.DefaultDuration
   ): IO[MatchCoordinator] =
     Ref
       .of[IO, Map[MatchId, FiberIO[Unit]]](Map.empty)
-      .map(new MatchCoordinator(lobby, registry, commands, notifier, publisher, settings, matchDuration, _))
+      .map(new MatchCoordinator(lobby, registry, commands, notifier, publisher, settings, maps, matchDuration, _))

@@ -1,5 +1,7 @@
 package com.unibo.scalaparty.core.model
 
+import com.unibo.scalaparty.core.geometry.Point2D
+
 /** Configuration settings for the game arena.
  *
  *  @param width  the horizontal width of the arena
@@ -10,6 +12,14 @@ final case class ArenaSettings(
     height: Int = 800
 ):
   require(width > 0 && height > 0, "Arena dimensions must be positive")
+
+  /** Checks whether a point lies within the arena bounds, edges included.
+   *
+   *  @param point the point to check
+   *  @return true if the point is inside the arena, false otherwise
+   */
+  def contains(point: Point2D): Boolean =
+    point.x >= 0 && point.x <= width && point.y >= 0 && point.y <= height
 
 /** Configuration settings for spaceship dynamics.
  *
@@ -47,14 +57,13 @@ final case class ShootingSettings(
   require(shootCooldown >= 0L, "Shoot cooldown cannot be negative")
   require(muzzleOffset >= 0.0, "Muzzle offset cannot be negative")
 
-/** Unified configuration grouping all arena, entity, and gameplay mechanics parameters.
+/** Unified configuration grouping all entity and gameplay mechanics parameters.
+ *  The arena bounds are not part of it, as they belong to the map a match is played on.
  *
- *  @param arena     settings controlling arena bounds
  *  @param spaceship settings controlling spaceship dynamics
  *  @param shooting  settings controlling weapon firing and bullet behavior
  */
 final case class GameSettings(
-    arena: ArenaSettings = ArenaSettings(),
     spaceship: SpaceshipSettings = SpaceshipSettings(),
     shooting: ShootingSettings = ShootingSettings()
 )

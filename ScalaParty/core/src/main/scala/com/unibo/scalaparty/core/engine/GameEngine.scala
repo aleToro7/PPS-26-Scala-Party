@@ -3,7 +3,7 @@ package com.unibo.scalaparty.core.engine
 import com.unibo.scalaparty.core.dto.{toDto, EntityDto}
 import com.unibo.scalaparty.core.ecs.{EntityFactory, EntityId, GameEvent, GameWorld, Weapon}
 import com.unibo.scalaparty.core.engine.input.InputGateway
-import com.unibo.scalaparty.core.geometry.{Point2D, Vector2D}
+import com.unibo.scalaparty.core.geometry.Vector2D
 import com.unibo.scalaparty.core.model.GameCommand
 
 /** A trait representing the game engine responsible for updating the state of the game world based on player commands and elapsed time. */
@@ -31,12 +31,12 @@ private class SinglePlayerGameEngine(config: GameConfig) extends GameEngine:
   private var world: GameWorld = initializeWorld(config)
 
   private def initializeWorld(config: GameConfig): GameWorld =
-    val arena = config.settings.arena
+    val spawn = config.map.playerSpawns.head
     val spaceship = config.settings.spaceship
 
     val playerSpaceship = EntityFactory.createSpaceship(
-      position = Point2D(arena.width / 2, arena.height / 2),
-      velocity = Vector2D(spaceship.speed, 0),
+      position = spawn.position,
+      velocity = Vector2D(spaceship.speed, 0).rotated(spawn.heading),
       entityId = config.players.head,
       weapon = Weapon.fromSettings(config.settings.shooting),
       maxHealth = spaceship.maxHealth,
