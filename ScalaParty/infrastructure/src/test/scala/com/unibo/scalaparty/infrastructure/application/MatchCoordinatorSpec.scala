@@ -171,21 +171,40 @@ class MatchCoordinatorSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
         requested <- eventually(maps.requested)(_.nonEmpty)
       yield requested shouldBe List(1)
 
-    "play the match on the default map when no map is available".in:
+    "end the match without playing it when no map can host its players".in:
       val playerId = PlayerId.random()
       for
-        f      <- fixture(matchDuration = 10.seconds, maps = RecordingMapProvider(None))
-        _      <- f.join(playerId)
-        ticked <- eventually(f.publisher.count)(_ > 0)
-      yield ticked should be > 0
+        f     <- fixture(matchDuration = 10.seconds, maps = RecordingMapProvider(None))
+        _     <- f.join(playerId)
+        _     <- eventually(f.notifier.messagesFor(playerId))(_.contains(ServerMessage.MatchEnded))
+        bound <- f.registry.matchOf(playerId)
+        ticks <- f.publisher.count
+      yield
+        bound shouldBe None
+        ticks shouldBe 0
 
-    "play the match on the default map when providing a map fails".in:
+    "end the match without playing it when providing a map fails".in:
+      val playerId = PlayerId.random()
       val failing: GameMapProvider = _ => throw IllegalStateException("Malformed game map")
       for
-        f      <- fixture(matchDuration = 10.seconds, maps = failing)
-        _      <- f.join(PlayerId.random())
-        ticked <- eventually(f.publisher.count)(_ > 0)
-      yield ticked should be > 0
+        f     <- fixture(matchDuration = 10.seconds, maps = failing)
+        _     <- f.join(playerId)
+        _     <- eventually(f.notifier.messagesFor(playerId))(_.contains(ServerMessage.MatchEnded))
+        bound <- f.registry.matchOf(playerId)
+        ticks <- f.publisher.count
+      yield
+        bound shouldBe None
+        ticks shouldBe 0
+
+    "hand the room of a match it cannot play to the player waiting in the queue".in:
+      val first = PlayerId.random()
+      val waiting = PlayerId.random()
+      for
+        f    <- fixture(matchDuration = 10.seconds, maps = RecordingMapProvider(None))
+        _    <- f.join(first)
+        _    <- f.join(waiting)
+        next <- eventually(f.notifier.messagesFor(waiting))(_.contains(ServerMessage.MatchStarted(players = 1)))
+      yield next should contain(ServerMessage.MatchStarted(players = 1))
 
   "the end of a match".should:
     "hand the arena to the player waiting in the queue".in:

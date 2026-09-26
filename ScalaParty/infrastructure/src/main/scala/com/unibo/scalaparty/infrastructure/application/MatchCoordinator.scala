@@ -113,40 +113,36 @@ class MatchCoordinator(
     }
 
   /** Runs the match to completion, then hands the room over to the next group of players.
+   *  A match that fails, even before its first tick, is concluded all the same: its players are never
+   *  left stuck in a room nobody plays in. A cancelled match is not, as whoever stopped it already did.
    *
    *  @param activeMatch the active match to run
    *  @return an effect completing when the match finishes and cleanup concludes
    */
   private def play(activeMatch: ActiveMatch): IO[Unit] =
+    val reportFailure = (error: Throwable) => IO.println(s"Match ${activeMatch.matchId} failed: ${error.getMessage}")
+    run(activeMatch).handleErrorWith(reportFailure) *> concludeMatch(activeMatch)
+
+  /** Ticks the match on the map chosen for its players until it ends.
+   *
+   *  @param activeMatch the active match to run
+   *  @return an effect completing when the match ends, failing if it cannot be played
+   */
+  private def run(activeMatch: ActiveMatch): IO[Unit] =
     val mapping = activeMatch.players.map(_ -> EntityId.generate()).toMap
     val session = MatchSession(activeMatch.matchId, mapping, GameWorld(Map.empty))
     mapFor(activeMatch).flatMap: map =>
-      val engine = GameEngine(
-        GameConfig(
-          players = mapping.values.toList,
-          settings = settings,
-          map = map
-        )
-      )
-      val runner = new MatchRunner(session, commands, engine, publisher, matchDuration)
-      runner.run.compile.drain *> concludeMatch(activeMatch)
+      val engine = GameEngine(GameConfig(players = mapping.values.toList, settings = settings, map = map))
+      MatchRunner(session, commands, engine, publisher, matchDuration).run.compile.drain
 
-  /** Obtains the map the match is played on, falling back to the default map when no map fits its players or
-   *  providing it fails: a match is never lost, and its players never stuck, because of its map.
-   *  Providing a map may be expensive, e.g. when it is generated through Prolog, so it runs on the blocking pool.
+  /** Obtains the map the match is played on.
    *
    *  @param activeMatch the match about to be played
-   *  @return an effect yielding the map of the match
+   *  @return an effect yielding the map of the match, failing if no map can host its players
    */
   private def mapFor(activeMatch: ActiveMatch): IO[GameMap] =
     val players = activeMatch.players.size
-    IO.blocking(maps.mapFor(players)).attempt.flatMap:
-      case Right(Some(map)) => IO.pure(map)
-      case Right(None) => defaultMap(s"No map available for $players players")
-      case Left(error) => defaultMap(s"Providing a map for $players players failed (${error.getMessage})")
-
-  private def defaultMap(reason: String): IO[GameMap] =
-    IO.println(s"$reason, using the default map").as(GameMap.default)
+    IO(maps.mapFor(players)).flatMap(IO.fromOption(_)(IllegalStateException(s"No map can host $players players")))
 
   /** Releases the players of a finished match and lets the next one in.
    *
