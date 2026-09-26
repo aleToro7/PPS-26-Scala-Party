@@ -44,3 +44,6 @@ class ArenaSystem(private val settings: GameSettings) extends WorldSystem:
     val clampedX = position.x.max(minAssignableX).min(maxAssignableX)
     val clampedY = position.y.max(minAssignableY).min(maxAssignableY)
     Point2D(clampedX, clampedY)
+
+object ArenaSystem:
+  def apply(settings: GameSettings): ArenaSystem = new ArenaSystem(settings)
