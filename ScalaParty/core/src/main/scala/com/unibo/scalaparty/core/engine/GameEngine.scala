@@ -44,7 +44,7 @@ private class SinglePlayerGameEngine(config: GameConfig, pipeline: SystemPipelin
     val spaceship = config.settings.spaceship
 
     val playerSpaceship = EntityFactory.createSpaceship(
-      position = Point2D(arena.width / 2, arena.height / 2),
+      position = Point2D.origin,
       velocity = Vector2D(spaceship.speed, 0),
       entityId = config.players.head,
       weapon = Weapon.fromSettings(config.settings.shooting),
