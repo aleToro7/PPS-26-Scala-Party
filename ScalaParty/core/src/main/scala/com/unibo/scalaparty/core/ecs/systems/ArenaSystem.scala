@@ -1,7 +1,7 @@
 package com.unibo.scalaparty.core.ecs.systems
 
 import com.unibo.scalaparty.core.ecs.*
-import com.unibo.scalaparty.core.geometry.{boundingBox, moveTo, vertices, Point2D}
+import com.unibo.scalaparty.core.geometry.{rotate as rotatePolygon, *}
 import com.unibo.scalaparty.core.geometry.Shape.AABB
 import com.unibo.scalaparty.core.model.GameSettings
 import com.unibo.scalaparty.core.utils.collectFirstOfClass
@@ -26,20 +26,18 @@ class ArenaSystem(private val settings: GameSettings) extends WorldSystem:
       val entityType = components.collectFirstOfClass[EntityTypeComponent].map(_.entityType)
       newPosition.fold(currentWorld): pos =>
         entityType match
-          case Some(EntityType.Bullet) => currentWorld.removeEntity(
-              entityId
-            ) // If the entity is a bullet and exceeds the arena, remove it from the world
-          case _ => currentWorld.updateComponent(
-              entityId,
-              PositionComponent(pos)
-            ) // If the entity is not a bullet, update its position to be inside the arena
+          // If the entity is a bullet and exceeds the arena, remove it from the world
+          case Some(EntityType.Bullet) => currentWorld.removeEntity(entityId)
+          // If the entity is not a bullet, update its position to be inside the arena
+          case _ => currentWorld.updateComponent(entityId, PositionComponent(pos))
     (updatedWorld, events)
 
   private def getNewPositionIfOutsideArena(components: Iterable[Component]) =
     for
       position <- components.collectFirstOfClass[PositionComponent].map(_.position)
       shape    <- components.collectFirstOfClass[ShapeComponent].map(_.shape)
-      boundingBox = shape.boundingBox.moveTo(position)
+      rotation = components.collectFirstOfClass[RotationComponent].map(_.angle) getOrElse 0.0
+      boundingBox = shape.moveTo(position).rotate(rotation).boundingBox
       if exceedsArena(boundingBox)
     yield repositionInsideArena(position, boundingBox)
 
@@ -55,5 +53,7 @@ class ArenaSystem(private val settings: GameSettings) extends WorldSystem:
     val clampedY = position.y.max(minAssignableY).min(maxAssignableY)
     Point2D(clampedX, clampedY)
 
-object ArenaSystem:
-  def apply(settings: GameSettings): ArenaSystem = new ArenaSystem(settings)
+  extension (shape: Shape)
+    private def rotate(angle: Double): Shape = shape match
+      case p: Shape.Polygon => p.rotatePolygon(angle)
+      case _ => shape // For Circle and AABB, rotation does not change the shape
