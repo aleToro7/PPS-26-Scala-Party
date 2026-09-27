@@ -47,7 +47,7 @@ case class ShapeComponent(shape: Shape) extends Component
 /** Represents the rotation of an entity.
  *  @param angle the angle of rotation in degrees
  */
-case class RotationComponent(angle: Double) extends Component
+case class RotationComponent(angle: Double = 0.0) extends Component
 
 /** Represents the health of an entity that can be damaged.
  *  @param current the remaining health points, between zero and max
