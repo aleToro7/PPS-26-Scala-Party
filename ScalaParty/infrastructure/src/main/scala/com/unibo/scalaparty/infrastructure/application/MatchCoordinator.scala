@@ -7,7 +7,7 @@ import cats.syntax.all.*
 import com.unibo.scalaparty.core.ecs.{EntityId, GameWorld}
 import com.unibo.scalaparty.core.engine.{GameConfig, GameEngine}
 import com.unibo.scalaparty.core.model.GameSettings
-import com.unibo.scalaparty.infrastructure.model.{ActiveMatch, Admission, JoinOutcome, MatchId, PlayerId, ServerMessage}
+import com.unibo.scalaparty.infrastructure.model.*
 import com.unibo.scalaparty.infrastructure.network.ConnectionRegistry
 import com.unibo.scalaparty.infrastructure.ports.{AccessPort, MatchEventPublisher, PlayerNotifier}
 

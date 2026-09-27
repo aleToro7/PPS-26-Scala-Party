@@ -226,7 +226,11 @@ extension (self: Polygon)
     Polygon(movedVertices*)
 
 extension (self: AABB)
-  private def vertices: Seq[Point2D] =
+
+  /** Returns the vertices of the AABB.
+   *  @return a sequence of [[Point2D]] representing the vertices of the AABB
+   */
+  def vertices: Seq[Point2D] =
     val halfWidth = self.width.half
     val halfHeight = self.height.half
     val bottomLeft = Point2D(self.center.x - halfWidth, self.center.y - halfHeight)
@@ -237,7 +241,10 @@ extension (self: AABB)
       Point2D(bottomLeft.x, bottomLeft.y + self.height) // Top-left
     )
 
-  private def edges: Seq[Segment] = Polygon(self.vertices*).edges
+  /** Returns the edges of the AABB.
+   *  @return a sequence of [[Segment]] representing the edges of the AABB
+   */
+  def edges: Seq[Segment] = Polygon(self.vertices*).edges
 
   /** Checks if this AABB intersects with another AABB.
    *  @param other the other AABB to check for intersection
