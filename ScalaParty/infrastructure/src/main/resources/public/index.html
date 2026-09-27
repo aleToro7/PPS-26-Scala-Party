@@ -1,239 +1,364 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ScalaParty</title>
-  <style>
-    body {
-      margin: 0;
-      background: #0d0d11;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      color: #edf6ff;
-      font-family: monospace;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ScalaParty</title>
+    <style>
+        body {
+            margin: 0;
+            background: #0d0d11;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #edf6ff;
+            font-family: monospace;
+        }
 
-    .panel {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-    }
+        .panel {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
 
-    canvas {
-      border: 2px solid #2a2a3a;
-      background-color: #121218;
-      box-shadow: 0 0 20px rgba(0, 255, 204, 0.15);
-    }
+        /* --- UI Overlay Styles --- */
+        .hud-container {
+            width: 800px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-sizing: border-box;
+            padding: 0 4px;
+        }
 
-    .status {
-      min-height: 1.5em;
-      color: #9ee7ff;
-      letter-spacing: 0.04em;
-    }
+        .health-bar-bg {
+            flex-grow: 1;
+            height: 14px;
+            background: #2a2a3a;
+            border-radius: 7px;
+            overflow: hidden;
+            margin-right: 16px;
+            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.5);
+        }
 
-    .debug-log {
-      width: 800px;
-      max-height: 180px;
-      overflow-y: auto;
-      border: 1px solid #2a2a3a;
-      background: #0b0b10;
-      color: #b8f7cc;
-      padding: 8px;
-      box-sizing: border-box;
-      white-space: pre-wrap;
-      word-break: break-word;
-      font-size: 12px;
-      line-height: 1.4;
-    }
-  </style>
+        .health-bar-fill {
+            height: 100%;
+            width: 100%;
+            background-color: #00ffcc;
+            transition: width 0.2s ease-out, background-color 0.3s ease;
+        }
+
+        .health-text {
+            font-size: 16px;
+            font-weight: bold;
+            color: #ffffff;
+            min-width: 80px;
+            text-align: right;
+        }
+
+        /* ------------------------- */
+
+        canvas {
+            border: 2px solid #2a2a3a;
+            background-color: #121218;
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.15);
+        }
+
+        .status {
+            min-height: 1.5em;
+            color: #9ee7ff;
+            letter-spacing: 0.04em;
+        }
+    </style>
 </head>
 <body>
-  <div class="panel">
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
-    <div id="status" class="status">Connecting to server...</div>
-    <div id="debugLog" class="debug-log"></div>
-  </div>
+<div class="panel">
+    <!-- HUD Layer -->
+    <div class="hud-container">
+        <div class="health-bar-bg">
+            <div id="healthBarFill" class="health-bar-fill"></div>
+        </div>
+        <div id="healthText" class="health-text">HP: 100/100</div>
+    </div>
 
-  <script>
+    <!-- Game Layer -->
+    <canvas id="gameCanvas" width="800" height="800"></canvas>
+
+    <!-- Status Layer -->
+    <div id="status" class="status">Connecting to server...</div>
+</div>
+
+<script>
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const statusEl = document.getElementById('status');
-    const debugLogEl = document.getElementById('debugLog');
+    const healthBarFill = document.getElementById('healthBarFill');
+    const healthText = document.getElementById('healthText');
 
     const SHIP_HEIGHT = 24;
     const SHIP_BASE = 14;
     const BULLET_RADIUS = 3;
-    const MAX_LOG_LINES = 50;
 
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
     const host = window.location.hostname || 'localhost';
     const port = window.location.port || '8081';
     const socket = new WebSocket(`${protocol}://${host}:${port}/scalaparty/ws`);
 
-    const logLines = [];
+    let currentShip = {
+        position: {x: 0, y: 0},
+        velocity: {x: 0, y: 0},
+        angle: 0,
+        health: 100,
+        maxHealth: 100
+    };
 
-    function appendLog(message) {
-      const now = new Date().toISOString().slice(11, 19);
-      logLines.push(`[${now}] ${message}`);
-      if (logLines.length > MAX_LOG_LINES) {
-        logLines.shift();
-      }
-      debugLogEl.textContent = `${logLines.join('\n')}\n`;
-      debugLogEl.scrollTop = debugLogEl.scrollHeight;
+    let currentBullets = [];
+    let knownBulletIds = new Set();
+    let particles = [];
+
+    // --- Input Management System ---
+    const activeKeys = new Set();
+    let lastShootTime = 0;
+    const SHOOT_COOLDOWN_MS = 250;
+
+    document.addEventListener('keydown', (event) => {
+        activeKeys.add(event.key.toLowerCase());
+        if (event.key === ' ') event.preventDefault();
+    });
+
+    document.addEventListener('keyup', (event) => {
+        activeKeys.delete(event.key.toLowerCase());
+    });
+
+    function processInput() {
+        if (socket.readyState !== WebSocket.OPEN) return;
+
+        if (activeKeys.has('r')) {
+            sendCommand({Rotate: {angle: 2.0}});
+        }
+
+        if (activeKeys.has(' ')) {
+            const now = Date.now();
+            if (now - lastShootTime >= SHOOT_COOLDOWN_MS) {
+                sendCommand({Shoot: {}});
+                lastShootTime = now;
+            }
+        }
     }
 
-    let currentShip = {
-      position: { x: canvas.width / 2, y: canvas.height / 2 },
-      velocity: { x: 0, y: 0 },
-      angle: 0
-    };
-    let currentBullets = [];
+    // -------------------------------
 
-    // The server tags every entity DTO with its case name (e.g. { Spaceship: {...} }, { Bullet: {...} }).
     function extractEntities(payload) {
-      return Array.isArray(payload)
-        ? payload
-        : Array.isArray(payload?.entities)
-          ? payload.entities
-          : [];
+        return Array.isArray(payload)
+            ? payload
+            : Array.isArray(payload?.entities)
+                ? payload.entities
+                : [];
     }
 
     function toShipState(ship, previous) {
-      const pos = ship.position ?? previous.position;
-      const vel = ship.velocity ?? { x: 0, y: 0 };
-      return {
-        position: {
-          x: Number(pos.x ?? previous.position.x),
-          y: Number(pos.y ?? previous.position.y)
-        },
-        velocity: {
-          x: Number(vel.x ?? previous.velocity.x),
-          y: Number(vel.y ?? previous.velocity.y)
-        },
-        angle: Math.atan2(Number(vel.y ?? 0), Number(vel.x ?? 1))
-      };
+        const pos = ship.position ?? previous.position;
+        const vel = ship.velocity ?? {x: 0, y: 0};
+        return {
+            position: {
+                x: Number(pos.x ?? previous.position.x),
+                y: Number(pos.y ?? previous.position.y)
+            },
+            velocity: {
+                x: Number(vel.x ?? previous.velocity.x),
+                y: Number(vel.y ?? previous.velocity.y)
+            },
+            angle: Math.atan2(Number(vel.y ?? 0), Number(vel.x ?? 1)),
+            health: Number(ship.health ?? previous.health),
+            maxHealth: Number(ship.maxHealth ?? previous.maxHealth)
+        };
     }
 
     function toPosition(entity) {
-      return {
-        x: Number(entity.position?.x ?? 0),
-        y: Number(entity.position?.y ?? 0)
-      };
+        return {
+            x: Number(entity.position?.x ?? 0),
+            y: Number(entity.position?.y ?? 0)
+        };
+    }
+
+    function spawnParticles(x, y) {
+        for (let i = 0; i < 20; i++) {
+            particles.push({
+                x: x,
+                y: y,
+                vx: (Math.random() - 0.5) * 12,
+                vy: (Math.random() - 0.5) * 12,
+                life: 1.0,
+                decay: Math.random() * 0.05 + 0.03,
+                color: Math.random() > 0.5 ? '#00ffcc' : '#ffcc00'
+            });
+        }
+    }
+
+    // Track the last known health to prevent unnecessary DOM updates
+    let lastRenderedHealth = -1;
+
+    function updateUI() {
+        const hp = currentShip.health;
+
+        // Skip DOM manipulation if health hasn't changed
+        if (hp === lastRenderedHealth) return;
+        lastRenderedHealth = hp;
+
+        const maxHp = currentShip.maxHealth;
+        const safeMax = maxHp > 0 ? maxHp : 1;
+        const percentage = Math.max(0, Math.min(100, (hp / safeMax) * 100));
+
+        healthBarFill.style.width = `${percentage}%`;
+        healthText.textContent = `HP: ${hp}/${maxHp}`;
+
+        if (percentage > 50) {
+            healthBarFill.style.backgroundColor = '#00ffcc';
+        } else if (percentage > 25) {
+            healthBarFill.style.backgroundColor = '#ffcc00';
+        } else {
+            healthBarFill.style.backgroundColor = '#ff3366';
+        }
     }
 
     function updateFromServer(rawMessage) {
-      try {
-        const payload = JSON.parse(rawMessage);
-        const entities = extractEntities(payload);
+        try {
+            const payload = JSON.parse(rawMessage);
+            const entities = extractEntities(payload);
 
-        const shipEntry = entities.find(entry => entry && 'Spaceship' in entry);
-        if (shipEntry) {
-          currentShip = toShipState(shipEntry.Spaceship, currentShip);
+            // Clear the array without reallocating memory
+            currentBullets.length = 0;
+            const currentBulletIds = new Set();
+
+            for (let i = 0; i < entities.length; i++) {
+                const entry = entities[i];
+                if (!entry) continue;
+
+                if ('Spaceship' in entry) {
+                    currentShip = toShipState(entry.Spaceship, currentShip);
+                    updateUI();
+                } else if ('Bullet' in entry) {
+                    const bulletData = entry.Bullet;
+                    const pos = toPosition(bulletData);
+
+                    // Push to the existing array instead of creating a new one via map()
+                    currentBullets.push(pos);
+
+                    if (bulletData.id !== undefined) {
+                        currentBulletIds.add(bulletData.id);
+                        if (!knownBulletIds.has(bulletData.id)) {
+                            spawnParticles(pos.x, pos.y);
+                        }
+                    }
+                }
+            }
+
+            knownBulletIds = currentBulletIds;
+        } catch (error) {
+            console.error('Invalid server payload', error);
         }
-
-        currentBullets = entities
-          .filter(entry => entry && 'Bullet' in entry)
-          .map(entry => toPosition(entry.Bullet));
-      } catch (error) {
-        console.error('Invalid server payload', error);
-      }
     }
 
     function drawSpaceship(x, y, angle) {
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.rotate(angle);
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(angle);
 
-      ctx.beginPath();
-      ctx.moveTo(SHIP_HEIGHT / 2, 0);
-      ctx.lineTo(-SHIP_HEIGHT / 2, -SHIP_BASE / 2);
-      ctx.lineTo(-SHIP_HEIGHT / 2, SHIP_BASE / 2);
-      ctx.closePath();
+        ctx.beginPath();
+        ctx.moveTo(SHIP_HEIGHT / 2, 0);
+        ctx.lineTo(-SHIP_HEIGHT / 2, -SHIP_BASE / 2);
+        ctx.lineTo(-SHIP_HEIGHT / 2, SHIP_BASE / 2);
+        ctx.closePath();
 
-      ctx.fillStyle = '#00ffcc';
-      ctx.fill();
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-      ctx.restore();
+        ctx.fillStyle = '#00ffcc';
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.restore();
     }
 
     function drawBullet(x, y) {
-      ctx.beginPath();
-      ctx.arc(x, y, BULLET_RADIUS, 0, Math.PI * 2);
-      ctx.fillStyle = '#ffcc00';
-      ctx.fill();
+        const timeOffset = Date.now() / 80;
+        const pulseRadius = BULLET_RADIUS + Math.sin(timeOffset) * 1.5;
+
+        ctx.save();
+
+        // Replaced expensive shadowBlur with a high-performance radial gradient
+        const gradient = ctx.createRadialGradient(x, y, 0, x, y, pulseRadius * 2);
+        gradient.addColorStop(0, '#ffffff');
+        gradient.addColorStop(0.4, '#ff3366');
+        gradient.addColorStop(1, 'rgba(255, 0, 85, 0)');
+
+        ctx.beginPath();
+        ctx.arc(x, y, pulseRadius * 2, 0, Math.PI * 2);
+        ctx.fillStyle = gradient;
+        ctx.fill();
+
+        ctx.restore();
+    }
+
+    function updateAndDrawParticles() {
+        ctx.globalCompositeOperation = 'lighter';
+        for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            p.life -= p.decay;
+
+            if (p.life <= 0) {
+                particles.splice(i, 1);
+                continue;
+            }
+
+            ctx.globalAlpha = p.life;
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.life * 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1.0;
+        ctx.globalCompositeOperation = 'source-over';
     }
 
     function render() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      drawSpaceship(currentShip.position.x, currentShip.position.y, currentShip.angle);
-      currentBullets.forEach(bullet => drawBullet(bullet.x, bullet.y));
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        ctx.save();
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+
+        drawSpaceship(currentShip.position.x, currentShip.position.y, currentShip.angle);
+        currentBullets.forEach(bullet => drawBullet(bullet.x, bullet.y));
+        updateAndDrawParticles();
+
+        ctx.restore();
     }
 
     function gameLoop() {
-      render();
-      requestAnimationFrame(gameLoop);
+        processInput();
+        render();
+        requestAnimationFrame(gameLoop);
     }
 
     socket.addEventListener('open', () => {
-      statusEl.textContent = 'Connected to ScalaParty server';
-      appendLog('WebSocket connected');
+        statusEl.textContent = 'Connected to ScalaParty server';
     });
 
     socket.addEventListener('close', () => {
-      statusEl.textContent = 'Disconnected from server';
-      appendLog('WebSocket disconnected');
-    });
-
-    socket.addEventListener('error', () => {
-      appendLog('WebSocket error');
+        statusEl.textContent = 'Disconnected from server';
     });
 
     socket.addEventListener('message', (event) => {
-      appendLog(`Received: ${event.data}`);
-      updateFromServer(event.data);
+        updateFromServer(event.data);
     });
 
-    // Sends a PlayerInput command to the server, doing nothing if the socket is not ready yet.
-    function sendCommand(command, label) {
-      if (socket.readyState !== WebSocket.OPEN) {
-        statusEl.textContent = 'Socket not ready yet';
-        appendLog(`${label} skipped: socket not open`);
-        return false;
-      }
-      const json = JSON.stringify(command);
-      socket.send(json);
-      appendLog(`Sent: ${json}`);
-      return true;
+    function sendCommand(command) {
+        socket.send(JSON.stringify(command));
     }
 
-    document.addEventListener('keydown', (event) => {
-      switch (event.key.toLowerCase()) {
-        case 'r': {
-          event.preventDefault();
-          const angle = 2.0;
-          if (sendCommand({ Rotate: { angle } }, 'Rotate')) {
-            statusEl.textContent = `Rotated by ${angle}°`;
-          }
-          break;
-        }
-        case ' ': {
-          event.preventDefault();
-          if (sendCommand({ Shoot: {} }, 'Shoot')) {
-            statusEl.textContent = 'Fired!';
-          }
-          break;
-        }
-      }
-    });
-
-    appendLog(`Connecting to WebSocket at ${protocol}://${host}:${port}/scalaparty/ws`);
     requestAnimationFrame(gameLoop);
-  </script>
+</script>
 </body>
 </html>
