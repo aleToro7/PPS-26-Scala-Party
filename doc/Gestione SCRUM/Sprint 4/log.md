@@ -19,26 +19,27 @@ Al termine del quarto Sprint, l'obiettivo è implementare tutte le restanti part
 
 Suddivisione Item scelti dal Product Backlog:
 
-| ID Obiettivo | Requisito / Area           | Task Associato                   |
-| :----------- | :------------------------- | :------------------------------- |
-| **RFS2**     | Gestione Multi-partita     | Multiplayer (server)             |
-| **BUG**      | Networking                 | Fix errore disconnessione client |
-| **RFS4**     | Eventi di Gioco            | Implementazione Death Event      |
-| **RFS4**     | Eventi di Gioco            | Implementazione Match-End        |
-| **RNF4**     | Estensibilità e Modularità | Refactor GameEngine              |
-| **RFS5**     | Entità di Gioco            | Generazione power-up             |
-| **RFS3**     | Confini e Ostacoli         | Implementazione mappa di gioco   |
+| ID Requisito | Requisito / Area              | Task Associato                   |
+| :----------- | :---------------------------- | :------------------------------- |
+| **RFS2**     | Gestione Multi-partita        | Multiplayer (server)             |
+|              | Bug Networking                | Fix errore disconnessione client |
+| **RFS4**     | Eventi di Gioco               | Implementazione Death Event      |
+| **RFS4**     | Eventi di Gioco               | Implementazione Match-End        |
+| **RNF4**     | Estensibilità e Modularità    | Refactor GameEngine              |
+| **RFS3**     | Confini e Ostacoli            | Implementazione mappa di gioco   |
+| **RFS8**     | (Opzionale) Entità di Gioco   | Generazione power-up             |
+|              | (Opzionale) Benchmarking core | Integrazione benchmark di update |
 
 | Task ID                            | Descrizione                                                                         | Assegnatario | SP Diotallevi | SP Martini | SP Torelli | SP Totali |  Stato  | Priorità |
 | :--------------------------------- | :---------------------------------------------------------------------------------- | :----------- | :-----------: | :--------: | :--------: | :-------: | :-----: | :------- |
 | _Multiplayer (server)_             | Implementazione della logica server-side per la gestione delle sessioni multiplayer | Martini      |       -       |     8      |     -      |   **8**   | `To-Do` | Alta     |
-| _Implementazione mappa di gioco_   | Creazione di mappe di gioco in base al numero di giocatori e world-builder          | Diotallevi   |       6       |     -      |     -      |   **6**   | `To-Do` | Alta     |
-| _Implementazione Death Event_      | Creazione e propagazione dell'evento di morte per le entità con cleanup             | Torelli      |       -       |     -      |     3      |   **3**   | `To-Do` | Normale  |
-| _Generazione power-up_             | Creazione del sistema di spawn per i power-up con relativi effetti temporanei       | Torelli      |       5       |     -      |     -      |   **5**   | `To-Do` | Normale  |
-| _Fix errore disconnessione client_ | Indagine e risoluzione dell'eccezione lanciata dal server alla disconnessione       | Martini      |       -       |     -      |     3      |   **3**   | `To-Do` | Alta     |
-| _Implementazione Match-End_        | Gestione condizione di fine partita (vittoria/limite tempo) e notifica ai client    | Torelli      |       -       |     -      |     3      |   **3**   | `To-Do` | Normale  |
 | _Refactor GameEngine_              | Riorganizzazione architetturale tramite WorldBuilder e parametri di contesto        | Diotallevi   |       3       |     -      |     -      |   **3**   | `To-Do` | Alta     |
-| **TOTALE SPRINT POINTS**           |                                                                                     |              |    **11**     |   **8**    |   **11**   |  **30**   |         |          |
+| _Implementazione mappa di gioco_   | Creazione di mappe di gioco in base al numero di giocatori e world-builder          | Diotallevi   |       6       |     -      |     -      |   **6**   | `To-Do` | Alta     |
+| _Implementazione Match-End_        | Gestione condizione di fine partita (vittoria/limite tempo) e notifica ai client    | Torelli      |       -       |     -      |     3      |   **3**   | `To-Do` | Alta     |
+| _Implementazione Death Event_      | Creazione e propagazione dell'evento di morte per le entità con cleanup             | Torelli      |       -       |     -      |     3      |   **3**   | `To-Do` | Normale  |
+| _Fix errore disconnessione client_ | Indagine e risoluzione dell'eccezione lanciata dal server alla disconnessione       | Martini      |       -       |     3      |     -      |   **3**   | `To-Do` | Normale  |
+| _Generazione power-up_             | Creazione del sistema di spawn per i power-up con relativi effetti temporanei       | Torelli      |       -       |     -      |     5      |   **5**   | `To-Do` | Bassa    |
+| **TOTALE SPRINT POINTS**           |                                                                                     |              |     **9**     |   **11**   |   **11**   |  **31**   |         |          |
 
 ## 💬 Note & Decisioni
 
