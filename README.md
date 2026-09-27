@@ -16,8 +16,9 @@ We are currently at the end of **Sprint 3**, meaning that we are still warming u
 
 To peek into the current state of the game, you can follow these steps:
 
-1. Download the latest release from the [releases page](https://github.com/aleToro7/PPS-26-Scala-Party/releases)
-2. Run the [jar file](scalaparty.jar) using:
+1. Download the [latest release](https://github.com/aleToro7/PPS-26-Scala-Party/releases)
+2. Download the latest [jar file](scalaparty.jar) from the releases page.
+3. Run the [jar file](scalaparty.jar) using:
    ```bash
    $ scala -jar scalaparty.jar
    ```
@@ -25,8 +26,8 @@ To peek into the current state of the game, you can follow these steps:
    ```bash
    $ java -jar scalaparty.jar
    ```
-3. Open your browser and navigate to [http://localhost:8081](http://localhost:8081) to verify the server is up and running. You should see a simple message saying that ScalaParty server is up and running.
-4. Head over to [http://localhost:8081/scalaparty](http://localhost:8081/scalaparty) to connect to the game.
+4. Open your browser and navigate to [http://localhost:8081](http://localhost:8081) to verify the server is up and running. You should see a simple message saying that ScalaParty server is up and running.
+5. Head over to [http://localhost:8081/scalaparty](http://localhost:8081/scalaparty) to connect to the game.
 
 > [!NOTE]
 > At this current version, you will be able to play the game **only in single-player mode**.
