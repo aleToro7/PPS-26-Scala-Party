@@ -13,10 +13,9 @@ data: 2026-09-17
 
 ## 🎯 Obiettivo dello Sprint
 
-Al termine del terzo Sprint, l'obiettivo è avere un server capace di gestire molteplici partite detenendo al contempo una giocatori in coda in attesa di una stanza libera.
+Al termine del terzo Sprint, l'obiettivo è avere un server capace di gestire molteplici partite detenendo al contempo una code di giocatori in attesa di una stanza libera.
 Lato model, invece, l'obiettivo è ulteriormente estendere la logica di gioco, con collisioni e sistemi di danno.
 Sinteticamente:
-
 - consentire più partite contemporaneamente (single player per il momento)
 - detenere una coda limitata di giocatori in attesa e rifiutare i nuovi
 - serializzazione e visualizzazione dello sparo
