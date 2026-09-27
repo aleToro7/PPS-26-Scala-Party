@@ -80,7 +80,7 @@ I requisiti utente descrivono tutte le possibili interazione dell'utente con il 
 ##### Requisiti Utente Obbligatori
 
 - **Accesso alla Piattaforma (RFU1):** L'utente deve potersi connettere al sistema di gioco tramite un comune browser web.
-- **Partecipazione alla Partita (RFU 2):** L'utente deve potersi unire a una sessione di gioco online, condividendo la sessione con un numero massimo di quattro partecipanti complessivi.
+- **Partecipazione alla Partita (RFU2):** L'utente deve potersi unire a una sessione di gioco online, condividendo la sessione con un numero massimo di quattro partecipanti complessivi.
 - **Controllo della Navicella (RFU3):** Durante la partita, l'utente deve poter ruotare la propria navicella spaziale in tempo reale, modificandone la direzione.
 - **Permanenza nell'Arena (RFU4):** L'utente deve avere pieno accesso alla visione dell'arena e di tutti gli elementi che ne fanno parte per l'intera durata della partita.
 - **Sparo (RFU5):** L'utente deve poter azionare il comando di sparo per rilasciare un proiettile nella direzione corrente della navicella da lui controllata.
