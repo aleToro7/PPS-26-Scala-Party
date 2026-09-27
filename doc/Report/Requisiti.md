@@ -106,7 +106,7 @@ I requisiti di sistema descrivono le risposte automatiche, le regole di simulazi
 
 ##### Requisiti Opzionali
 
-- **Generazione di Bonus:** Il sistema deve poter generare casualmente all'interno dell'arena elementi bonus temporanei, in grado di conferire vantaggi speciali alle navicelle che li raccolgono.
+- **Generazione di Bonus (RFS8):** Il sistema deve poter generare casualmente all'interno dell'arena elementi bonus temporanei, in grado di conferire vantaggi speciali alle navicelle che li raccolgono.
 
 ### Requisiti Non Funzionali
 
