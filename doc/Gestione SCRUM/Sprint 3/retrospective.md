@@ -28,16 +28,16 @@ data: 2026-09-25
 | _Serializzazione proiettile_                  | Modellazione del DTO e serializzazione JSON dei proiettili per trasmetterne lo stato ai client via WebSocket                    | Torelli      |       -       |     -      |    6/3     |  **6/3**  | `To-Do` | Alta     |
 | _Implementazione Collision System_            | Implementazione sistema di collisione per la risoluzione degli urti e la propagazione degli eventi di collisione                | Diotallevi   |     11/7      |     -      |     -      | **11/7**  | `To-Do` | Alta     |
 | _Scontri con l'Arena_                         | Applicazione della geometria per impedire alle entità di uscire dai bordi o attraversare i muri                                 | Diotallevi   |      3/3      |     -      |     -      |  **3/3**  | `To-Do` | Normale  |
-| _Limitare giocatori in coda_                  | Impostazione di un limite massimo di capienza per la lobby e gestione del rifiuto/notifica per i giocatori in eccesso           | Martini      |       -       |    3/3     |            |  **3/3**  | `To-Do` | Normale  |
+| _Limitare giocatori in coda_                  | Impostazione di un limite massimo di capienza per la lobby e gestione del rifiuto/notifica per i giocatori in eccesso           | Martini      |       -       |    3/3     |     -      |  **3/3**  | `To-Do` | Normale  |
 | _Implementazione della logica di vita_        | Implementazione del concetto di vita per le entità spaceship, con relativi danni subiti in caso di collisione con un proiettile | Torelli      |       -       |     -      |    5/5     |  **5/5**  | `To-Do` | Normale  |
-| _Implementazione mappa di gioco_              | Creazione di un sistema per definire mappe di gioco                                                                             | Torelli      |       -       |     -      | rimandato  | rimandato | `To-Do` | Bassa    |
+| _Implementazione mappa di gioco_              | Creazione di un sistema per definire mappe di gioco                                                                             | Torelli      |       -       |     -      |    4/6     |  **4/6**  | `To-Do` | Bassa    |
 | _Refactor game engine_                        | Riorganizzazione architetturale del motore per separare pipeline ed esecuzione, migliorando la modularità                       | Diotallevi   |   rimandato   |     -      |     -      | rimandato | `To-Do` | Bassa    |
-| **TOTALE SPRINT POINTS**                      |                                                                                                                                 |              |   **14/10**   | **11/11**  |  **11/8**  | **36/29** |         |          |
+| **TOTALE SPRINT POINTS**                      |                                                                                                                                 |              |   **14/10**   | **11/11**  | **16/13**  | **41/35** |         |          |
 
 ## 📊 Analisi del Workload e Metriche
 
 - **Alessandro Martini**: ha completato tutti i task assegnati perfettamente in linea con le stime iniziali.
-- **Alessandro Torelli**: ha impiegato più tempo del previsto sullo sviluppo della serializzazione del proiettile poiché ha integrato in esso anche un refactor del sistema di sparo. Tale variazione lo ha portato a non riuuscire a sviluppare la mappa di gioco.
+- **Alessandro Torelli**: ha impiegato più tempo del previsto sullo sviluppo della serializzazione del proiettile poiché ha integrato in esso anche un refactor del sistema di sparo. Tale variazione, aggiunta alla valutazione in una possibile implementazione della mappa di gioco in prolog ha fatto si che venisse implementata parzialmente la logica della mappa di gioco.
 - **Federico Diotallevi**: ha impiegato più tempo del previsto nel sistema di collisione a causa di un refactor del lavoro fatto nel precedente Sprint riguardo la geometria delle collisioni.
 
 ## 🔍 Sprint Retrospective
@@ -48,4 +48,4 @@ data: 2026-09-25
 
 ### 🔴 Cosa migliorare
 
-- Ci si è portati dietro la mala-suddivsione dei task del vecchio Sprint: per quanto riguarda le collisioni la suddivisione è stata poco agile,il lavoro è stato suddiviso parzialmente a cascata ed infatti ha necessitato subito una revsiione.
+- Ci si è portati dietro la mala-suddivsione dei task del vecchio Sprint: per quanto riguarda le collisioni la suddivisione è stata poco agile, il lavoro è stato suddiviso parzialmente a cascata ed infatti ha necessitato subito una revisione.
