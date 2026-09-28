@@ -35,7 +35,7 @@ object EntityAdapter:
       velocity <- components.collectFirstOfClass[MovementComponent].map(_.velocity)
       shape    <- components.collectFirstOfClass[ShapeComponent].map(_.shape)
       rotation = components.collectFirstOfClass[RotationComponent].map(_.angle) getOrElse 0.0
-      health   = components.collectFirstOfClass[HealthComponent]
+      health = components.collectFirstOfClass[HealthComponent]
     yield SpaceshipDto(
       entityId,
       position,
