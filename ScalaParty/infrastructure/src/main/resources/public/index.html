@@ -54,6 +54,7 @@
 <body>
   <div class="panel">
     <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <div id="identity" class="status"></div>
     <div id="status" class="status">Connecting to server...</div>
     <div id="debugLog" class="debug-log"></div>
   </div>
@@ -62,6 +63,7 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const statusEl = document.getElementById('status');
+    const identityEl = document.getElementById('identity');
     const debugLogEl = document.getElementById('debugLog');
 
     const SHIP_HEIGHT = 24;
@@ -86,12 +88,22 @@
       debugLogEl.scrollTop = debugLogEl.scrollHeight;
     }
 
-    let currentShip = {
-      position: { x: canvas.width / 2, y: canvas.height / 2 },
-      velocity: { x: 0, y: 0 },
-      angle: 0
-    };
+    // One color for each of the (up to four) players of a match, never the yellow of the bullets.
+    const PLAYER_COLORS = [
+      { name: 'red', hex: '#ff4f5e' },
+      { name: 'blue', hex: '#3d8bff' },
+      { name: 'green', hex: '#3ddc84' },
+      { name: 'violet', hex: '#b36bff' }
+    ];
+
+    let currentShips = [];
     let currentBullets = [];
+    // The entity this player controls in the current match, as told by the server when the match starts.
+    let myShipId = null;
+    // The color of every spaceship in the current match, chosen when its first state arrives.
+    let shipColors = new Map();
+    // Whether the server turned this player away, so that the closing connection is not reported as a failure.
+    let turnedAway = false;
 
     // The server tags every entity DTO with its case name (e.g. { Spaceship: {...} }, { Bullet: {...} }).
     function extractEntities(payload) {
@@ -102,18 +114,11 @@
           : [];
     }
 
-    function toShipState(ship, previous) {
-      const pos = ship.position ?? previous.position;
-      const vel = ship.velocity ?? { x: 0, y: 0 };
+    function toShipState(ship) {
+      const vel = ship.velocity ?? { x: 1, y: 0 };
       return {
-        position: {
-          x: Number(pos.x ?? previous.position.x),
-          y: Number(pos.y ?? previous.position.y)
-        },
-        velocity: {
-          x: Number(vel.x ?? previous.velocity.x),
-          y: Number(vel.y ?? previous.velocity.y)
-        },
+        id: ship.id,
+        position: toPosition(ship),
         angle: Math.atan2(Number(vel.y ?? 0), Number(vel.x ?? 1))
       };
     }
@@ -125,15 +130,74 @@
       };
     }
 
+    // Lobby notifications are tagged with their case name (e.g. { Queued: { playersAhead: 0 } }),
+    // unlike the match state, which is a plain { tick, entities } object.
+    // Returns whether the payload was one of them.
+    function handleServerMessage(message) {
+      if (message.Queued) {
+        const ahead = message.Queued.playersAhead;
+        statusEl.textContent = ahead === 0 ? 'Waiting: you are next' : `Waiting: ${ahead} player(s) ahead of you`;
+      } else if (message.QueueFull) {
+        turnedAway = true;
+        statusEl.textContent = 'The queue is full: try again later';
+      } else if (message.MatchStarted) {
+        myShipId = message.MatchStarted.you;
+        shipColors = new Map();
+        statusEl.textContent = `Match started with ${message.MatchStarted.players} player(s)`;
+      } else if (message.MatchEnded) {
+        myShipId = null;
+        shipColors = new Map();
+        showIdentity(null);
+        currentShips = [];
+        currentBullets = [];
+        statusEl.textContent = 'Match over';
+      } else {
+        return false;
+      }
+      return true;
+    }
+
+    // Every client of a match receives the same first state, holding the spaceships of all its players:
+    // coloring them in the order of their ids gives each player the same color in every client, which
+    // it keeps even when other players leave.
+    function assignShipColors(ships) {
+      if (shipColors.size > 0 || ships.length === 0) {
+        return;
+      }
+      [...ships]
+        .sort((a, b) => a.id - b.id)
+        .forEach((ship, index) => shipColors.set(ship.id, PLAYER_COLORS[index % PLAYER_COLORS.length]));
+      showIdentity(shipColors.get(myShipId) ?? null);
+    }
+
+    function colorOf(shipId) {
+      return shipColors.get(shipId) ?? PLAYER_COLORS[Math.abs(shipId) % PLAYER_COLORS.length];
+    }
+
+    // Tells the player which spaceship is its own, also in the tab title to tell the tabs apart.
+    function showIdentity(color) {
+      if (color) {
+        identityEl.textContent = `You are the ${color.name} spaceship`;
+        identityEl.style.color = color.hex;
+        document.title = `ScalaParty - ${color.name}`;
+      } else {
+        identityEl.textContent = '';
+        document.title = 'ScalaParty';
+      }
+    }
+
     function updateFromServer(rawMessage) {
       try {
         const payload = JSON.parse(rawMessage);
+        if (handleServerMessage(payload)) {
+          return;
+        }
         const entities = extractEntities(payload);
 
-        const shipEntry = entities.find(entry => entry && 'Spaceship' in entry);
-        if (shipEntry) {
-          currentShip = toShipState(shipEntry.Spaceship, currentShip);
-        }
+        currentShips = entities
+          .filter(entry => entry && 'Spaceship' in entry)
+          .map(entry => toShipState(entry.Spaceship));
+        assignShipColors(currentShips);
 
         currentBullets = entities
           .filter(entry => entry && 'Bullet' in entry)
@@ -143,7 +207,8 @@
       }
     }
 
-    function drawSpaceship(x, y, angle) {
+    // Each spaceship has the color of its player, the same in every client.
+    function drawSpaceship(x, y, angle, color) {
       ctx.save();
       ctx.translate(x, y);
       ctx.rotate(angle);
@@ -154,7 +219,7 @@
       ctx.lineTo(-SHIP_HEIGHT / 2, SHIP_BASE / 2);
       ctx.closePath();
 
-      ctx.fillStyle = '#00ffcc';
+      ctx.fillStyle = color.hex;
       ctx.fill();
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 1.5;
@@ -171,7 +236,7 @@
 
     function render() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      drawSpaceship(currentShip.position.x, currentShip.position.y, currentShip.angle);
+      currentShips.forEach(ship => drawSpaceship(ship.position.x, ship.position.y, ship.angle, colorOf(ship.id)));
       currentBullets.forEach(bullet => drawBullet(bullet.x, bullet.y));
     }
 
@@ -185,9 +250,11 @@
       appendLog('WebSocket connected');
     });
 
-    socket.addEventListener('close', () => {
-      statusEl.textContent = 'Disconnected from server';
-      appendLog('WebSocket disconnected');
+    socket.addEventListener('close', (event) => {
+      if (!turnedAway) {
+        statusEl.textContent = 'Disconnected from server';
+      }
+      appendLog(`WebSocket disconnected (code ${event.code})`);
     });
 
     socket.addEventListener('error', () => {
