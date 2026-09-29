@@ -1,6 +1,7 @@
 package com.unibo.scalaparty.core.ecs.systems
 
 import com.unibo.scalaparty.core.ecs.{GameEvent, GameWorld}
+import com.unibo.scalaparty.core.model.GameSettings
 
 /** Represents the output of a system update, consisting of the updated game world and the input game events along with any new game events generated.
  *
@@ -50,6 +51,26 @@ object SystemPipeline:
   def apply(systems: WorldSystem*): SystemPipeline = systems.toList
 
   private def apply(systems: List[WorldSystem]): SystemPipeline = systems
+
+  /** Creates a default system pipeline based on the provided game settings.
+   *
+   *  The default pipeline includes the following systems in order:
+   *  1. MovementSystem: Moves entities based on their velocity.
+   *  2. ArenaSystem: Checks for arena boundaries and handles entities that go out of bounds.
+   *  3. CollisionSystem: Checks for collisions between entities and generates collision events.
+   *  4. ShootingSystem: Processes shooting events and updates the state of projectiles.
+   *  5. DamageSystem: Applies damage to entities based on collision and shooting events.
+   *
+   *  @param settings the game settings used to configure the systems
+   *  @return a new system pipeline with the default systems
+   */
+  def default(settings: GameSettings): SystemPipeline =
+    MovementSystem // First, move entities based on their velocity
+      >> ArenaSystem(settings) // Then, check for arena boundaries
+      >> CollisionSystem // Next, check for collisions between entities
+      // The order of the following is not important
+      >> ShootingSystem
+      >> DamageSystem
 
   extension (pipeline: SystemPipeline)
 

@@ -12,7 +12,7 @@ This game is developed as a simple academic project for the _Paradigmi di Progra
 
 ## 🎮 How to Play (Current Status)
 
-We are currently at the end of **Sprint 1**, meaning the core infrastructure is laid out, but we are still warming up the engines!
+We are currently at the end of **Sprint 3**, meaning that we are still warming up the engines!
 
 To peek into the current state of the game, you can follow these steps:
 
@@ -30,10 +30,9 @@ To peek into the current state of the game, you can follow these steps:
 5. Head over to [http://localhost:8081/scalaparty](http://localhost:8081/scalaparty) to connect to the game.
 
 > [!NOTE]
-> At this current version, you will be able move your ship around the arena, but you won't be able to see other players or interact with them yet.
-> Any match will end after 60 and the next player in line will be able to start a new match.
-> It is not possible to play with more than one player or more than one match at the same time at this stage.
-> Multiplayer and multi-match support will be implemented in the upcoming sprints :)
+> At this current version, you will be able to play the game **only in single-player mode**.
+> The game is fully playable, but unfortunately you have no one to compete against yet :((
+> Multiplayer functionality will be hooked up in the upcoming (last) sprint!!
 
 ![ScalaParty Demo](./doc/img/demo.png)
 

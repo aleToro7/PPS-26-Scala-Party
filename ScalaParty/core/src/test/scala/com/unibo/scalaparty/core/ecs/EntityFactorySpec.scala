@@ -17,6 +17,20 @@ class EntityFactorySpec extends AnyFlatSpec:
       EntityTypeComponent(EntityType.Spaceship)
     )
 
+  it should "create a spaceship at full health and able to deal collision damage" in:
+    val maxHealth = 80.0
+    val collisionDamage = 15.0
+    val (_, components) = EntityFactory.createSpaceship(
+      position = Point2D.origin,
+      velocity = Vector2D.zero,
+      maxHealth = maxHealth,
+      collisionDamage = collisionDamage
+    )
+    components should contain allOf (
+      HealthComponent.full(maxHealth),
+      CollisionDamageComponent(collisionDamage)
+    )
+
   "EntityFactory" should "create a bullet entity with the correct components" in:
     val shooterId = EntityId.generate()
     val position = Point2D(15, 25)

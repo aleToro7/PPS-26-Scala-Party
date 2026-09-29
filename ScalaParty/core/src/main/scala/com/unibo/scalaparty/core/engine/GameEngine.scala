@@ -1,7 +1,8 @@
 package com.unibo.scalaparty.core.engine
 
 import com.unibo.scalaparty.core.dto.{toDto, EntityDto}
-import com.unibo.scalaparty.core.ecs.{EntityFactory, EntityId, GameEvent, GameWorld}
+import com.unibo.scalaparty.core.ecs.*
+import com.unibo.scalaparty.core.ecs.systems.*
 import com.unibo.scalaparty.core.engine.input.InputGateway
 import com.unibo.scalaparty.core.geometry.{Point2D, Vector2D}
 import com.unibo.scalaparty.core.model.GameCommand
@@ -17,24 +18,38 @@ trait GameEngine:
   def update(list: List[GameCommand], dt: Long): List[EntityDto]
 
 object GameEngine:
-
   /** Creates a new instance of the game engine based on the provided game configuration.
    *
    *  @param config the game configuration
    *  @return a new instance of GameEngine
    */
   def apply(config: GameConfig): GameEngine =
-    new SinglePlayerGameEngine(config)
+    GameEngine(config, SystemPipeline.default(config.settings))
 
-private class SinglePlayerGameEngine(config: GameConfig) extends GameEngine:
+  /** Creates a new instance of the game engine based on the provided game configuration and system pipeline.
+   *
+   *  @param config   the game configuration
+   *  @param pipeline the system pipeline to be used for updating the game world
+   *  @return a new instance of GameEngine
+   */
+  def apply(config: GameConfig, pipeline: SystemPipeline): GameEngine =
+    new SinglePlayerGameEngine(config, pipeline)
+
+private class SinglePlayerGameEngine(config: GameConfig, pipeline: SystemPipeline) extends GameEngine:
 
   private var world: GameWorld = initializeWorld(config)
 
   private def initializeWorld(config: GameConfig): GameWorld =
+    val arena = config.settings.arena
+    val spaceship = config.settings.spaceship
+
     val playerSpaceship = EntityFactory.createSpaceship(
+      position = Point2D.origin,
+      velocity = Vector2D(spaceship.speed, 0),
       entityId = config.players.head,
-      position = Point2D(config.worldWidth / 2, config.worldHeight / 2),
-      velocity = Vector2D(config.spaceshipSpeed, 0)
+      weapon = Weapon.fromSettings(config.settings.shooting),
+      maxHealth = spaceship.maxHealth,
+      collisionDamage = spaceship.collisionDamage
     )
     GameWorld(List(playerSpaceship))
 
@@ -42,7 +57,7 @@ private class SinglePlayerGameEngine(config: GameConfig) extends GameEngine:
     // Process player commands and update the world state
     world = InputGateway.processCommands(this.world, list)
     // Execute pipeline of systems
-    val (updatedWorld, _) = config.pipeline
+    val (updatedWorld, _) = pipeline
       .toList
       .foldLeft((world, Set.empty[GameEvent])):
         case ((currentWorld, events), system) => system.update(currentWorld, events, dt)

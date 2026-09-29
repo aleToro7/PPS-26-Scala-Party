@@ -1,16 +1,19 @@
 name: Release ScalaParty
 
 on:
-  push:
-    tags:
-      - 'v*.*.*'
+  pull_request:
+    branches:
+      - main
+    types:
+      - closed
 
 permissions:
   contents: write
 
 jobs:
   release:
-    name: Build & Release Fat JAR
+    name: Build & Release Executable JAR
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -19,28 +22,40 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK 21
         uses: actions/setup-java@v5
         with:
-          java-version: '21'
-          distribution: 'temurin'
-          cache: 'sbt'
-          cache-dependency-path: './ScalaParty/build.sbt'
+          java-version: "21"
+          distribution: "temurin"
+          cache: "sbt"
+          cache-dependency-path: "./ScalaParty/build.sbt"
 
       - name: Set up sbt
         uses: sbt/setup-sbt@v1
+
+      - name: Extract Version from sbt
+        id: extract_version
+        run: |
+          VERSION=$(sbt --error "print ThisBuild/version")
+          echo "RELEASE_VERSION=v$VERSION" >> $GITHUB_ENV
+          echo "Target Release Version: v$VERSION"
 
       - name: Run Unit Tests
         run: sbt test
 
       - name: Build Executable Assembly JAR
-        run: sbt assembly
+        run: sbt infrastructure/assembly
 
-      - name: Create GitHub Release
+      - name: Create Git Tag & GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: ScalaParty/target/scala-3.*/scalaparty-*.*.*.jar
+          tag_name: ${{ env.RELEASE_VERSION }}
+          name: Release ${{ env.RELEASE_VERSION }}
+          files: |
+            ScalaParty/infrastructure/target/scala-3.*/scalaparty-*.jar
           draft: false
           prerelease: false
           generate_release_notes: true

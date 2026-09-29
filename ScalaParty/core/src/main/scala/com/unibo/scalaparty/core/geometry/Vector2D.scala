@@ -23,6 +23,12 @@ final case class Vector2D(x: Double, y: Double):
   def -(other: Vector2D): Vector2D =
     Vector2D(this.x - other.x, this.y - other.y)
 
+  /** Negates this vector, effectively reversing its direction.
+   *  @return a new [[Vector2D]] pointing in the opposite direction
+   */
+  def unary_- : Vector2D =
+    Vector2D(-this.x, -this.y)
+
   /** Multiplies this vector by a scalar value.
    *
    *  @param scalar the scaling factor

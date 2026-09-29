@@ -4,6 +4,8 @@ import java.util.concurrent.atomic.AtomicLong
 
 import scala.reflect.ClassTag
 
+import com.unibo.scalaparty.core.utils.collectFirstOfClass
+
 type EntityWithComponents = (EntityId, List[Component])
 
 opaque type WorldId = Long
@@ -78,6 +80,15 @@ trait GameWorld:
    */
   def findComponents(entityId: EntityId): Option[List[Component]]
 
+  /** Retrieves the first component of the specified class associated with the given [[EntityId]].
+   *
+   *  @param entityId the unique identifier of the entity whose component is to be retrieved
+   *  @tparam C the type of the component
+   *  @return an option containing the component of type C if it exists, or None if it does not
+   */
+  def findComponent[C <: Component: ClassTag](entityId: EntityId): Option[C] =
+    findComponents(entityId).getOrElse(Nil).collectFirstOfClass[C]
+
   /** Retrieves the list of entities that have a component of the specified class.
    *
    *  @tparam C the type of the component
@@ -115,8 +126,7 @@ private class GameWorldImpl(private val entityMap: Map[EntityId, List[Component]
   override val entities: List[EntityId] = entityMap.keys.toList
 
   /** @inheritdoc */
-  override def addEntity(entity: EntityWithComponents): GameWorld =
-    new GameWorldImpl(entityMap + entity)
+  override def addEntity(entity: EntityWithComponents): GameWorld = new GameWorldImpl(entityMap + entity)
 
   /** @inheritdoc */
   override def removeEntity(entityId: EntityId): GameWorld =
@@ -133,11 +143,10 @@ private class GameWorldImpl(private val entityMap: Map[EntityId, List[Component]
       .toList
 
   /** @inheritdoc */
-  override def updateComponent[C <: Component: ClassTag](entityId: EntityId, newComponent: C): GameWorld = {
+  override def updateComponent[C <: Component: ClassTag](entityId: EntityId, newComponent: C): GameWorld =
     val componentClass = implicitly[ClassTag[C]].runtimeClass
     entityMap.get(entityId) match
       case Some(components) =>
         val updatedComponents = newComponent +: components.filterNot(componentClass isInstance _)
         addEntity(entityId, updatedComponents)
       case None => this
-  }
