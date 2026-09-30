@@ -134,7 +134,8 @@
     });
 
     function processInput() {
-        if (socket.readyState !== WebSocket.OPEN) return;
+        // A dead spaceship can no longer be controlled
+        if (socket.readyState !== WebSocket.OPEN || !currentShip.alive) return;
 
         if (activeKeys.has('r')) {
             sendCommand({Rotate: {angle: 2.0}});
