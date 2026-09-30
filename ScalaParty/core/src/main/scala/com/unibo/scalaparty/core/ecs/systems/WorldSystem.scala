@@ -69,7 +69,7 @@ object SystemPipeline:
     MovementSystem // First, move entities based on their velocity
       >> ArenaSystem(settings) // Then, check for arena boundaries
       >> CollisionSystem // Next, check for collisions between entities
-      // The order of the following is not important
+      // The order of the following two is not important
       >> ShootingSystem
       >> DamageSystem
       >> DeathSystem // Finally, remove the entities destroyed by the damage applied in this tick
