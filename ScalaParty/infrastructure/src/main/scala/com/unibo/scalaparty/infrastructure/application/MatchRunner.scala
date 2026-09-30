@@ -22,7 +22,7 @@ case class MatchSession(
 /** Authoritative loop of a single match: drains the buffered inputs, advances the engine by one
  *  tick and broadcasts the resulting state, over and over.
  *
- *  The stream is finite. There being no win condition in the game yet (no collisions, no health),
+ *  The stream is finite. There being no win condition in the game yet (a dead player's match goes on),
  *  a match simply lasts [[duration]] and then ends, which is what lets the waiting queue move on.
  */
 class MatchRunner(
