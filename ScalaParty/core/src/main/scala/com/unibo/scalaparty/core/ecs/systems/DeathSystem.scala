@@ -11,5 +11,5 @@ object DeathSystem extends WorldSystem:
 
   /** @inheritdoc */
   override def update(world: GameWorld, events: Set[GameEvent], dt: Long): SystemOutput =
-    val destroyed = world.entities.filter(world.findComponent[HealthComponent](_).exists(_.current == 0.0))
+    val destroyed = world.entities.filter(world.findComponent[HealthComponent](_).exists(_.isDepleted))
     (destroyed.foldLeft(world)(_ - _), events ++ destroyed.map(GameEvent.Death(_)))
