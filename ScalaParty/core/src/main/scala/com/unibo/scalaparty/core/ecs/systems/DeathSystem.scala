@@ -4,8 +4,8 @@ import com.unibo.scalaparty.core.ecs.*
 
 /** A system responsible for removing the entities whose health has been depleted.
  *
- *  Every removed entity produces a [[GameEvent.Death]] event, so that subsequent systems and the engine can react to
- *  it. Entities without health are never removed. Received events are forwarded untouched.
+ *  Every removed entity produces a [[GameEvent.Death]] event, so that subsequent systems can react to it.
+ *  Entities without health are never removed. Received events are forwarded untouched.
  */
 object DeathSystem extends WorldSystem:
 
