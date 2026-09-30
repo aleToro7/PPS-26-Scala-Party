@@ -43,6 +43,11 @@ class DeathSystemSpec extends AnyFlatSpec with Matchers:
 
     updatedWorld.entities should contain theSameElementsAs List(otherShipId, bulletId)
 
+  it should "never remove the entities without health" in:
+    val (updatedWorld, _) = updateWorld(world.withHealth(shipId, 0.0))
+
+    updatedWorld.entities should contain(bulletId)
+
   it should "notify the death of every removed entity" in:
     val (_, events) = updateWorld(world.withHealth(shipId, 0.0).withHealth(otherShipId, 0.0))
 
