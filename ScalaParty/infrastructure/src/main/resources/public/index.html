@@ -111,7 +111,8 @@
         velocity: {x: 0, y: 0},
         angle: 0,
         health: 100,
-        maxHealth: 100
+        maxHealth: 100,
+        alive: true
     };
 
     let currentBullets = [];
@@ -173,7 +174,8 @@
             },
             angle: Math.atan2(Number(vel.y ?? 0), Number(vel.x ?? 1)),
             health: Number(ship.health ?? previous.health),
-            maxHealth: Number(ship.maxHealth ?? previous.maxHealth)
+            maxHealth: Number(ship.maxHealth ?? previous.maxHealth),
+            alive: true
         };
     }
 
@@ -233,6 +235,7 @@
             // Clear the array without reallocating memory
             currentBullets.length = 0;
             const currentBulletIds = new Set();
+            let shipInState = false;
 
             for (let i = 0; i < entities.length; i++) {
                 const entry = entities[i];
@@ -240,6 +243,7 @@
 
                 if ('Spaceship' in entry) {
                     currentShip = toShipState(entry.Spaceship, currentShip);
+                    shipInState = true;
                     updateUI();
                 } else if ('Bullet' in entry) {
                     const bulletData = entry.Bullet;
@@ -258,6 +262,13 @@
             }
 
             knownBulletIds = currentBulletIds;
+
+            // The server removes a spaceship in the same update that depletes its health,
+            // so a spaceship missing from the state is a dead one
+            if (!shipInState && currentShip.alive) {
+                currentShip = {...currentShip, health: 0, alive: false};
+                updateUI();
+            }
         } catch (error) {
             console.error('Invalid server payload', error);
         }
@@ -331,7 +342,9 @@
         ctx.save();
         ctx.translate(canvas.width / 2, canvas.height / 2);
 
-        drawSpaceship(currentShip.position.x, currentShip.position.y, currentShip.angle);
+        if (currentShip.alive) {
+            drawSpaceship(currentShip.position.x, currentShip.position.y, currentShip.angle);
+        }
         currentBullets.forEach(bullet => drawBullet(bullet.x, bullet.y));
         updateAndDrawParticles();
 
