@@ -150,12 +150,13 @@
 
     // -------------------------------
 
+    // Lobby notifications share the socket with the match states: only the latter carry the entities
     function extractEntities(payload) {
         return Array.isArray(payload)
             ? payload
             : Array.isArray(payload?.entities)
                 ? payload.entities
-                : [];
+                : null;
     }
 
     function toShipState(ship, previous) {
@@ -227,6 +228,7 @@
         try {
             const payload = JSON.parse(rawMessage);
             const entities = extractEntities(payload);
+            if (entities === null) return;
 
             // Clear the array without reallocating memory
             currentBullets.length = 0;
