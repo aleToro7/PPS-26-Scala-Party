@@ -80,6 +80,10 @@ final class QueuedLobbyManager[F[_]: Sync] private (
   def activeMatches: F[Set[ActiveMatch]] =
     state.get.map(_.active.values.toSet)
 
+  /** The players still taking part in the given match, none if it is not being played. */
+  def playersOf(matchId: MatchId): F[Set[PlayerId]] =
+    state.get.map(_.active.get(matchId).fold(Set.empty)(_.players))
+
   /** The players waiting for their turn, in the order they will be served. */
   def waitingPlayers: F[Vector[PlayerId]] =
     state.get.map(_.queue)

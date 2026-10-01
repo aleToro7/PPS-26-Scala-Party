@@ -84,12 +84,14 @@ class MatchCoordinator(
    *  @return an effect completing when the match fiber is spawned
    */
   private def startMatch(activeMatch: ActiveMatch): IO[Unit] =
+    // Chosen before the match is announced, so that each player is told which ship is its own.
+    val mapping = activeMatch.players.map(_ -> EntityId.generate()).toMap
     for
-      _          <- admit(activeMatch)
+      _          <- admit(activeMatch, mapping)
       registered <- Deferred[IO, Unit]
       // The match waits for its fiber to be recorded: were it to end first, its cleanup would find
       // nothing to forget and the finished fiber would be recorded afterwards, never to be removed.
-      fiber <- (registered.get *> play(activeMatch)).start
+      fiber <- (registered.get *> play(activeMatch, mapping)).start
       _     <- running.update(_ + (activeMatch.matchId -> fiber))
       // Its last player may have left while it was being started: that leave found no fiber to stop,
       // so the match would tick for its whole duration with nobody in it. Any leave coming later
@@ -98,24 +100,26 @@ class MatchCoordinator(
       _           <- if stillActive then registered.complete(()).void else stop(activeMatch.matchId)
     yield ()
 
-  /** Assigns each player in the match to the connection registry and notifies them that the match has started.
+  /** Assigns each player in the match to the connection registry and notifies them that the match has
+   *  started, telling each one the entity it controls.
    *
    *  @param activeMatch the active match being populated
+   *  @param mapping     the entity each player of the match controls
    *  @return an effect completing when all players are admitted
    */
-  private def admit(activeMatch: ActiveMatch): IO[Unit] =
+  private def admit(activeMatch: ActiveMatch, mapping: PlayerEntityMapping): IO[Unit] =
     activeMatch.players.toList.traverse_ { playerId =>
       registry.assignToMatch(playerId, activeMatch.matchId) *>
-        notifier.send(playerId, ServerMessage.MatchStarted(activeMatch.players.size))
+        notifier.send(playerId, ServerMessage.MatchStarted(activeMatch.players.size, mapping(playerId)))
     }
 
   /** Runs the match to completion, then hands the room over to the next group of players.
    *
    *  @param activeMatch the active match to run
+   *  @param mapping     the entity each player of the match controls
    *  @return an effect completing when the match finishes and cleanup concludes
    */
-  private def play(activeMatch: ActiveMatch): IO[Unit] =
-    val mapping = activeMatch.players.map(_ -> EntityId.generate()).toMap
+  private def play(activeMatch: ActiveMatch, mapping: PlayerEntityMapping): IO[Unit] =
     val session = MatchSession(activeMatch.matchId, mapping, GameWorld(Map.empty))
     val engine = GameEngine(
       GameConfig(
@@ -123,7 +127,8 @@ class MatchCoordinator(
         settings = settings
       )
     )
-    val runner = new MatchRunner(session, commands, engine, publisher, matchDuration)
+    val roster = lobby.playersOf(activeMatch.matchId)
+    val runner = new MatchRunner(session, commands, engine, publisher, roster, matchDuration)
     runner.run.compile.drain *> concludeMatch(activeMatch)
 
   /** Releases the players of a finished match and lets the next one in.

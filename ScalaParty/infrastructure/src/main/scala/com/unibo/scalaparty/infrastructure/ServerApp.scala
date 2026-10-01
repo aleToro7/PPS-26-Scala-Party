@@ -21,19 +21,14 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
 object ServerApp extends IOApp.Simple:
   private val gameRoute = "scalaparty"
 
-  /** How many players a match is played by.
-   *
-   *  Kept at one on purpose: the only engine available is `SinglePlayerGameEngine`, which spawns a
-   *  spaceship for `config.players.head` alone. Raising this would put several players in the same
-   *  match while only the first of them gets a ship to fly.
-   */
-  private val PlayersPerMatch = 1
+  /** How many players a match is played by: a match begins as soon as that many are waiting. */
+  private val PlayersPerMatch = 2
 
   /** How many matches the server plays at the same time; whoever arrives beyond them waits in the queue. */
   private val MaxConcurrentMatches = 2
 
   /** How many players can wait for a free room at the same time; whoever arrives beyond them is turned away. */
-  private val MaxQueuedPlayers = 1
+  private val MaxQueuedPlayers = PlayersPerMatch
 
   private val baseRoute: HttpRoutes[IO] = HttpRoutes.of[IO]:
     case request @ GET -> Root / `gameRoute` =>
@@ -44,7 +39,7 @@ object ServerApp extends IOApp.Simple:
     case GET -> Root =>
       Ok("Scala Party Server is up and running!")
 
-  def httpApp(wsb: WebSocketBuilder2[IO], wsServer: WebSocketServer) = Router(
+  private def httpApp(wsb: WebSocketBuilder2[IO], wsServer: WebSocketServer) = Router(
     "/" -> baseRoute,
     s"/$gameRoute" -> wsServer.routes(wsb)
   ).orNotFound

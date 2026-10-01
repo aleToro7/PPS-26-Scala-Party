@@ -242,6 +242,30 @@ class QueuedLobbyManagerSpec extends AsyncWordSpec with AsyncIOSpec with Matcher
         matches.map(_.matchId) should contain(matchIdOf(secondJoins))
         matches.map(_.players) shouldBe Set(Set(second), Set(waiting))
 
+  "playersOf".should:
+    "report the players taking part in a match".in:
+      val players = List.fill(2)(PlayerId.random())
+      for
+        lobby   <- QueuedLobbyManager.of[IO](minPlayers = 2, maxPlayers = 2)
+        joins   <- players.traverse(lobby.join)
+        playing <- lobby.playersOf(matchIdOf(joins.last))
+      yield playing shouldBe players.toSet
+
+    "stop reporting a player who left the match".in:
+      val players @ List(quitting, staying) = List.fill(2)(PlayerId.random()): @unchecked
+      for
+        lobby   <- QueuedLobbyManager.of[IO](minPlayers = 2, maxPlayers = 2)
+        joins   <- players.traverse(lobby.join)
+        _       <- lobby.leave(quitting)
+        playing <- lobby.playersOf(matchIdOf(joins.last))
+      yield playing shouldBe Set(staying)
+
+    "report nobody for a match that is not being played".in:
+      for
+        lobby   <- QueuedLobbyManager.of[IO]()
+        playing <- lobby.playersOf(MatchId.random())
+      yield playing shouldBe empty
+
   "leave".should:
     "drop a waiting player and move the others up".in:
       val playing = PlayerId.random()
