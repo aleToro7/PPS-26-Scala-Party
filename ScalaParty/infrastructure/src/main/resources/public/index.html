@@ -87,6 +87,7 @@
     <canvas id="gameCanvas" width="800" height="800"></canvas>
 
     <!-- Status Layer -->
+    <div id="identity" class="status"></div>
     <div id="status" class="status">Connecting to server...</div>
 </div>
 
@@ -94,6 +95,7 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const statusEl = document.getElementById('status');
+    const identityEl = document.getElementById('identity');
     const healthBarFill = document.getElementById('healthBarFill');
     const healthText = document.getElementById('healthText');
 
@@ -106,14 +108,21 @@
     const port = window.location.port || '8081';
     const socket = new WebSocket(`${protocol}://${host}:${port}/scalaparty/ws`);
 
-    let currentShip = {
-        position: {x: 0, y: 0},
-        velocity: {x: 0, y: 0},
-        angle: 0,
-        health: 100,
-        maxHealth: 100,
-        alive: true
-    };
+    // One color for each of the (up to four) players of a match.
+    const PLAYER_COLORS = [
+        {name: 'cyan', hex: '#00ffcc'},
+        {name: 'blue', hex: '#3d8bff'},
+        {name: 'green', hex: '#3ddc84'},
+        {name: 'violet', hex: '#b36bff'}
+    ];
+
+    let currentShips = [];
+    // The entity this player controls in the current match, as told by the server when the match starts.
+    let myShipId = null;
+    // The color of every spaceship in the current match, chosen when its first state arrives.
+    let shipColors = new Map();
+    // Whether the server turned this player away, so that the closing connection is not reported as a failure.
+    let turnedAway = false;
 
     let currentBullets = [];
     let knownBulletIds = new Set();
@@ -135,7 +144,7 @@
 
     function processInput() {
         // A dead spaceship can no longer be controlled
-        if (socket.readyState !== WebSocket.OPEN || !currentShip.alive) return;
+        if (socket.readyState !== WebSocket.OPEN || !findMyShip()) return;
 
         if (activeKeys.has('r')) {
             sendCommand({Rotate: {angle: 2.0}});
@@ -161,22 +170,14 @@
                 : null;
     }
 
-    function toShipState(ship, previous) {
-        const pos = ship.position ?? previous.position;
-        const vel = ship.velocity ?? {x: 0, y: 0};
+    function toShipState(ship) {
+        const vel = ship.velocity ?? {x: 1, y: 0};
         return {
-            position: {
-                x: Number(pos.x ?? previous.position.x),
-                y: Number(pos.y ?? previous.position.y)
-            },
-            velocity: {
-                x: Number(vel.x ?? previous.velocity.x),
-                y: Number(vel.y ?? previous.velocity.y)
-            },
+            id: ship.id,
+            position: toPosition(ship),
             angle: Math.atan2(Number(vel.y ?? 0), Number(vel.x ?? 1)),
-            health: Number(ship.health ?? previous.health),
-            maxHealth: Number(ship.maxHealth ?? previous.maxHealth),
-            alive: true
+            health: Number(ship.health ?? 100),
+            maxHealth: Number(ship.maxHealth ?? 100)
         };
     }
 
@@ -201,17 +202,85 @@
         }
     }
 
+    // Lobby notifications are tagged with their case name (e.g. { Queued: { playersAhead: 0 } }),
+    // unlike the match state, which is a plain { tick, entities } object.
+    // Returns whether the payload was one of them.
+    function handleServerMessage(message) {
+        if (message.Queued) {
+            const ahead = message.Queued.playersAhead;
+            statusEl.textContent = ahead === 0 ? 'Waiting: you are next' : `Waiting: ${ahead} player(s) ahead of you`;
+        } else if (message.QueueFull) {
+            turnedAway = true;
+            statusEl.textContent = 'The queue is full: try again later';
+        } else if (message.MatchStarted) {
+            myShipId = message.MatchStarted.you;
+            shipColors = new Map();
+            statusEl.textContent = `Match started with ${message.MatchStarted.players} player(s)`;
+        } else if (message.MatchEnded) {
+            myShipId = null;
+            shipColors = new Map();
+            showIdentity(null);
+            currentShips = [];
+            currentBullets.length = 0;
+            statusEl.textContent = 'Match over';
+        } else {
+            return false;
+        }
+        return true;
+    }
+
+    // Every client of a match receives the same first state, holding the spaceships of all its players:
+    // coloring them in the order of their ids gives each player the same color in every client, which
+    // it keeps even when other players leave.
+    function assignShipColors(ships) {
+        if (shipColors.size > 0 || ships.length === 0) {
+            return;
+        }
+        [...ships]
+            .sort((a, b) => a.id - b.id)
+            .forEach((ship, index) => shipColors.set(ship.id, PLAYER_COLORS[index % PLAYER_COLORS.length]));
+        showIdentity(shipColors.get(myShipId) ?? null);
+    }
+
+    function colorOf(shipId) {
+        return shipColors.get(shipId) ?? PLAYER_COLORS[Math.abs(shipId) % PLAYER_COLORS.length];
+    }
+
+    // Tells the player which spaceship is its own, also in the tab title to tell the tabs apart.
+    function showIdentity(color) {
+        if (color) {
+            identityEl.textContent = `You are the ${color.name} spaceship`;
+            identityEl.style.color = color.hex;
+            document.title = `ScalaParty - ${color.name}`;
+        } else {
+            identityEl.textContent = '';
+            document.title = 'ScalaParty';
+        }
+    }
+
+    // The server removes a spaceship in the same update that depletes its health,
+    // so the spaceship of this player missing from the match state is a dead one
+    function findMyShip() {
+        return currentShips.find(ship => ship.id === myShipId);
+    }
+
     // Track the last known health to prevent unnecessary DOM updates
     let lastRenderedHealth = -1;
+    // Kept to still show the maximum health once the spaceship of this player is dead
+    let lastMaxHealth = 100;
 
+    // The health bar shows the spaceship of this player only, emptied once it dies.
     function updateUI() {
-        const hp = currentShip.health;
+        if (myShipId === null) return;
+        const myShip = findMyShip();
+        const hp = myShip ? myShip.health : 0;
 
         // Skip DOM manipulation if health hasn't changed
         if (hp === lastRenderedHealth) return;
         lastRenderedHealth = hp;
 
-        const maxHp = currentShip.maxHealth;
+        const maxHp = myShip ? myShip.maxHealth : lastMaxHealth;
+        lastMaxHealth = maxHp;
         const safeMax = maxHp > 0 ? maxHp : 1;
         const percentage = Math.max(0, Math.min(100, (hp / safeMax) * 100));
 
@@ -230,22 +299,23 @@
     function updateFromServer(rawMessage) {
         try {
             const payload = JSON.parse(rawMessage);
+            if (handleServerMessage(payload)) {
+                return;
+            }
             const entities = extractEntities(payload);
             if (entities === null) return;
 
-            // Clear the array without reallocating memory
+            // Clear the arrays without reallocating memory
+            currentShips.length = 0;
             currentBullets.length = 0;
             const currentBulletIds = new Set();
-            let shipInState = false;
 
             for (let i = 0; i < entities.length; i++) {
                 const entry = entities[i];
                 if (!entry) continue;
 
                 if ('Spaceship' in entry) {
-                    currentShip = toShipState(entry.Spaceship, currentShip);
-                    shipInState = true;
-                    updateUI();
+                    currentShips.push(toShipState(entry.Spaceship));
                 } else if ('Bullet' in entry) {
                     const bulletData = entry.Bullet;
                     const pos = toPosition(bulletData);
@@ -263,19 +333,15 @@
             }
 
             knownBulletIds = currentBulletIds;
-
-            // The server removes a spaceship in the same update that depletes its health,
-            // so a spaceship missing from the state is a dead one
-            if (!shipInState && currentShip.alive) {
-                currentShip = {...currentShip, health: 0, alive: false};
-                updateUI();
-            }
+            assignShipColors(currentShips);
+            updateUI();
         } catch (error) {
             console.error('Invalid server payload', error);
         }
     }
 
-    function drawSpaceship(x, y, angle) {
+    // Each spaceship has the color of its player, the same in every client.
+    function drawSpaceship(x, y, angle, color) {
         ctx.save();
         ctx.translate(x, y);
         ctx.rotate(angle);
@@ -286,7 +352,7 @@
         ctx.lineTo(-SHIP_HEIGHT / 2, SHIP_BASE / 2);
         ctx.closePath();
 
-        ctx.fillStyle = '#00ffcc';
+        ctx.fillStyle = color.hex;
         ctx.fill();
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 1.5;
@@ -343,9 +409,7 @@
         ctx.save();
         ctx.translate(canvas.width / 2, canvas.height / 2);
 
-        if (currentShip.alive) {
-            drawSpaceship(currentShip.position.x, currentShip.position.y, currentShip.angle);
-        }
+        currentShips.forEach(ship => drawSpaceship(ship.position.x, ship.position.y, ship.angle, colorOf(ship.id)));
         currentBullets.forEach(bullet => drawBullet(bullet.x, bullet.y));
         updateAndDrawParticles();
 
@@ -363,7 +427,9 @@
     });
 
     socket.addEventListener('close', () => {
-        statusEl.textContent = 'Disconnected from server';
+        if (!turnedAway) {
+            statusEl.textContent = 'Disconnected from server';
+        }
     });
 
     socket.addEventListener('message', (event) => {
