@@ -6,7 +6,7 @@ import cats.effect.{Deferred, IO, Ref}
 import cats.effect.std.Queue
 import cats.effect.testing.scalatest.AsyncIOSpec
 import cats.syntax.all.*
-import com.unibo.scalaparty.core.model.{GameEvent, GameSettings, MatchSettings, MatchState}
+import com.unibo.scalaparty.core.model.{GameEvent, GameSettings, MatchOutcome, MatchSettings, MatchState}
 import com.unibo.scalaparty.infrastructure.model.{Admission, MatchId, PlayerId, ServerMessage}
 import com.unibo.scalaparty.infrastructure.network.ConnectionRegistry
 import com.unibo.scalaparty.infrastructure.ports.{MatchEventPublisher, PlayerNotifier}
@@ -159,13 +159,14 @@ class MatchCoordinatorSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
         next <- eventually(f.lobby.activeMatches)(_.exists(_.players == Set(waiting)))
       yield next.map(_.players) shouldBe Set(Set(waiting))
 
-    "tell the players of the finished match that it is over".in:
+    "tell the players of the finished match how it ended".in:
       val playing = PlayerId.random()
+      val timeUp = ServerMessage.MatchEnded(MatchOutcome.TimeUp)
       for
         f        <- fixture()
         _        <- f.join(playing)
-        messages <- eventually(f.notifier.messagesFor(playing))(_.contains(ServerMessage.MatchEnded))
-      yield messages should contain(ServerMessage.MatchEnded)
+        messages <- eventually(f.notifier.messagesFor(playing))(_.contains(timeUp))
+      yield messages should contain(timeUp)
 
     "leave the arena free when nobody else is waiting".in:
       val playing = PlayerId.random()
