@@ -14,8 +14,18 @@ enum EntityDto:
    *  @param velocity the current movement vector representing the speed and direction of the spaceship
    *  @param shape the geometric shape of the spaceship
    *  @param rotation the current rotation angle of the spaceship
+   *  @param health the remaining health points
+   *  @param maxHealth the maximum health points
    */
-  case Spaceship(id: EntityId, position: Point2D, velocity: Vector2D, shape: Shape, rotation: Double)
+  case Spaceship(
+      id: EntityId,
+      position: Point2D,
+      velocity: Vector2D,
+      shape: Shape,
+      rotation: Double,
+      health: Double = 100.0,
+      maxHealth: Double = 100.0
+  )
 
   /** Represents a bullet fired by a spaceship.
    *

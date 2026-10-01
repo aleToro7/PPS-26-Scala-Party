@@ -44,17 +44,15 @@ private class SinglePlayerGameEngine(config: GameConfig, pipeline: SystemPipelin
     val spaceship = config.settings.spaceship
     val spawns = SinglePlayerGameEngine.spawnPoints(config.players.size, config.settings.arena)
 
-    GameWorld(config.players.zip(spawns).map { case (playerId, (position, heading)) =>
-      EntityFactory.createSpaceship(
-        position = position,
-        velocity = Vector2D(spaceship.speed, 0).rotated(heading),
-        entityId = playerId,
-        weapon = Weapon.fromSettings(config.settings.shooting),
-        maxHealth = spaceship.maxHealth,
-        collisionDamage = spaceship.collisionDamage,
-        rotation = heading
-      )
-    })
+    val playerSpaceship = EntityFactory.createSpaceship(
+      position = Point2D.origin,
+      velocity = Vector2D(spaceship.speed, 0),
+      entityId = config.players.head,
+      weapon = Weapon.fromSettings(config.settings.shooting),
+      maxHealth = spaceship.maxHealth,
+      collisionDamage = spaceship.collisionDamage
+    )
+    GameWorld(List(playerSpaceship))
 
   override def update(list: List[GameCommand], dt: Long): List[EntityDto] =
     // Process player commands and update the world state

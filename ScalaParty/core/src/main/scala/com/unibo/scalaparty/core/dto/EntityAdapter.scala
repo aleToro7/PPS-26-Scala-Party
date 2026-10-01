@@ -35,7 +35,16 @@ object EntityAdapter:
       velocity <- components.collectFirstOfClass[MovementComponent].map(_.velocity)
       shape    <- components.collectFirstOfClass[ShapeComponent].map(_.shape)
       rotation = components.collectFirstOfClass[RotationComponent].map(_.angle) getOrElse 0.0
-    yield SpaceshipDto(entityId, position, velocity, shape, rotation)
+      health = components.collectFirstOfClass[HealthComponent]
+    yield SpaceshipDto(
+      entityId,
+      position,
+      velocity,
+      shape,
+      rotation,
+      health.map(_.current).getOrElse(100.0),
+      health.map(_.max).getOrElse(100.0)
+    )
 
 extension (e: EntityWithComponents)
   /** Converts the entity ID and its associated components to an EntityDto based on the specified entity type.

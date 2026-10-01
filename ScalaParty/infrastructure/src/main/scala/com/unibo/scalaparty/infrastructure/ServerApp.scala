@@ -29,7 +29,7 @@ object ServerApp extends IOApp.Simple:
   private val MaxQueuedPlayers = PlayersPerMatch
 
   private val baseRoute: HttpRoutes[IO] = HttpRoutes.of[IO]:
-    case request @ GET -> Root / gameRoute =>
+    case request @ GET -> Root / `gameRoute` =>
       StaticFile
         .fromResource("/public/index.html", Some(request))
         .getOrElseF(NotFound())
