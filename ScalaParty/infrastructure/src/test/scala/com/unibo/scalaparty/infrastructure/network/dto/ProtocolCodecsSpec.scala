@@ -4,7 +4,8 @@ import com.unibo.scalaparty.core.dto.EntityDto
 import com.unibo.scalaparty.core.ecs.EntityId
 import com.unibo.scalaparty.core.geometry.{Point2D, Vector2D}
 import com.unibo.scalaparty.core.geometry.Shape.AABB
-import com.unibo.scalaparty.core.model.MatchState
+import com.unibo.scalaparty.core.model.{MatchOutcome, MatchState}
+import com.unibo.scalaparty.infrastructure.model.ServerMessage
 import com.unibo.scalaparty.infrastructure.network.dto.ProtocolCodecs.given
 import io.circe.syntax.*
 import org.scalatest.matchers.should.Matchers
@@ -54,3 +55,8 @@ class ProtocolCodecsSpec extends AnyWordSpec with Matchers:
 
       json should include(""""Spaceship":{"id":1""")
       json should include(""""Bullet":{"id":2""")
+
+    "tell clients why a match ended" in:
+      val ended: ServerMessage = ServerMessage.MatchEnded(MatchOutcome.TimeUp)
+
+      ended.asJson.noSpaces shouldEqual """{"MatchEnded":{"outcome":{"TimeUp":{}}}}"""
