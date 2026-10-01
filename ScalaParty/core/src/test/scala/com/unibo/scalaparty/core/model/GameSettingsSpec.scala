@@ -16,7 +16,7 @@ class GameSettingsSpec extends AnyWordSpec with Matchers:
       settings.arena shouldBe ArenaSettings()
       settings.spaceship shouldBe SpaceshipSettings()
       settings.shooting shouldBe ShootingSettings()
-      settings.matchRules shouldBe MatchSettings()
+      settings.matchSettings shouldBe MatchSettings()
 
     "compose custom configurations accurately" in:
       val customArena = ArenaSettings(width = 1920, height = 1080)
@@ -29,7 +29,7 @@ class GameSettingsSpec extends AnyWordSpec with Matchers:
       custom.arena shouldBe customArena
       custom.spaceship shouldBe customSpaceship
       custom.shooting shouldBe customShooting
-      custom.matchRules shouldBe customMatch
+      custom.matchSettings shouldBe customMatch
 
   "ArenaSettings" should:
 

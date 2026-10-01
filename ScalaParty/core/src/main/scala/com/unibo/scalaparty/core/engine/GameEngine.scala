@@ -75,7 +75,7 @@ private class SinglePlayerGameEngine(config: GameConfig, pipeline: SystemPipelin
     world.serialized
 
   override def outcome: Option[MatchOutcome] =
-    Option.when(elapsed >= config.settings.matchRules.timeLimit)(MatchOutcome.TimeUp)
+    Option.when(elapsed >= config.settings.matchSettings.timeLimit)(MatchOutcome.TimeUp)
 
 extension (world: GameWorld)
 

@@ -63,7 +63,7 @@ class MatchCoordinatorSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
       broadcasts <- Ref.of[IO, Map[MatchId, Int]](Map.empty)
       notifier = RecordingNotifier(sent)
       publisher = CountingPublisher(broadcasts)
-      settings = GameSettings(matchRules = MatchSettings(timeLimit))
+      settings = GameSettings(matchSettings = MatchSettings(timeLimit))
       coordinator <- MatchCoordinator(lobby, registry, commands, notifier, publisher, settings)
     yield Fixture(lobby, registry, notifier, publisher, coordinator)
 

@@ -56,7 +56,7 @@ class GameEngineSpec extends AnyFlatSpec with Matchers:
     GameEngine(
       GameConfig(
         players = List(EntityId.generate()),
-        settings = testSettings.copy(matchRules = MatchSettings(timeLimit))
+        settings = testSettings.copy(matchSettings = MatchSettings(timeLimit))
       ),
       emptyPipeline
     )

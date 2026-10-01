@@ -58,16 +58,16 @@ final case class MatchSettings(
 
 /** Unified configuration grouping all arena, entity, and gameplay mechanics parameters.
  *
- *  @param arena      settings controlling arena bounds
- *  @param spaceship  settings controlling spaceship dynamics
- *  @param shooting   settings controlling weapon firing and bullet behavior
- *  @param matchRules settings controlling when a match ends
+ *  @param arena         settings controlling arena bounds
+ *  @param spaceship     settings controlling spaceship dynamics
+ *  @param shooting      settings controlling weapon firing and bullet behavior
+ *  @param matchSettings settings controlling when a match ends
  */
 final case class GameSettings(
     arena: ArenaSettings = ArenaSettings(),
     spaceship: SpaceshipSettings = SpaceshipSettings(),
     shooting: ShootingSettings = ShootingSettings(),
-    matchRules: MatchSettings = MatchSettings()
+    matchSettings: MatchSettings = MatchSettings()
 )
 
 object GameSettings:
