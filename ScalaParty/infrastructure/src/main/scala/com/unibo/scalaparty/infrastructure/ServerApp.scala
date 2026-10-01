@@ -5,7 +5,6 @@ import com.comcast.ip4s.*
 import com.unibo.scalaparty.core.model.GameSettings
 import com.unibo.scalaparty.infrastructure.application.{GameCommandService, MatchCoordinator, QueuedLobbyManager}
 import com.unibo.scalaparty.infrastructure.network.{
-  ClientDisconnectionLogger,
   ConnectionRegistry,
   WebSocketBroadcaster,
   WebSocketNotifier,
@@ -16,7 +15,6 @@ import org.http4s.dsl.io.*
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.server.Router
 import org.http4s.server.websocket.WebSocketBuilder2
-import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 object ServerApp extends IOApp.Simple:
   private val gameRoute = "scalaparty"
@@ -63,13 +61,11 @@ object ServerApp extends IOApp.Simple:
       coordinator <- MatchCoordinator(lobby, registry, commandService, notifier, publisher, settings)
 
       wsServer = WebSocketServer(registry, coordinator, commandService)
-      serverLogger = ClientDisconnectionLogger(Slf4jLogger.getLoggerFromClass[IO](classOf[EmberServerBuilder[IO]]))
 
       _ <- EmberServerBuilder
         .default[IO]
         .withHost(ipv4"0.0.0.0")
         .withPort(port"8081")
-        .withLogger(serverLogger)
         .withHttpWebSocketApp(wsb => httpApp(wsb, wsServer))
         .build
         .use(_ => IO.println("Server started on port 8081") *> IO.never)

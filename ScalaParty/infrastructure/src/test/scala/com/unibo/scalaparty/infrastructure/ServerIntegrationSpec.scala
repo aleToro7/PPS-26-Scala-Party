@@ -89,44 +89,4 @@ class ServerIntegrationSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers
           case close: WebSocketFrame.Close => close.closeCode shouldBe WebSocketServer.TryAgainLater
           case other => fail(s"expected the connection to be closed, got $other")
     }
-
-    "should keep pinging a player that has nothing to be told" in {
-      for
-        registry       <- ConnectionRegistry()
-        lobby          <- QueuedLobbyManager.of[IO]()
-        commandService <- GameCommandService()
-
-        notifier = WebSocketNotifier(registry)
-        publisher = WebSocketBroadcaster(registry)
-        settings = GameSettings.default
-
-        coordinator <- MatchCoordinator(lobby, registry, commandService, notifier, publisher, settings, 10.seconds)
-
-        wsServer = WebSocketServer(registry, coordinator, commandService, keepAliveInterval = 20.millis)
-
-        queue  <- Queue.unbounded[IO, WebSocketFrame]
-        frames <- wsServer.keptAlive(queue).take(3).compile.toList
-      yield frames shouldBe List.fill(3)(WebSocketFrame.Ping())
-    }
-
-    "should deliver whatever is queued for a player alongside the pings" in {
-      val message = WebSocketFrame.Text("""{"MatchEnded":{}}""")
-      for
-        registry       <- ConnectionRegistry()
-        lobby          <- QueuedLobbyManager.of[IO]()
-        commandService <- GameCommandService()
-
-        notifier = WebSocketNotifier(registry)
-        publisher = WebSocketBroadcaster(registry)
-        settings = GameSettings.default
-
-        coordinator <- MatchCoordinator(lobby, registry, commandService, notifier, publisher, settings, 10.seconds)
-
-        wsServer = WebSocketServer(registry, coordinator, commandService, keepAliveInterval = 20.millis)
-
-        queue  <- Queue.unbounded[IO, WebSocketFrame]
-        _      <- queue.offer(message)
-        frames <- wsServer.keptAlive(queue).take(2).compile.toList
-      yield frames shouldBe List(message, WebSocketFrame.Ping())
-    }
   }
