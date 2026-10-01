@@ -279,6 +279,10 @@
         if (hp === lastRenderedHealth) return;
         lastRenderedHealth = hp;
 
+        if (!myShip) {
+            statusEl.textContent = "You're dead";
+        }
+
         const maxHp = myShip ? myShip.maxHealth : lastMaxHealth;
         lastMaxHealth = maxHp;
         const safeMax = maxHp > 0 ? maxHp : 1;
