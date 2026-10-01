@@ -3,7 +3,7 @@ package com.unibo.scalaparty.infrastructure.network.dto
 import com.unibo.scalaparty.core.dto.EntityDto
 import com.unibo.scalaparty.core.ecs.EntityId
 import com.unibo.scalaparty.core.geometry.{Point2D, Shape}
-import com.unibo.scalaparty.core.model.{GameCommand, GameEvent, MatchState}
+import com.unibo.scalaparty.core.model.{GameCommand, GameEvent, MatchOutcome, MatchState}
 import com.unibo.scalaparty.infrastructure.model.ServerMessage
 import io.circe.*
 import io.circe.generic.semiauto.*
@@ -66,6 +66,9 @@ object ProtocolCodecs:
 
   /** Encoder for discrete game events occurring during execution. */
   given Encoder[GameEvent] = deriveEncoder
+
+  /** Encoder for the reason a match ended, carried by the end-of-match notification. */
+  given Encoder[MatchOutcome] = deriveEncoder
 
   /** Encoder for server-to-player lobby and queue notifications. */
   given Encoder[ServerMessage] = deriveEncoder
