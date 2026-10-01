@@ -1,7 +1,5 @@
 package com.unibo.scalaparty.infrastructure.application
 
-import scala.concurrent.duration.*
-
 import cats.effect.{Deferred, FiberIO, IO, Ref}
 import cats.syntax.all.*
 import com.unibo.scalaparty.core.ecs.{EntityId, GameWorld}
@@ -26,8 +24,7 @@ import com.unibo.scalaparty.infrastructure.ports.{AccessPort, MatchEventPublishe
  *  @param commands      Buffer the gameplay inputs are drained from.
  *  @param notifier      Tells a single player what is happening to it.
  *  @param publisher     Broadcasts the authoritative state to everybody in the match.
- *  @param settings      Shared rules and arena dimensions for the engine.
- *  @param matchDuration How long a match lasts, there being no win condition yet.
+ *  @param settings      Shared rules and arena dimensions for the engine, including when a match ends.
  *  @param running       The fiber ticking each match being played.
  */
 class MatchCoordinator(
@@ -37,7 +34,6 @@ class MatchCoordinator(
     notifier: PlayerNotifier[IO],
     publisher: MatchEventPublisher[IO],
     settings: GameSettings,
-    matchDuration: FiniteDuration,
     running: Ref[IO, Map[MatchId, FiberIO[Unit]]]
 ) extends AccessPort[IO]:
 
@@ -123,8 +119,8 @@ class MatchCoordinator(
         settings = settings
       )
     )
-    val runner = new MatchRunner(session, commands, engine, publisher, matchDuration)
-    runner.run.compile.drain *> concludeMatch(activeMatch)
+    val runner = new MatchRunner(session, commands, engine, publisher)
+    runner.run *> concludeMatch(activeMatch)
 
   /** Releases the players of a finished match and lets the next one in.
    *
@@ -161,8 +157,7 @@ object MatchCoordinator:
    *  @param commands      the service buffering player inputs
    *  @param notifier      the port delivering personal messages to players
    *  @param publisher     the publisher broadcasting match states
-   *  @param settings      Shared rules and arena dimensions for the engine
-   *  @param matchDuration the duration of each match session
+   *  @param settings      Shared rules and arena dimensions for the engine, including when a match ends
    *  @return an IO effect containing the instantiated MatchCoordinator
    */
   def apply(
@@ -171,9 +166,8 @@ object MatchCoordinator:
       commands: GameCommandService,
       notifier: PlayerNotifier[IO],
       publisher: MatchEventPublisher[IO],
-      settings: GameSettings,
-      matchDuration: FiniteDuration = MatchRunner.DefaultDuration
+      settings: GameSettings
   ): IO[MatchCoordinator] =
     Ref
       .of[IO, Map[MatchId, FiberIO[Unit]]](Map.empty)
-      .map(new MatchCoordinator(lobby, registry, commands, notifier, publisher, settings, matchDuration, _))
+      .map(new MatchCoordinator(lobby, registry, commands, notifier, publisher, settings, _))

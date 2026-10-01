@@ -6,7 +6,7 @@ import cats.effect.IO
 import fs2.Stream
 import com.unibo.scalaparty.core.ecs.{EntityId, GameWorld}
 import com.unibo.scalaparty.core.engine.GameEngine
-import com.unibo.scalaparty.core.model.MatchState
+import com.unibo.scalaparty.core.model.{MatchOutcome, MatchState}
 import com.unibo.scalaparty.infrastructure.application.CommandAdapter.*
 import com.unibo.scalaparty.infrastructure.model.{MatchId, PlayerId}
 import com.unibo.scalaparty.infrastructure.ports.MatchEventPublisher
@@ -22,21 +22,21 @@ case class MatchSession(
 /** Authoritative loop of a single match: drains the buffered inputs, advances the engine by one
  *  tick and broadcasts the resulting state, over and over.
  *
- *  The stream is finite. There being no win condition in the game yet (no collisions, no health),
- *  a match simply lasts [[duration]] and then ends, which is what lets the waiting queue move on.
+ *  The engine alone decides when the match is over: the loop stops right after broadcasting the
+ *  state of the tick that ended it, which is what lets the waiting queue move on.
  */
 class MatchRunner(
     session: MatchSession,
     commandQueue: GameCommandService,
     engine: GameEngine,
-    publisher: MatchEventPublisher[IO],
-    duration: FiniteDuration = MatchRunner.DefaultDuration
+    publisher: MatchEventPublisher[IO]
 ):
 
-  /** How many ticks fit in the match duration. */
-  private val ticks: Long = (duration / MatchRunner.TickInterval).toLong
-
-  def run: Stream[IO, Unit] =
+  /** Ticks the match until the engine declares it over.
+   *
+   *  @return an effect completing with how the match ended
+   */
+  def run: IO[MatchOutcome] =
     Stream
       .fixedRate[IO](MatchRunner.TickInterval)
       .zipWithIndex
@@ -54,12 +54,12 @@ class MatchRunner(
 
           // Publish the new authoritative state
           _ <- publisher.broadcastState(session.matchId, MatchState(tick, newEntities))
-        yield ()
-      .take(ticks)
+        yield engine.outcome
+      .collectFirst:
+        case Some(outcome) => outcome
+      .compile
+      .lastOrError
 
 object MatchRunner:
   /** The server ticks at roughly 60 frames per second. */
   val TickInterval: FiniteDuration = 16.millis
-
-  /** How long a match lasts when no other duration is given. */
-  val DefaultDuration: FiniteDuration = 60.seconds

@@ -1,7 +1,5 @@
 package com.unibo.scalaparty.infrastructure
 
-import scala.concurrent.duration.*
-
 import cats.effect.IO
 import cats.effect.std.Queue
 import cats.effect.testing.scalatest.AsyncIOSpec
@@ -36,7 +34,7 @@ class ServerIntegrationSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers
         publisher = WebSocketBroadcaster(registry)
         settings = GameSettings.default
 
-        coordinator <- MatchCoordinator(lobby, registry, commandService, notifier, publisher, settings, 50.millis)
+        coordinator <- MatchCoordinator(lobby, registry, commandService, notifier, publisher, settings)
 
         wsServer = WebSocketServer(registry, coordinator, commandService)
 
@@ -69,7 +67,7 @@ class ServerIntegrationSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers
         publisher = WebSocketBroadcaster(registry)
         settings = GameSettings.default
 
-        coordinator <- MatchCoordinator(lobby, registry, commandService, notifier, publisher, settings, 10.seconds)
+        coordinator <- MatchCoordinator(lobby, registry, commandService, notifier, publisher, settings)
 
         wsServer = WebSocketServer(registry, coordinator, commandService)
 
