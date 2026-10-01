@@ -4,9 +4,10 @@ import scala.concurrent.duration.*
 
 import cats.effect.IO
 import cats.effect.testing.scalatest.AsyncIOSpec
+import com.unibo.scalaparty.core.dto.EntityDto
 import com.unibo.scalaparty.core.ecs.{EntityId, GameWorld}
 import com.unibo.scalaparty.core.engine.GameEngine
-import com.unibo.scalaparty.core.model.{GameCommand, GameEvent, MatchState}
+import com.unibo.scalaparty.core.model.{GameCommand, GameEvent, MatchOutcome, MatchState}
 import com.unibo.scalaparty.infrastructure.model.{MatchId, PlayerId}
 import com.unibo.scalaparty.infrastructure.network.dto.PlayerInput
 import com.unibo.scalaparty.infrastructure.ports.MatchEventPublisher
@@ -23,9 +24,11 @@ class MatchRunnerSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
     var capturedCommands: List[GameCommand] = List.empty
     var publishedStates: List[MatchState] = List.empty
 
-    val engine: GameEngine = (commands: List[GameCommand], dt: Long) =>
-      capturedCommands = capturedCommands ++ commands
-      List.empty
+    val engine: GameEngine = new GameEngine:
+      def update(commands: List[GameCommand], dt: Long): List[EntityDto] =
+        capturedCommands = capturedCommands ++ commands
+        List.empty
+      def outcome: Option[MatchOutcome] = None
 
     val publisher: MatchEventPublisher[IO] = new MatchEventPublisher[IO]:
       def broadcastState(mId: MatchId, state: MatchState): IO[Unit] = IO:
