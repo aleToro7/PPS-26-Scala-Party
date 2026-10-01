@@ -24,11 +24,16 @@ class MatchRunnerSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
     var capturedCommands: List[GameCommand] = List.empty
     var publishedStates: List[MatchState] = List.empty
 
-    val engine: GameEngine = new GameEngine:
+    /** An engine running out of time once it has been updated `ticks` times. */
+    def engineEndingAfter(ticks: Int): GameEngine = new GameEngine:
+      private var updates = 0
+
       def update(commands: List[GameCommand], dt: Long): List[EntityDto] =
+        updates += 1
         capturedCommands = capturedCommands ++ commands
         List.empty
-      def outcome: Option[MatchOutcome] = None
+
+      def outcome: Option[MatchOutcome] = Option.when(updates >= ticks)(MatchOutcome.TimeUp)
 
     val publisher: MatchEventPublisher[IO] = new MatchEventPublisher[IO]:
       def broadcastState(mId: MatchId, state: MatchState): IO[Unit] = IO:
@@ -36,9 +41,9 @@ class MatchRunnerSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
 
       def broadcastEvent(mId: MatchId, event: GameEvent): IO[Unit] = IO.unit
 
-    /** A runner ticking for exactly the given number of frames. */
+    /** A runner whose match is over after exactly the given number of ticks. */
     def runnerFor(session: MatchSession, ticks: Int, commands: GameCommandService): MatchRunner =
-      new MatchRunner(session, commands, engine, publisher, MatchRunner.TickInterval * ticks.toLong)
+      new MatchRunner(session, commands, engineEndingAfter(ticks), publisher)
 
   "A MatchRunner".should:
 
@@ -49,7 +54,7 @@ class MatchRunnerSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
       for
         commandService <- GameCommandService()
         runner = f.runnerFor(session, ticks = 3, commandService)
-        _ <- runner.run.compile.drain
+        _ <- runner.run
       yield f.publishedStates.length shouldEqual 3
 
     "number the published states by their tick".in:
@@ -59,10 +64,10 @@ class MatchRunnerSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
       for
         commandService <- GameCommandService()
         runner = f.runnerFor(session, ticks = 3, commandService)
-        _ <- runner.run.compile.drain
+        _ <- runner.run
       yield f.publishedStates.map(_.tick) shouldEqual List(0L, 1L, 2L)
 
-    "end on its own once the match duration has elapsed".in:
+    "end on its own once the engine declares the match over".in:
       val f = Fixture()
       val session = MatchSession(f.matchId, Map.empty, GameWorld(Map.empty))
 
@@ -70,8 +75,18 @@ class MatchRunnerSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
         commandService <- GameCommandService()
         runner = f.runnerFor(session, ticks = 2, commandService)
         // The timeout is what proves termination: an endless stream would never get here.
-        _ <- runner.run.compile.drain.timeout(10.seconds)
+        _ <- runner.run.timeout(10.seconds)
       yield f.publishedStates.length shouldEqual 2
+
+    "complete with the outcome declared by the engine".in:
+      val f = Fixture()
+      val session = MatchSession(f.matchId, Map.empty, GameWorld(Map.empty))
+
+      for
+        commandService <- GameCommandService()
+        runner = f.runnerFor(session, ticks = 1, commandService)
+        outcome <- runner.run
+      yield outcome shouldBe MatchOutcome.TimeUp
 
     "drain and process queued player commands during execution".in:
       val f = Fixture()
@@ -81,7 +96,7 @@ class MatchRunnerSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
         commandService <- GameCommandService()
         runner = f.runnerFor(session, ticks = 1, commandService)
         _ <- commandService.handleCommand(f.matchId, f.playerId, PlayerInput.Rotate(45.0))
-        _ <- runner.run.compile.drain
+        _ <- runner.run
       yield
         f.capturedCommands.length shouldEqual 1
         f.capturedCommands.head shouldEqual GameCommand.RotateCommand(f.entityId, 45.0)
@@ -95,5 +110,5 @@ class MatchRunnerSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
         commandService <- GameCommandService()
         runner = f.runnerFor(session, ticks = 1, commandService)
         _ <- commandService.handleCommand(f.matchId, unregisteredPlayer, PlayerInput.Shoot)
-        _ <- runner.run.compile.drain
+        _ <- runner.run
       yield f.capturedCommands shouldBe empty
