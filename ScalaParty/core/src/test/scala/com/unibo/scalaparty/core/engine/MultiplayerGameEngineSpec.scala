@@ -13,7 +13,8 @@ class MultiplayerGameEngineSpec extends AnyFlatSpec with Matchers:
 
   private val settings = GameSettings.default
   private val arena = settings.arena
-  private val center = Point2D(arena.width / 2, arena.height / 2)
+  // The arena is centered on the origin.
+  private val center = Point2D.origin
 
   /** The spaceships of a match of the given players, as they are before anything moves. */
   private def spawnedShips(players: List[EntityId]): List[EntityDto.Spaceship] =
@@ -28,8 +29,8 @@ class MultiplayerGameEngineSpec extends AnyFlatSpec with Matchers:
   it should "place the spaceships apart from each other, inside the arena" in:
     val positions = spawnedShips(List.fill(4)(EntityId.generate())).map(_.position)
     positions.distinct should have size 4
-    all(positions.map(_.x)) should (be > 0.0 and be < arena.width.toDouble)
-    all(positions.map(_.y)) should (be > 0.0 and be < arena.height.toDouble)
+    all(positions.map(_.x.abs)) should be < arena.width / 2.0
+    all(positions.map(_.y.abs)) should be < arena.height / 2.0
 
   it should "start every spaceship facing the center of the arena" in:
     spawnedShips(List.fill(3)(EntityId.generate())).foreach: ship =>

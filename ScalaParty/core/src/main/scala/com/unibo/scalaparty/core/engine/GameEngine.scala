@@ -44,15 +44,17 @@ private class SinglePlayerGameEngine(config: GameConfig, pipeline: SystemPipelin
     val spaceship = config.settings.spaceship
     val spawns = SinglePlayerGameEngine.spawnPoints(config.players.size, config.settings.arena)
 
-    val playerSpaceship = EntityFactory.createSpaceship(
-      position = Point2D.origin,
-      velocity = Vector2D(spaceship.speed, 0),
-      entityId = config.players.head,
-      weapon = Weapon.fromSettings(config.settings.shooting),
-      maxHealth = spaceship.maxHealth,
-      collisionDamage = spaceship.collisionDamage
-    )
-    GameWorld(List(playerSpaceship))
+    GameWorld(config.players.zip(spawns).map { case (playerId, (position, heading)) =>
+      EntityFactory.createSpaceship(
+        position = position,
+        velocity = Vector2D(spaceship.speed, 0).rotated(heading),
+        entityId = playerId,
+        weapon = Weapon.fromSettings(config.settings.shooting),
+        maxHealth = spaceship.maxHealth,
+        collisionDamage = spaceship.collisionDamage,
+        rotation = heading
+      )
+    })
 
   override def update(list: List[GameCommand], dt: Long): List[EntityDto] =
     // Process player commands and update the world state
@@ -69,16 +71,16 @@ private object SinglePlayerGameEngine:
 
   /** Where the given number of players enter the arena, as positions and headings in degrees.
    *
-   *  A lone player starts in the center of the arena. Several players start evenly spaced on a circle around the
-   *  center, each facing it, so that nobody starts next to or aiming at a wall. This placement only lasts until the
-   *  game map provides its own spawn points.
+   *  A lone player starts in the center of the arena, which is the origin. Several players start evenly spaced on a
+   *  circle around the center, each facing it, so that nobody starts next to or aiming at a wall. This placement only
+   *  lasts until the game map provides its own spawn points.
    *
    *  @param players how many players enter the arena
    *  @param arena   the bounds of the arena
    *  @return one spawn point for each player
    */
   def spawnPoints(players: Int, arena: ArenaSettings): List[(Point2D, Double)] =
-    val center = Point2D(arena.width / 2, arena.height / 2)
+    val center = Point2D.origin
     if players == 1 then List((center, 0.0))
     else
       val radius = Math.min(arena.width, arena.height) / 4
