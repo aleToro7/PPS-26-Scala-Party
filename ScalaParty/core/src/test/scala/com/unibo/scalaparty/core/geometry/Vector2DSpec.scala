@@ -44,3 +44,7 @@ class Vector2DSpec extends AnyFlatSpec with Matchers:
     val rotated: Vector2D = v.rotated(angle)
     rotated.x shouldBe 0.0 +- precision
     rotated.y shouldBe 1.0 +- precision
+
+  it should "return the correct angle of rotation in degrees" in:
+    val v = Vector2D(1, 1)
+    v.angle shouldBe 45.0 +- precision
