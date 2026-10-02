@@ -65,3 +65,13 @@ class ProtocolCodecsSpec extends AnyWordSpec with Matchers:
       val ended: ServerMessage = ServerMessage.MatchEnded(MatchOutcome.TimeUp)
 
       ended.asJson.noSpaces shouldEqual """{"MatchEnded":{"outcome":{"TimeUp":{}}}}"""
+
+    "tell clients that nobody survived a match" in:
+      val ended: ServerMessage = ServerMessage.MatchEnded(MatchOutcome.NoSurvivors)
+
+      ended.asJson.noSpaces shouldEqual """{"MatchEnded":{"outcome":{"NoSurvivors":{}}}}"""
+
+    "tell clients which spaceship won a match" in:
+      val ended: ServerMessage = ServerMessage.MatchEnded(MatchOutcome.LastStanding(EntityId.fromLong(2L)))
+
+      ended.asJson.noSpaces shouldEqual """{"MatchEnded":{"outcome":{"LastStanding":{"winner":2}}}}"""
