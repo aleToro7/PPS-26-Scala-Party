@@ -202,6 +202,18 @@
         }
     }
 
+    // What each way a match can end is shown as, keyed by its case name
+    const OUTCOME_TEXTS = {
+        TimeUp: 'time is up'
+    };
+
+    // The outcome is tagged with its case name like the notifications (e.g. { TimeUp: {} }):
+    // an outcome this client does not know yet is shown by that name.
+    function describeOutcome(outcome) {
+        const [reason] = Object.keys(outcome ?? {});
+        return OUTCOME_TEXTS[reason] ?? reason ?? 'unknown reason';
+    }
+
     // Lobby notifications are tagged with their case name (e.g. { Queued: { playersAhead: 0 } }),
     // unlike the match state, which is a plain { tick, entities } object.
     // Returns whether the payload was one of them.
@@ -222,7 +234,7 @@
             showIdentity(null);
             currentShips = [];
             currentBullets.length = 0;
-            statusEl.textContent = 'Match over';
+            statusEl.textContent = `Match over: ${describeOutcome(message.MatchEnded.outcome)}`;
         } else {
             return false;
         }
