@@ -1,7 +1,7 @@
 package com.unibo.scalaparty.core.ecs
 
 import com.unibo.scalaparty.core.geometry.{Point2D, Shape, Vector2D, given}
-import com.unibo.scalaparty.core.model.GameSettings
+import com.unibo.scalaparty.core.model.{GameSettings, ShootingSettings}
 
 object EntityFactory:
 
@@ -24,7 +24,7 @@ object EntityFactory:
     val components: List[Component] = List(
       PositionComponent(position),
       MovementComponent(velocity),
-      RotationComponent(),
+      RotationComponent(velocity.angle),
       EntityTypeComponent(EntityType.Spaceship),
       ShootingComponent(weapon = weapon),
       EntityTypeComponent(EntityType.Spaceship),
@@ -33,6 +33,20 @@ object EntityFactory:
       CollisionDamageComponent(collisionDamage)
     )
     (entityId, components)
+
+  def createSpaceshipFromConfig(settings: GameSettings)(
+      position: Point2D,
+      direction: Vector2D,
+      entityId: EntityId = EntityId.generate()
+  ): EntityWithComponents =
+    createSpaceship(
+      position = position,
+      velocity = direction.normalized * settings.spaceship.speed,
+      entityId = entityId,
+      weapon = Weapon.fromSettings(settings.shooting),
+      maxHealth = settings.spaceship.maxHealth,
+      collisionDamage = settings.spaceship.collisionDamage
+    )
 
     /** Creates a new bullet entity with the specified position, velocity, and power.
      *

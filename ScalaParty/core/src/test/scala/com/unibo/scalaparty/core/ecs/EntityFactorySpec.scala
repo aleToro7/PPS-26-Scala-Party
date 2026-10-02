@@ -1,6 +1,9 @@
 package com.unibo.scalaparty.core.ecs
 
 import com.unibo.scalaparty.core.geometry.{Point2D, Shape, Vector2D}
+import com.unibo.scalaparty.core.model.{GameSettings, ShootingSettings, SpaceshipSettings}
+import com.unibo.scalaparty.core.utils.collectFirstOfClass
+import org.scalatest.OptionValues.convertOptionToValuable
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers.{contain, should, shouldBe}
 
@@ -29,6 +32,55 @@ class EntityFactorySpec extends AnyFlatSpec:
       HealthComponent.full(maxHealth),
       CollisionDamageComponent(collisionDamage)
     )
+
+  it should "be created from settings with the correct health component" in:
+    val health = 80.0
+    val settings = GameSettings.default.copy(
+      spaceship = SpaceshipSettings(
+        maxHealth = health,
+      ),
+    )
+    val position = Point2D(5, 5)
+    val direction = Vector2D(1, 0)
+    val (_, components) = EntityFactory.createSpaceshipFromConfig(settings)(position, direction)
+    val healthComponent = components.collectFirstOfClass[HealthComponent]
+    healthComponent.value.current shouldBe health
+    healthComponent.value.max shouldBe health
+
+  it should "be created from settings with the correct collision-damage component" in:
+    val collisionDamage = 15.0
+    val settings = GameSettings.default.copy(
+      spaceship = SpaceshipSettings(
+        collisionDamage = collisionDamage,
+      ),
+    )
+    val position = Point2D(5, 5)
+    val direction = Vector2D(1, 0)
+    val (_, components) = EntityFactory.createSpaceshipFromConfig(settings)(position, direction)
+    val collisionComponent = components.collectFirstOfClass[CollisionDamageComponent]
+    collisionComponent.value.damage shouldBe collisionDamage
+
+  it should "should be created from settings with the correct shooting component" in:
+    val bulletPower = 10.0
+    val bulletSpeed = 20.0
+    val shootCooldown = 100
+    val muzzleOffset = 1.0
+    val settings = GameSettings.default.copy(
+      shooting = ShootingSettings(
+        bulletPower = bulletPower,
+        bulletSpeed = bulletSpeed,
+        shootCooldown = shootCooldown,
+        muzzleOffset = muzzleOffset
+      )
+    )
+    val position = Point2D(5, 5)
+    val direction = Vector2D(1, 0)
+    val (_, components) = EntityFactory.createSpaceshipFromConfig(settings)(position, direction)
+    val shootingComponent = components.collectFirstOfClass[ShootingComponent]
+    shootingComponent.value.weapon.bulletPower shouldBe bulletPower
+    shootingComponent.value.weapon.bulletSpeed shouldBe bulletSpeed
+    shootingComponent.value.weapon.shootCooldown shouldBe shootCooldown
+    shootingComponent.value.weapon.muzzleOffset shouldBe muzzleOffset
 
   "A Bullet" should "be created with the correct components" in:
     val shooterId = EntityId.generate()
