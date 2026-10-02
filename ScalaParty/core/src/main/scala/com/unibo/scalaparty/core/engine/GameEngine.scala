@@ -48,6 +48,9 @@ private class SinglePlayerGameEngine(config: GameConfig, pipeline: SystemPipelin
   /** Simulated time since the match began, in milliseconds. */
   private var elapsed: Long = 0L
 
+  /** The spaceships of the players the match started with. */
+  private val players: Set[EntityId] = config.players.toSet
+
   /** Spawns one spaceship for each player, each on its own spawn point. */
   private def initializeWorld(config: GameConfig): GameWorld =
     val spaceship = config.settings.spaceship
@@ -78,11 +81,11 @@ private class SinglePlayerGameEngine(config: GameConfig, pipeline: SystemPipelin
     world.serialized
 
   override def outcome: Option[MatchOutcome] =
-    MatchRules.outcome(config.settings.matchSettings, survivors, elapsed)
+    MatchRules.outcome(config.settings.matchSettings, players, survivors, elapsed)
 
   /** The spaceships of the players still in the world, those destroyed or left being removed from it. */
   private def survivors: Set[EntityId] =
-    config.players.toSet.filter(world.findComponents(_).isDefined)
+    players.filter(world.findComponents(_).isDefined)
 
 private object SinglePlayerGameEngine:
 

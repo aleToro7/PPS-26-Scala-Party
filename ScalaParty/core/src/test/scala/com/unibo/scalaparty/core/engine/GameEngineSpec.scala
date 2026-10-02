@@ -64,6 +64,20 @@ class GameEngineSpec extends AnyFlatSpec with Matchers:
     engine.update(Nil, someDeltaTime)
     engine.outcome shouldBe Some(MatchOutcome.NoSurvivors)
 
+  it should "be won by the player whose spaceship is the last one left" in:
+    val winner = EntityId.generate()
+    val loser = EntityId.generate()
+    val destroyLoser: WorldSystem = (world, events, _) => (world - loser, events)
+    val engine = GameEngine(
+      GameConfig(
+        players = List(winner, loser),
+        settings = testSettings
+      ),
+      SystemPipeline(destroyLoser)
+    )
+    engine.update(Nil, someDeltaTime)
+    engine.outcome shouldBe Some(MatchOutcome.LastStanding(winner))
+
   private def engineWithTimeLimit(timeLimit: Long): GameEngine =
     GameEngine(
       GameConfig(

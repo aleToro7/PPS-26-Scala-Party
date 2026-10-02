@@ -391,18 +391,31 @@ class MatchCoordinatorSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
 
     "go on without the spaceship of a player who quits, for the players left".in:
       val quitting = PlayerId.random()
-      val staying = PlayerId.random()
+      val staying = List.fill(2)(PlayerId.random())
       for
-        f       <- fixture(timeLimit = 10_000L, minPlayers = 2, maxPlayers = 2)
-        _       <- f.join(quitting)
-        _       <- f.join(staying)
-        matchId <- f.registry.matchOf(staying).map(_.get)
-        ships   <- f.notifier.messagesFor(staying).map(_.collect { case ServerMessage.MatchStarted(_, you) => you })
-        _       <- eventually(f.publisher.shipsIn(matchId))(_.size == 2)
+        f       <- fixture(timeLimit = 10_000L, minPlayers = 3, maxPlayers = 3)
+        _       <- (quitting :: staying).traverse_(f.join)
+        matchId <- f.registry.matchOf(quitting).map(_.get)
+        ships   <- staying.flatTraverse(f.notifier.messagesFor(_).map(_.collect {
+          case ServerMessage.MatchStarted(_, you) => you
+        }))
+        _       <- eventually(f.publisher.shipsIn(matchId))(_.size == 3)
         _       <- f.coordinator.leaveLobby(quitting)
-        left    <- eventually(f.publisher.shipsIn(matchId))(_.size == 1)
+        left    <- eventually(f.publisher.shipsIn(matchId))(_.size == 2)
         matches <- f.lobby.activeMatches
-        _       <- f.coordinator.leaveLobby(staying)
+        _       <- staying.traverse_(f.coordinator.leaveLobby)
       yield
         left shouldBe ships.toSet
-        matches.map(_.players) shouldBe Set(Set(staying))
+        matches.map(_.players) shouldBe Set(staying.toSet)
+
+    "end once a single player is left, telling it that its spaceship won".in:
+      val quitting = PlayerId.random()
+      val staying = PlayerId.random()
+      for
+        f        <- fixture(timeLimit = 10_000L, minPlayers = 2, maxPlayers = 2)
+        _        <- f.join(quitting)
+        _        <- f.join(staying)
+        ships    <- f.notifier.messagesFor(staying).map(_.collect { case ServerMessage.MatchStarted(_, you) => you })
+        _        <- f.coordinator.leaveLobby(quitting)
+        messages <- eventually(f.notifier.messagesFor(staying))(_.exists(_.isInstanceOf[ServerMessage.MatchEnded]))
+      yield messages should contain(ServerMessage.MatchEnded(MatchOutcome.LastStanding(ships.head)))
