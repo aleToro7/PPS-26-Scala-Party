@@ -17,7 +17,7 @@ trait GameEngine:
    */
   def update(list: List[GameCommand], dt: Long): List[EntityDto]
 
-  /** Tells whether the match is over, according to the rules in the game settings.
+  /** Tells whether the match is over, according to the [[MatchRules]].
    *
    *  @return how the match ended, or `None` while it is still going on
    */
@@ -78,7 +78,7 @@ private class SinglePlayerGameEngine(config: GameConfig, pipeline: SystemPipelin
     world.serialized
 
   override def outcome: Option[MatchOutcome] =
-    Option.when(elapsed >= config.settings.matchSettings.timeLimit)(MatchOutcome.TimeUp)
+    MatchRules.outcome(config.settings.matchSettings, elapsed)
 
 private object SinglePlayerGameEngine:
 
