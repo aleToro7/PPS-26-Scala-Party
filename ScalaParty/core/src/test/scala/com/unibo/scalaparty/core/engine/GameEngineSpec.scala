@@ -52,6 +52,18 @@ class GameEngineSpec extends AnyFlatSpec with Matchers:
     engine.update(Nil, someDeltaTime)
     engine.outcome shouldBe Some(MatchOutcome.TimeUp)
 
+  it should "be over with no survivors once the spaceships of its players are gone" in:
+    val destroyEverything: WorldSystem = (_, events, _) => (GameWorld(Nil), events)
+    val engine = GameEngine(
+      GameConfig(
+        players = List(EntityId.generate(), EntityId.generate()),
+        settings = testSettings
+      ),
+      SystemPipeline(destroyEverything)
+    )
+    engine.update(Nil, someDeltaTime)
+    engine.outcome shouldBe Some(MatchOutcome.NoSurvivors)
+
   private def engineWithTimeLimit(timeLimit: Long): GameEngine =
     GameEngine(
       GameConfig(

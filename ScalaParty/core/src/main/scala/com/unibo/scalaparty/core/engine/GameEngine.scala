@@ -78,7 +78,11 @@ private class SinglePlayerGameEngine(config: GameConfig, pipeline: SystemPipelin
     world.serialized
 
   override def outcome: Option[MatchOutcome] =
-    MatchRules.outcome(config.settings.matchSettings, elapsed)
+    MatchRules.outcome(config.settings.matchSettings, survivors, elapsed)
+
+  /** The spaceships of the players still in the world, those destroyed or left being removed from it. */
+  private def survivors: Set[EntityId] =
+    config.players.toSet.filter(world.findComponents(_).isDefined)
 
 private object SinglePlayerGameEngine:
 
