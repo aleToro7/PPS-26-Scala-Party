@@ -25,9 +25,10 @@ object EntityAdapter:
       components: List[Component]
   ): Option[BulletDto] =
     for
-      PositionComponent(position) <- components.collectFirstOfClass[PositionComponent]
-      MovementComponent(velocity) <- components.collectFirstOfClass[MovementComponent]
-    yield BulletDto(entityId, position, velocity)
+      position <- components.collectFirstOfClass[PositionComponent].map(_.position)
+      velocity <- components.collectFirstOfClass[MovementComponent].map(_.velocity)
+      shape    <- components.collectFirstOfClass[ShapeComponent].map(_.shape)
+    yield BulletDto(entityId, position, velocity, shape)
 
   private def extractSpaceship(entityId: EntityId, components: List[Component]): Option[SpaceshipDto] =
     for
