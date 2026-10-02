@@ -36,7 +36,7 @@ class ServerIntegrationSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers
         publisher = WebSocketBroadcaster(registry)
         settings = GameSettings.default
 
-        coordinator <- MatchCoordinator(lobby, registry, commandService, notifier, publisher, settings, 50.millis)
+        coordinator <- MatchCoordinator(lobby, registry, commandService, notifier, publisher, settings)
 
         wsServer = WebSocketServer(registry, coordinator, commandService)
 
@@ -69,7 +69,7 @@ class ServerIntegrationSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers
         publisher = WebSocketBroadcaster(registry)
         settings = GameSettings.default
 
-        coordinator <- MatchCoordinator(lobby, registry, commandService, notifier, publisher, settings, 10.seconds)
+        coordinator <- MatchCoordinator(lobby, registry, commandService, notifier, publisher, settings)
 
         wsServer = WebSocketServer(registry, coordinator, commandService)
 
@@ -100,7 +100,7 @@ class ServerIntegrationSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers
         publisher = WebSocketBroadcaster(registry)
         settings = GameSettings.default
 
-        coordinator <- MatchCoordinator(lobby, registry, commandService, notifier, publisher, settings, 10.seconds)
+        coordinator <- MatchCoordinator(lobby, registry, commandService, notifier, publisher, settings)
 
         wsServer = WebSocketServer(registry, coordinator, commandService, keepAliveInterval = 20.millis)
 
@@ -110,7 +110,7 @@ class ServerIntegrationSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers
     }
 
     "should deliver whatever is queued for a player alongside the pings" in {
-      val message = WebSocketFrame.Text("""{"MatchEnded":{}}""")
+      val message = WebSocketFrame.Text("""{"MatchEnded":{"outcome":{"TimeUp":{}}}}""")
       for
         registry       <- ConnectionRegistry()
         lobby          <- QueuedLobbyManager.of[IO]()
@@ -120,7 +120,7 @@ class ServerIntegrationSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers
         publisher = WebSocketBroadcaster(registry)
         settings = GameSettings.default
 
-        coordinator <- MatchCoordinator(lobby, registry, commandService, notifier, publisher, settings, 10.seconds)
+        coordinator <- MatchCoordinator(lobby, registry, commandService, notifier, publisher, settings)
 
         wsServer = WebSocketServer(registry, coordinator, commandService, keepAliveInterval = 20.millis)
 

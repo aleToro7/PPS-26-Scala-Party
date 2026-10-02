@@ -16,17 +16,20 @@ class GameSettingsSpec extends AnyWordSpec with Matchers:
       settings.arena shouldBe ArenaSettings()
       settings.spaceship shouldBe SpaceshipSettings()
       settings.shooting shouldBe ShootingSettings()
+      settings.matchSettings shouldBe MatchSettings()
 
     "compose custom configurations accurately" in:
       val customArena = ArenaSettings(width = 1920, height = 1080)
       val customSpaceship = SpaceshipSettings(speed = 75.0, rotationSpeed = 90.0)
       val customShooting = ShootingSettings(bulletPower = 20.0, bulletSpeed = 150.0, shootCooldown = 300L)
+      val customMatch = MatchSettings(timeLimit = 30_000L)
 
-      val custom = GameSettings(customArena, customSpaceship, customShooting)
+      val custom = GameSettings(customArena, customSpaceship, customShooting, customMatch)
 
       custom.arena shouldBe customArena
       custom.spaceship shouldBe customSpaceship
       custom.shooting shouldBe customShooting
+      custom.matchSettings shouldBe customMatch
 
   "ArenaSettings" should:
 
@@ -64,3 +67,9 @@ class GameSettingsSpec extends AnyWordSpec with Matchers:
     "validate muzzle offset boundaries" in:
       an[IllegalArgumentException] should be thrownBy ShootingSettings(muzzleOffset = -1.0)
       noException should be thrownBy ShootingSettings(muzzleOffset = 0.0)
+
+  "MatchSettings" should:
+
+    "reject a non-positive time limit" in:
+      List(0L, -1L).foreach: invalid =>
+        an[IllegalArgumentException] should be thrownBy MatchSettings(timeLimit = invalid)

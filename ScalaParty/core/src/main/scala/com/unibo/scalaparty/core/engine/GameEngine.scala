@@ -5,7 +5,7 @@ import com.unibo.scalaparty.core.ecs.*
 import com.unibo.scalaparty.core.ecs.systems.*
 import com.unibo.scalaparty.core.engine.input.InputGateway
 import com.unibo.scalaparty.core.geometry.{Point2D, Vector2D}
-import com.unibo.scalaparty.core.model.{ArenaSettings, GameCommand}
+import com.unibo.scalaparty.core.model.{ArenaSettings, GameCommand, MatchOutcome}
 
 /** A trait representing the game engine responsible for updating the state of the game world based on player commands and elapsed time. */
 trait GameEngine:
@@ -16,6 +16,12 @@ trait GameEngine:
    *  @return a new list of entities representing the updated state of the game world
    */
   def update(list: List[GameCommand], dt: Long): List[EntityDto]
+
+  /** Tells whether the match is over, according to the [[MatchRules]].
+   *
+   *  @return how the match ended, or `None` while it is still going on
+   */
+  def outcome: Option[MatchOutcome]
 
 object GameEngine:
   /** Creates a new instance of the game engine based on the provided game configuration.
@@ -38,6 +44,12 @@ object GameEngine:
 private class SinglePlayerGameEngine(config: GameConfig, pipeline: SystemPipeline) extends GameEngine:
 
   private var world: GameWorld = initializeWorld(config)
+
+  /** Simulated time since the match began, in milliseconds. */
+  private var elapsed: Long = 0L
+
+  /** The spaceships of the players the match started with. */
+  private val players: Set[EntityId] = config.players.toSet
 
   /** Spawns one spaceship for each player, each on its own spawn point. */
   private def initializeWorld(config: GameConfig): GameWorld =
@@ -65,7 +77,15 @@ private class SinglePlayerGameEngine(config: GameConfig, pipeline: SystemPipelin
       .foldLeft((world, Set.empty[GameEvent])):
         case ((currentWorld, events), system) => system.update(currentWorld, events, dt)
     world = updatedWorld
+    elapsed += dt
     world.serialized
+
+  override def outcome: Option[MatchOutcome] =
+    MatchRules.outcome(config.settings.matchSettings, players, survivors, elapsed)
+
+  /** The spaceships of the players still in the world, those destroyed or left being removed from it. */
+  private def survivors: Set[EntityId] =
+    players.filter(world.findComponents(_).isDefined)
 
 private object SinglePlayerGameEngine:
 

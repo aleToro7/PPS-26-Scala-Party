@@ -1,6 +1,7 @@
 package com.unibo.scalaparty.infrastructure.model
 
 import com.unibo.scalaparty.core.ecs.EntityId
+import com.unibo.scalaparty.core.model.MatchOutcome
 
 /** A notification sent by the server to a single player about its place in the game.
  *
@@ -21,5 +22,5 @@ enum ServerMessage:
    */
   case MatchStarted(players: Int, you: EntityId)
 
-  /** The match the player was taking part in is over. */
-  case MatchEnded
+  /** The match the player was taking part in is over, for the given reason. */
+  case MatchEnded(outcome: MatchOutcome)

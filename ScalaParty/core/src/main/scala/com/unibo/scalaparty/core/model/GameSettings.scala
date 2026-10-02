@@ -47,16 +47,27 @@ final case class ShootingSettings(
   require(shootCooldown >= 0L, "Shoot cooldown cannot be negative")
   require(muzzleOffset >= 0.0, "Muzzle offset cannot be negative")
 
+/** Configuration settings for the rules deciding when a match is over.
+ *
+ *  @param timeLimit the longest a match can last, in milliseconds of simulated time
+ */
+final case class MatchSettings(
+    timeLimit: Long = 60_000L
+):
+  require(timeLimit > 0L, "Time limit must be positive")
+
 /** Unified configuration grouping all arena, entity, and gameplay mechanics parameters.
  *
- *  @param arena     settings controlling arena bounds
- *  @param spaceship settings controlling spaceship dynamics
- *  @param shooting  settings controlling weapon firing and bullet behavior
+ *  @param arena         settings controlling arena bounds
+ *  @param spaceship     settings controlling spaceship dynamics
+ *  @param shooting      settings controlling weapon firing and bullet behavior
+ *  @param matchSettings settings controlling when a match ends
  */
 final case class GameSettings(
     arena: ArenaSettings = ArenaSettings(),
     spaceship: SpaceshipSettings = SpaceshipSettings(),
-    shooting: ShootingSettings = ShootingSettings()
+    shooting: ShootingSettings = ShootingSettings(),
+    matchSettings: MatchSettings = MatchSettings()
 )
 
 object GameSettings:
