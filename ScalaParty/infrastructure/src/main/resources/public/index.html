@@ -143,7 +143,8 @@
     });
 
     function processInput() {
-        if (socket.readyState !== WebSocket.OPEN) return;
+        // A dead spaceship can no longer be controlled
+        if (socket.readyState !== WebSocket.OPEN || !findMyShip()) return;
 
         if (activeKeys.has('r')) {
             sendCommand({Rotate: {angle: 2.0}});
@@ -160,12 +161,13 @@
 
     // -------------------------------
 
+    // Lobby notifications share the socket with the match states: only the latter carry the entities
     function extractEntities(payload) {
         return Array.isArray(payload)
             ? payload
             : Array.isArray(payload?.entities)
                 ? payload.entities
-                : [];
+                : null;
     }
 
     function toShipState(ship) {
@@ -256,20 +258,33 @@
         }
     }
 
+    // The server removes a spaceship in the same update that depletes its health,
+    // so the spaceship of this player missing from the match state is a dead one
+    function findMyShip() {
+        return currentShips.find(ship => ship.id === myShipId);
+    }
+
     // Track the last known health to prevent unnecessary DOM updates
     let lastRenderedHealth = -1;
+    // Kept to still show the maximum health once the spaceship of this player is dead
+    let lastMaxHealth = 100;
 
-    // The health bar shows the spaceship of this player only.
+    // The health bar shows the spaceship of this player only, emptied once it dies.
     function updateUI() {
-        const myShip = currentShips.find(ship => ship.id === myShipId);
-        if (!myShip) return;
-        const hp = myShip.health;
+        if (myShipId === null) return;
+        const myShip = findMyShip();
+        const hp = myShip ? myShip.health : 0;
 
         // Skip DOM manipulation if health hasn't changed
         if (hp === lastRenderedHealth) return;
         lastRenderedHealth = hp;
 
-        const maxHp = myShip.maxHealth;
+        if (!myShip) {
+            statusEl.textContent = "You're dead";
+        }
+
+        const maxHp = myShip ? myShip.maxHealth : lastMaxHealth;
+        lastMaxHealth = maxHp;
         const safeMax = maxHp > 0 ? maxHp : 1;
         const percentage = Math.max(0, Math.min(100, (hp / safeMax) * 100));
 
@@ -292,6 +307,7 @@
                 return;
             }
             const entities = extractEntities(payload);
+            if (entities === null) return;
 
             // Clear the arrays without reallocating memory
             currentShips.length = 0;
