@@ -56,6 +56,11 @@ class ProtocolCodecsSpec extends AnyWordSpec with Matchers:
       json should include(""""Spaceship":{"id":1""")
       json should include(""""Bullet":{"id":2""")
 
+    "tell a player starting a match which entity is its own" in:
+      val message: ServerMessage = ServerMessage.MatchStarted(players = 2, you = EntityId.fromLong(7L))
+
+      message.asJson.noSpaces shouldEqual """{"MatchStarted":{"players":2,"you":7}}"""
+
     "tell clients why a match ended" in:
       val ended: ServerMessage = ServerMessage.MatchEnded(MatchOutcome.TimeUp)
 

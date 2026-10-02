@@ -11,6 +11,7 @@ object EntityFactory:
    *  @param velocity the initial velocity of the spaceship
    *  @param maxHealth the health points the spaceship spawns with
    *  @param collisionDamage the damage the spaceship deals to the entities it collides with
+   *  @param rotation the angle in degrees the spaceship initially faces, which should match its velocity
    *  @return a tuple containing the unique identifier of the created spaceship entity and its associated list of components
    */
   def createSpaceship(
@@ -19,12 +20,13 @@ object EntityFactory:
       entityId: EntityId = EntityId.generate(),
       weapon: Weapon = Weapon.default,
       maxHealth: Double = GameSettings.default.spaceship.maxHealth,
-      collisionDamage: Double = GameSettings.default.spaceship.collisionDamage
+      collisionDamage: Double = GameSettings.default.spaceship.collisionDamage,
+      rotation: Double = 0.0
   ): (EntityId, List[Component]) =
     val components: List[Component] = List(
       PositionComponent(position),
       MovementComponent(velocity),
-      RotationComponent(),
+      RotationComponent(rotation),
       EntityTypeComponent(EntityType.Spaceship),
       ShootingComponent(weapon = weapon),
       EntityTypeComponent(EntityType.Spaceship),

@@ -19,3 +19,9 @@ enum GameCommand:
    *  @param entityId the ID of the entity that will shoot the bullet
    */
   case ShootCommand(entityId: EntityId)
+
+  /** Represents the player controlling an entity leaving the match: the entity is removed from the game.
+   *
+   *  @param entityId the ID of the entity controlled by the player who left
+   */
+  case LeaveCommand(entityId: EntityId)

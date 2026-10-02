@@ -65,6 +65,11 @@ case class HealthComponent(current: Double, max: Double) extends Component:
     require(amount >= 0.0, "Damage cannot be negative")
     copy(current = math.max(0.0, current - amount))
 
+  /** Whether the health has been completely depleted.
+   *  @return true if no health points are left, false otherwise
+   */
+  def isDepleted: Boolean = current == 0.0
+
 object HealthComponent:
   /** Creates a health component at full health.
    *  @param max the maximum health points
