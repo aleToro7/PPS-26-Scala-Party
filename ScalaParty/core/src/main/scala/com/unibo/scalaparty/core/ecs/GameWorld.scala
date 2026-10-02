@@ -8,6 +8,19 @@ import com.unibo.scalaparty.core.utils.collectFirstOfClass
 
 type EntityWithComponents = (EntityId, List[Component])
 
+extension (self: EntityWithComponents)
+  /** Retrieves the unique identifier of the entity.
+   *
+   *  @return the [[EntityId]] of the entity
+   */
+  def id: EntityId = self._1
+
+  /** Retrieves the list of components associated with the entity.
+   *
+   *  @return a list of [[Component]]s associated with the entity
+   */
+  def components: List[Component] = self._2
+
 opaque type WorldId = Long
 
 object WorldId:
