@@ -4,3 +4,6 @@ package com.unibo.scalaparty.core.model
 enum MatchOutcome:
   /** The time limit elapsed before the match was decided otherwise. */
   case TimeUp
+
+  /** Every spaceship was destroyed, so nobody won. */
+  case NoSurvivors
