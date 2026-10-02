@@ -1,6 +1,7 @@
 package com.unibo.scalaparty.infrastructure.application
 
 import scala.concurrent.duration.*
+
 import cats.effect.IO
 import fs2.Stream
 import com.unibo.scalaparty.core.ecs.{EntityId, GameWorld}
