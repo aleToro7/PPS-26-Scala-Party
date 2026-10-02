@@ -44,3 +44,15 @@ class EntityFactorySpec extends AnyFlatSpec:
       EntityTypeComponent(EntityType.Bullet),
       BulletComponent(power, shooterId)
     )
+
+  "A Wall" should "be created with the correct components" in:
+    val position = Point2D(5, 5)
+    val width = 10.0
+    val height = 2.0
+    val (wallId, components) =
+      EntityFactory.createWall(position, width, height)
+    components should contain allOf (
+      PositionComponent(position),
+      ShapeComponent(Shape.AABB(width, height, Point2D.origin)),
+      EntityTypeComponent(EntityType.Wall)
+    )

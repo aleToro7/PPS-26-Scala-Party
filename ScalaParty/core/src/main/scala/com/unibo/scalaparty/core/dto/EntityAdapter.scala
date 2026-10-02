@@ -1,8 +1,8 @@
 package com.unibo.scalaparty.core.dto
 
-import com.unibo.scalaparty.core.dto.EntityDto.{Bullet as BulletDto, Spaceship as SpaceshipDto}
+import com.unibo.scalaparty.core.dto.EntityDto.{Bullet as BulletDto, Spaceship as SpaceshipDto, Wall as WallDto}
 import com.unibo.scalaparty.core.ecs.*
-import com.unibo.scalaparty.core.ecs.EntityType.{Bullet, Spaceship}
+import com.unibo.scalaparty.core.ecs.EntityType.{Bullet, Spaceship, Wall}
 import com.unibo.scalaparty.core.utils.collectFirstOfClass
 
 object EntityAdapter:
@@ -18,6 +18,7 @@ object EntityAdapter:
     entityType match
       case Some(Spaceship) => extractSpaceship(entityId, components)
       case Some(Bullet) => extractBullet(entityId, components)
+      case Some(Wall) => extractWall(entityId, components)
       case None => None
 
   private def extractBullet(
@@ -46,6 +47,12 @@ object EntityAdapter:
       health.map(_.current).getOrElse(100.0),
       health.map(_.max).getOrElse(100.0)
     )
+
+  private def extractWall(entityId: EntityId, components: List[Component]): Option[WallDto] =
+    for
+      position <- components.collectFirstOfClass[PositionComponent].map(_.position)
+      shape    <- components.collectFirstOfClass[ShapeComponent].map(_.shape)
+    yield EntityDto.Wall(entityId, position, shape)
 
 extension (e: EntityWithComponents)
   /** Converts the entity ID and its associated components to an EntityDto based on the specified entity type.

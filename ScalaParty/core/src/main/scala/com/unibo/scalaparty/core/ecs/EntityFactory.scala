@@ -57,3 +57,23 @@ object EntityFactory:
       ShapeComponent(Shape.Circle(1.0, (0.0, 0.0)))
     )
     (entityId, components)
+
+  /** Creates a new wall entity with the specified position, width, and height.
+   *
+   *  @param position the position of the wall
+   *  @param width the width of the wall
+   *  @param height the height of the wall
+   *  @return a tuple containing the unique identifier of the created wall entity and its associated list of components
+   */
+  def createWall(
+      position: Point2D,
+      width: Double,
+      height: Double,
+      entityId: EntityId = EntityId.generate()
+  ): EntityWithComponents =
+    val components: List[Component] = List(
+      PositionComponent(position),
+      EntityTypeComponent(EntityType.Wall),
+      ShapeComponent(Shape.AABB(width, height, (0.0, 0.0)))
+    )
+    (entityId, components)
