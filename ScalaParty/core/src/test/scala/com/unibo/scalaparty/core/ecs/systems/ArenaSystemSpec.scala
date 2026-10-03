@@ -2,9 +2,9 @@ package com.unibo.scalaparty.core.ecs.systems
 
 import com.unibo.scalaparty.core.ecs.*
 import com.unibo.scalaparty.core.geometry.{Point2D, Shape, Vector2D}
-import com.unibo.scalaparty.core.utils.half
 import com.unibo.scalaparty.core.model.GameSettings
 import com.unibo.scalaparty.core.model.map.{Dimension, GameMap}
+import com.unibo.scalaparty.core.utils.half
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
