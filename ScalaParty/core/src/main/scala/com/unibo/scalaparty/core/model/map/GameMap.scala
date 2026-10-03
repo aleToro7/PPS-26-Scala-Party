@@ -3,7 +3,7 @@ package com.unibo.scalaparty.core.model.map
 import scala.compiletime.ops.int.+
 
 import com.unibo.scalaparty.core.ecs.{EntityFactory, EntityId, GameWorld}
-import com.unibo.scalaparty.core.geometry.Point2D
+import com.unibo.scalaparty.core.geometry.{Point2D, Vector2D}
 import com.unibo.scalaparty.core.model.GameSettings
 
 /** A GameMap represents a layout strategy used to build a GameWorld.
@@ -136,6 +136,7 @@ object Dsl:
       val mapCenter = Point2D.origin
       val spawnedPlayers = players.zip(spawnPoints).map:
         case (playerId, spawnPoint) =>
-          val direction = spawnPoint - mapCenter
+          // If the spawn point is at the center of the map, default to a direction pointing upwards (0, 1)
+          val direction = if mapCenter != spawnPoint then mapCenter - spawnPoint else Vector2D(0, 1)
           EntityFactory.createSpaceshipFromConfig(settings)(spawnPoint, direction, playerId)
       GameWorld((walls ++ spawnedPlayers).toList)

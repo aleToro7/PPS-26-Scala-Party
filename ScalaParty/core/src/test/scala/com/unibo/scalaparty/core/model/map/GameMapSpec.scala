@@ -1,10 +1,12 @@
 package com.unibo.scalaparty.core.model.map
 
-import com.unibo.scalaparty.core.ecs.{components, EntityId, EntityTypeComponent}
+import com.unibo.scalaparty.core.ecs.{components, EntityId, EntityTypeComponent, MovementComponent}
 import com.unibo.scalaparty.core.ecs.EntityType.Wall
+import com.unibo.scalaparty.core.geometry.Vector2D
 import com.unibo.scalaparty.core.model.GameSettings
 import com.unibo.scalaparty.core.model.map.Dsl.{S, W, *}
 import com.unibo.scalaparty.core.utils.collectFirstOfClass
+import org.scalatest.OptionValues.convertOptionToValuable
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -44,3 +46,11 @@ class GameMapSpec extends AnyFlatSpec with Matchers:
       _.components.collectFirstOfClass[EntityTypeComponent]
     ).count(_.entityType == Wall)
     wallCount shouldBe numOfWalls
+
+  it should "not zero the entities' velocity when placing them at the origin" in:
+    val player = EntityId.generate()
+    val map = GameMap.fromGrid(/ | S | /)
+    val world = map.buildWorld(GameSettings.default)(List(player))
+    val playerVelocity = world.findComponents(player).flatMap:
+      _.collectFirstOfClass[MovementComponent].map(_.velocity)
+    playerVelocity.value should not be Vector2D.zero
