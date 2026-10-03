@@ -10,7 +10,7 @@ import com.unibo.scalaparty.core.model.map.GameMap
  *  @param collisionDamage the damage a spaceship deals to the entities it collides with
  */
 final case class SpaceshipSettings(
-    speed: Double = 50.0,
+    speed: Double = 120.0,
     rotationSpeed: Double = 180.0,
     maxHealth: Double = 100.0,
     collisionDamage: Double = 20.0
@@ -28,9 +28,9 @@ final case class SpaceshipSettings(
  *  @param muzzleOffset  the distance from the shooter's center at which bullets are spawned (the spaceship's nose)
  */
 final case class ShootingSettings(
-    bulletPower: Double = 10.0,
-    bulletSpeed: Double = 100.0,
-    shootCooldown: Long = 250L,
+    bulletPower: Double = 15.0,
+    bulletSpeed: Double = 300.0,
+    shootCooldown: Long = 500L,
     muzzleOffset: Double = 20.0
 ):
   require(bulletPower > 0.0, "Bullet power must be positive")
