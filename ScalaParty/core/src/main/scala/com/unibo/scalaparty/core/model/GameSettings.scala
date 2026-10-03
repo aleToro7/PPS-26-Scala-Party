@@ -1,15 +1,6 @@
 package com.unibo.scalaparty.core.model
 
-/** Configuration settings for the game arena.
- *
- *  @param width  the horizontal width of the arena
- *  @param height the vertical height of the arena
- */
-final case class ArenaSettings(
-    width: Int = 800,
-    height: Int = 800
-):
-  require(width > 0 && height > 0, "Arena dimensions must be positive")
+import com.unibo.scalaparty.core.model.map.GameMap
 
 /** Configuration settings for spaceship dynamics.
  *
@@ -49,14 +40,14 @@ final case class ShootingSettings(
 
 /** Unified configuration grouping all arena, entity, and gameplay mechanics parameters.
  *
- *  @param arena     settings controlling arena bounds
  *  @param spaceship settings controlling spaceship dynamics
  *  @param shooting  settings controlling weapon firing and bullet behavior
+ *  @param map      the map layout and spawn points for the game world
  */
 final case class GameSettings(
-    arena: ArenaSettings = ArenaSettings(),
     spaceship: SpaceshipSettings = SpaceshipSettings(),
-    shooting: ShootingSettings = ShootingSettings()
+    shooting: ShootingSettings = ShootingSettings(),
+    map: GameMap = GameMap.default
 )
 
 object GameSettings:

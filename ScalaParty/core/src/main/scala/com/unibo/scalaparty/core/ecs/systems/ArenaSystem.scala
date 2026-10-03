@@ -11,7 +11,7 @@ import com.unibo.scalaparty.core.utils.collectFirstOfClass
  *  @param settings the game settings containing arena dimensions
  */
 class ArenaSystem(private val settings: GameSettings) extends WorldSystem:
-  private val arena = settings.arena
+  private val arena = settings.map.dimension
   private val maxArenaY = arena.height / 2.0
   private val minArenaY = -maxArenaY
   private val maxArenaX = arena.width / 2.0

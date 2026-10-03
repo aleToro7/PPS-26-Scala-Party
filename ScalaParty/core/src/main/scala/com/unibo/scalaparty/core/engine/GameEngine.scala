@@ -4,11 +4,15 @@ import com.unibo.scalaparty.core.dto.{toDto, EntityDto}
 import com.unibo.scalaparty.core.ecs.*
 import com.unibo.scalaparty.core.ecs.systems.*
 import com.unibo.scalaparty.core.engine.input.InputGateway
-import com.unibo.scalaparty.core.geometry.{Point2D, Vector2D}
-import com.unibo.scalaparty.core.model.GameCommand
+import com.unibo.scalaparty.core.geometry.{Point2D, Shape, Vector2D}
+import com.unibo.scalaparty.core.model.{GameCommand, GameSettings}
+import com.unibo.scalaparty.core.model.map.GameMap
 
 /** A trait representing the game engine responsible for updating the state of the game world based on player commands and elapsed time. */
 trait GameEngine:
+  /** Returns the bounding box of the game arena. */
+  def arena: Shape.AABB
+
   /** Updates the state of the game world based on the provided player commands and the elapsed time.
    *
    *  @param list  a list of player commands to be processed
@@ -35,23 +39,28 @@ object GameEngine:
   def apply(config: GameConfig, pipeline: SystemPipeline): GameEngine =
     new SinglePlayerGameEngine(config, pipeline)
 
+private class DefaultGameEngine(
+    override val arena: Shape.AABB,
+    private var world: GameWorld,
+    pipeline: SystemPipeline
+) extends GameEngine:
+
+  override def update(list: List[GameCommand], dt: Long): List[EntityDto] =
+    world = InputGateway.processCommands(this.world, list)
+    val (updatedWorld, _) = pipeline
+      .toList
+      .foldLeft((world, Set.empty[GameEvent])):
+        case ((currentWorld, events), system) => system.update(currentWorld, events, dt)
+    world = updatedWorld
+    world.serialized
+
 private class SinglePlayerGameEngine(config: GameConfig, pipeline: SystemPipeline) extends GameEngine:
+
+  override def arena: Shape.AABB = config.map.shape
 
   private var world: GameWorld = initializeWorld(config)
 
-  private def initializeWorld(config: GameConfig): GameWorld =
-    val arena = config.settings.arena
-    val spaceship = config.settings.spaceship
-
-    val playerSpaceship = EntityFactory.createSpaceship(
-      position = Point2D.origin,
-      velocity = Vector2D(spaceship.speed, 0),
-      entityId = config.players.head,
-      weapon = Weapon.fromSettings(config.settings.shooting),
-      maxHealth = spaceship.maxHealth,
-      collisionDamage = spaceship.collisionDamage
-    )
-    GameWorld(List(playerSpaceship))
+  private def initializeWorld(config: GameConfig): GameWorld = config.map.buildWorld(config.settings)(config.players)
 
   override def update(list: List[GameCommand], dt: Long): List[EntityDto] =
     // Process player commands and update the world state
