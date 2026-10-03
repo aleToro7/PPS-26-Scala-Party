@@ -2,6 +2,7 @@ package com.unibo.scalaparty.core.ecs.systems
 
 import com.unibo.scalaparty.core.ecs.*
 import com.unibo.scalaparty.core.geometry.{Point2D, Shape, Vector2D}
+import com.unibo.scalaparty.core.utils.half
 import com.unibo.scalaparty.core.model.GameSettings
 import com.unibo.scalaparty.core.model.map.{Dimension, GameMap}
 import org.scalatest.flatspec.AnyFlatSpec
@@ -11,14 +12,14 @@ class ArenaSystemSpec extends AnyFlatSpec with Matchers:
 
   private val map = new GameMap:
     override def buildWorld(settings: GameSettings)(players: Iterable[EntityId]): GameWorld = GameWorld.empty
-    
+
     override val dimension: Dimension = Dimension(200, 200)
-    
+
   private val arenaWidth = map.dimension.width
-  private val maxArenaX = arenaWidth / 2.0
+  private val maxArenaX = arenaWidth.half
   private val minArenaX = -maxArenaX
   private val arenaHeight = map.dimension.height
-  private val maxArenaY = arenaHeight / 2.0
+  private val maxArenaY = arenaHeight.half
   private val minArenaY = -maxArenaY
   private val entityRadius = 5.0
 

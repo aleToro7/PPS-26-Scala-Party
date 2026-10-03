@@ -10,18 +10,18 @@ class DslSpec extends AnyFlatSpec with Matchers:
   "Dsl" should "consent to define a GameMap using dedicated syntax" in:
     assertCompiles("GameMap.fromGrid(" +
       "S | / | / | W | / | / | S," +
-      "/ | W | / | W | / | W | *," +
-      "/ | W | / | / | / | W | *," +
-      "/ | W | W | W | W | W | *," +
+      "/ | W | / | W | / | W | /," +
+      "/ | W | / | / | / | W | /," +
+      "/ | W | W | W | W | W | /," +
       "S | / | / | W | / | / | S" +
       ")")
 
   it should "validate that all rows have the same length at compile time" in:
     assertDoesNotCompile("GameMap.fromGrid(" +
       "S | / | / | W | / | / | S," +
-      "/ | W | / | / | / | W | *," +
+      "/ | W | / | / | / | W | /," +
       "/ | W | / | W | / | W," + // This row has 6 tiles instead of 7
-      "/ | W | W | W | W | W | *," +
+      "/ | W | W | W | W | W | /," +
       "S | / | / | W | / | / | S" +
       ")")
 

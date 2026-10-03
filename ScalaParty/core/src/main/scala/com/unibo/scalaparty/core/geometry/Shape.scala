@@ -2,6 +2,8 @@ package com.unibo.scalaparty.core.geometry
 
 import java.lang.Math.clamp
 
+import com.unibo.scalaparty.core.utils.half
+
 /** Represents a geometric shape in a two-dimensional space.
  *  This sealed trait defines the different types of shapes that can be represented, including circles, rectangles, squares, and polygons.
  */
@@ -85,9 +87,6 @@ given Conversion[Circle, Projectable] with
   def apply(c: Circle): Projectable = axis =>
     val centerProjection = c.center.x * axis.x + c.center.y * axis.y
     (centerProjection - c.radius, centerProjection + c.radius)
-
-extension (self: Double)
-  private def half = self / 2.0
 
 extension (self: Polygon)
   private def edges: Seq[Segment] = self.vertices.zip(self.vertices.tail :+ self.vertices.head)
