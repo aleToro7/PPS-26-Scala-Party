@@ -60,7 +60,7 @@ object Dsl:
   val W: MapTile = MapTile.Wall
 
   /** Alias for [[MapTile.Empty]] */
-  val * : MapTile = MapTile.Empty
+  val / : MapTile = MapTile.Empty
 
   /** A MapRow represents a row of MapTiles in the game map.
    *  @tparam N the number of tiles in the row

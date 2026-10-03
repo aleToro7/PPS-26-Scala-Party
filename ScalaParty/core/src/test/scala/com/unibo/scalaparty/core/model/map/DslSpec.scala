@@ -30,11 +30,11 @@ class DslSpec extends AnyFlatSpec with Matchers:
     val cols = 7
     val rows = 5
     val map = GameMap.fromGrid(
-      S | * | * | W | * | * | S,
-      * | W | * | W | * | W | *,
-      * | W | * | * | * | W | *,
-      * | W | W | W | W | W | *,
-      S | * | * | W | * | * | S
+      S | / | / | W | / | / | S,
+      / | W | / | W | / | W | /,
+      / | W | / | / | / | W | /,
+      / | W | W | W | W | W | /,
+      S | / | / | W | / | / | S
     )
     map.dimension.width shouldBe cols * tileSize
     map.dimension.height shouldBe rows * tileSize

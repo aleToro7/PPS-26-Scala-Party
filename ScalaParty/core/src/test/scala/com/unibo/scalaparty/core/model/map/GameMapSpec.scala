@@ -11,8 +11,8 @@ import org.scalatest.matchers.should.Matchers
 class GameMapSpec extends AnyFlatSpec with Matchers:
 
   private val map = GameMap.fromGrid(
-    S | * | * | * | * | S,
-    S | * | * | * | * | S,
+    S | / | / | / | / | S,
+    S | / | / | / | / | S,
     W | W | W | W | W | W,
   )
   private val numOfWalls = 6
@@ -25,7 +25,7 @@ class GameMapSpec extends AnyFlatSpec with Matchers:
 
   it should "throw an exception if the number of spawn points is less than the number of players" in:
     val map = GameMap.fromGrid(
-      S | * | * | * | * | S,
+      S | / | / | / | / | S,
       W | W | W | W | W | W,
     )
     val players = (1 to 4).map(EntityId.fromLong(_))
