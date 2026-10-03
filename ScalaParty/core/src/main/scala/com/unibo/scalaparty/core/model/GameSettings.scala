@@ -13,7 +13,7 @@ final case class SpaceshipSettings(
     speed: Double = 120.0,
     rotationSpeed: Double = 180.0,
     maxHealth: Double = 100.0,
-    collisionDamage: Double = 20.0
+    collisionDamage: Double = 1.0
 ):
   require(speed > 0.0, "Spaceship speed must be positive")
   require(rotationSpeed > 0.0, "Rotation speed must be positive")
