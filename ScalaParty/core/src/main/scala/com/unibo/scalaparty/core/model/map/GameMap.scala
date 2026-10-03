@@ -115,22 +115,25 @@ object Dsl:
      *  @return the constructed GameWorld
      */
     def buildWorld(settings: GameSettings)(players: Iterable[EntityId]): GameWorld =
-      val halfTileSize = tileSize / 2.0
+      val halfTileSize = tileSize / 2.0 // Needed to place entities at the center of the tiles
+      // These offsets center the map around the origin (0,0) in the game world.
+      val offsetX = -width / 2.0 + halfTileSize
+      val offsetY = -height / 2.0 + halfTileSize
       val tilesWithCords =
         for
           (row, y)  <- rows.zipWithIndex
           (tile, x) <- row.zipWithIndex
-        yield (tile, Point2D(x * tileSize + halfTileSize, y * tileSize + halfTileSize))
+        yield (tile, Point2D(offsetX + x * tileSize, offsetY + y * tileSize))
+
       val spawnPoints = tilesWithCords.collect { case (MapTile.Spawn, point) => point }
       require(
         players.size <= spawnPoints.size,
         s"Cannot build world: ${players.size} players provided, but map only has ${spawnPoints.size} spawn points."
       )
-
       val walls = tilesWithCords
         .collect { case (MapTile.Wall, point) => point }
         .map(EntityFactory.createWall(_, tileSize, tileSize))
-      val mapCenter = Point2D(width / 2.0, height / 2.0)
+      val mapCenter = Point2D.origin
       val spawnedPlayers = players.zip(spawnPoints).map:
         case (playerId, spawnPoint) =>
           val direction = spawnPoint - mapCenter
