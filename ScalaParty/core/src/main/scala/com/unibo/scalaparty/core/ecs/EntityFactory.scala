@@ -68,7 +68,7 @@ object EntityFactory:
       MovementComponent(velocity),
       EntityTypeComponent(EntityType.Bullet),
       BulletComponent(power, shooterId),
-      ShapeComponent(Shape.Circle(1.0, (0.0, 0.0)))
+      ShapeComponent(Shape.Circle(3.0, (0.0, 0.0)))
     )
     (entityId, components)
 

@@ -40,7 +40,7 @@ final case class ShootingSettings(
     bulletPower: Double = 10.0,
     bulletSpeed: Double = 100.0,
     shootCooldown: Long = 250L,
-    muzzleOffset: Double = 12.0
+    muzzleOffset: Double = 20.0
 ):
   require(bulletPower > 0.0, "Bullet power must be positive")
   require(bulletSpeed > 0.0, "Bullet speed must be positive")
