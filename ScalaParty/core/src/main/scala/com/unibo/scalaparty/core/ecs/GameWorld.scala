@@ -133,6 +133,12 @@ object GameWorld:
    */
   def apply(list: List[EntityWithComponents]): GameWorld = GameWorld(list.toMap)
 
+  /** Creates an empty instance of [[GameWorld]] with no entities or components.
+   *
+   *  @return a new instance of [[GameWorld]] with no entities or components
+   */
+  def empty: GameWorld = GameWorld(Map.empty)
+
 private class GameWorldImpl(private val entityMap: Map[EntityId, List[Component]]) extends GameWorld:
 
   /** @inheritdoc */
