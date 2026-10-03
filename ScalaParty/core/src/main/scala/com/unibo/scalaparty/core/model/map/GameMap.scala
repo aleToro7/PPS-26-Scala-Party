@@ -3,7 +3,7 @@ package com.unibo.scalaparty.core.model.map
 import scala.compiletime.ops.int.+
 
 import com.unibo.scalaparty.core.ecs.{EntityFactory, EntityId, GameWorld}
-import com.unibo.scalaparty.core.geometry.{Point2D, Vector2D}
+import com.unibo.scalaparty.core.geometry.{Point2D, Shape, Vector2D}
 import com.unibo.scalaparty.core.model.GameSettings
 
 /** A GameMap represents a layout strategy used to build a GameWorld.
@@ -22,15 +22,35 @@ trait GameMap:
    */
   val dimension: Dimension
 
+  /** Get the bounding box shape of the map.
+   *  @return The AABB representing the map's boundary.
+   */
+  def shape: Shape.AABB = Shape.AABB(
+    dimension.width.toDouble,
+    dimension.height.toDouble,
+    Point2D(0.0, 0.0) // Il centro dell'arena è ora (0,0)
+  )
+
 object GameMap:
+
   import Dsl.*
 
   /** Create a GameMap from a grid of MapTiles.
+   *
    *  @param grid The grid of MapTiles representing the map layout.
    *  @return A new GameMap instance.
    */
   def fromGrid[N <: Int](using tileSize: TileSize = TileSize(80))(grid: MapRow[N]*): GameMap =
     GridMap(tileSize.value, grid.toVector)
+
+  export MapCatalog.default4Players as default
+
+  def forPlayers(numPlayers: Int) = numPlayers match
+    case 1 => MapCatalog.default1Player
+    case 2 => MapCatalog.default2Players
+    case 3 => MapCatalog.default3Players
+    case 4 => MapCatalog.default4Players
+    case _ => throw new IllegalArgumentException(s"Unsupported number of players: $numPlayers")
 
 /** A Dimension represents the width and height of a rectangular area.
  *  @param width  the width of the area
