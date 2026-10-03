@@ -123,11 +123,24 @@
     let shipColors = new Map();
     // Whether the server turned this player away, so that the closing connection is not reported as a failure.
     let turnedAway = false;
+    // Tracks if the player's ship has been destroyed
+    let isDead = false;
+    // Tracks if the player is currently waiting for a match (initially true)
+    let isWaiting = true;
 
     let currentBullets = [];
     let knownBulletIds = new Set();
     let particles = [];
     let currentWalls = [];
+
+    // Initialize a simple starfield for the background animation
+    const backgroundStars = Array.from({ length: 150 }, () => ({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        size: Math.random() * 2,
+        speed: Math.random() * 3 + 0.5,
+        color: Math.random() > 0.8 ? '#00ffcc' : '#ffffff'
+    }));
 
     // --- Arena State (dynamically updated from server) ---
     let currentArena = {
@@ -154,10 +167,16 @@
     });
 
     function processInput() {
-        // A dead spaceship can no longer be controlled
-        if (socket.readyState !== WebSocket.OPEN || !findMyShip()) return;
+        // A dead spaceship or waiting screen can no longer be controlled
+        if (socket.readyState !== WebSocket.OPEN || isDead || isWaiting || !findMyShip()) return;
 
-        if (activeKeys.has('r')) {
+        // Counter-clockwise rotation
+        if (activeKeys.has('q')) {
+            sendCommand({Rotate: {angle: -2.0}});
+        }
+
+        // Clockwise rotation
+        if (activeKeys.has('s')) {
             sendCommand({Rotate: {angle: 2.0}});
         }
 
@@ -181,27 +200,28 @@
                 : null;
     }
 
-    function toShipState(ship, previous) {
-        const pos = ship.position ?? previous.position;
-        const vel = ship.velocity ?? {x: 0, y: 0};
+    function toShipState(ship, previous = {}) {
+        const pos = ship.position ?? previous.position ?? {x: 0, y: 0};
+        const vel = ship.velocity ?? previous.velocity ?? {x: 0, y: 0};
 
         // Convert server rotation (degrees) to radians, fallback to velocity calculation if not present
         const angle = ship.rotation !== undefined
             ? ship.rotation * (Math.PI / 180)
-            : Math.atan2(Number(vel.y ?? 0), Number(vel.x ?? 1));
+            : (previous.angle !== undefined ? previous.angle : Math.atan2(Number(vel.y ?? 0), Number(vel.x ?? 1)));
 
         return {
+            id: ship.id ?? previous.id,
             position: {
-                x: Number(pos.x ?? previous.position.x),
-                y: Number(pos.y ?? previous.position.y)
+                x: Number(pos.x ?? 0),
+                y: Number(pos.y ?? 0)
             },
             velocity: {
-                x: Number(vel.x ?? previous.velocity.x),
-                y: Number(vel.y ?? previous.velocity.y)
+                x: Number(vel.x ?? 0),
+                y: Number(vel.y ?? 0)
             },
             angle: angle,
-            health: Number(ship.health ?? previous.health),
-            maxHealth: Number(ship.maxHealth ?? previous.maxHealth)
+            health: Number(ship.health ?? previous.health ?? 100),
+            maxHealth: Number(ship.maxHealth ?? previous.maxHealth ?? 100)
         };
     }
 
@@ -239,6 +259,8 @@
         } else if (message.MatchStarted) {
             myShipId = message.MatchStarted.you;
             shipColors = new Map();
+            isDead = false;
+            isWaiting = false; // Turn off waiting screen
             statusEl.textContent = `Match started with ${message.MatchStarted.players} player(s)`;
         } else if (message.MatchEnded) {
             myShipId = null;
@@ -246,7 +268,9 @@
             showIdentity(null);
             currentShips = [];
             currentBullets.length = 0;
-            statusEl.textContent = 'Match over';
+            isDead = false;
+            isWaiting = true; // Turn waiting screen back on
+            statusEl.textContent = 'Match over. Waiting for next...';
         } else {
             return false;
         }
@@ -299,13 +323,14 @@
         const myShip = findMyShip();
         const hp = myShip ? myShip.health : 0;
 
+        if (!myShip && !isDead) {
+            isDead = true;
+            statusEl.textContent = "You're dead";
+        }
+
         // Skip DOM manipulation if health hasn't changed
         if (hp === lastRenderedHealth) return;
         lastRenderedHealth = hp;
-
-        if (!myShip) {
-            statusEl.textContent = "You're dead";
-        }
 
         const maxHp = myShip ? myShip.maxHealth : lastMaxHealth;
         lastMaxHealth = maxHp;
@@ -356,9 +381,10 @@
             const entities = extractEntities(payload);
             if (entities === null) return;
 
-            // Clear the arrays without reallocating memory
+            // Save old ships to fallback state correctly, then clear arrays
+            const previousShips = [...currentShips];
+
             currentShips.length = 0;
-            // Clear arrays without reallocating memory
             currentBullets.length = 0;
             currentWalls.length = 0;
             const currentBulletIds = new Set();
@@ -368,7 +394,8 @@
                 if (!entry) continue;
 
                 if ('Spaceship' in entry) {
-                    currentShips.push(toShipState(entry.Spaceship));
+                    const oldShip = previousShips.find(s => s.id === entry.Spaceship.id);
+                    currentShips.push(toShipState(entry.Spaceship, oldShip));
                 } else if ('Bullet' in entry) {
                     const bulletData = entry.Bullet;
                     const pos = toPosition(bulletData);
@@ -409,12 +436,53 @@
         }
     }
 
+    // Shared function to render the scrolling starfield background with increased transparency
+    function renderStarfield() {
+        ctx.fillStyle = '#ffffff';
+        backgroundStars.forEach(star => {
+            star.y += star.speed;
+            // Wrap stars around the screen
+            if (star.y > canvas.height) {
+                star.y = 0;
+                star.x = Math.random() * canvas.width;
+            }
+            ctx.fillStyle = star.color;
+            // Much more transparent for a subtle deep-space effect
+            ctx.globalAlpha = Math.random() > 0.95 ? 0.05 : 0.25;
+            ctx.beginPath();
+            ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+            ctx.fill();
+        });
+        ctx.globalAlpha = 1.0;
+    }
+
     // Each spaceship has the color of its player, the same in every client.
     function drawSpaceship(x, y, angle, color) {
         ctx.save();
         ctx.translate(x, y);
         ctx.rotate(angle);
 
+        const time = Date.now() / 200;
+
+        // 1. Draw Mini Thruster Engine Flame
+        ctx.save();
+        ctx.fillStyle = color.hex;
+        ctx.globalAlpha = 0.4 + Math.sin(time * 5) * 0.3; // Rapid but soft pulsing for a small fire
+
+        ctx.beginPath();
+        // Base of the ship is at -SHIP_HEIGHT/2
+        ctx.moveTo(-SHIP_HEIGHT / 2, 0);
+
+        // Draw a much smaller, erratic flame shape pointing backwards
+        const flameLength = 20 + Math.random() * 6; // Flame extends 6 to 12 pixels
+        ctx.lineTo(-SHIP_HEIGHT / 2 - flameLength * 0.7, -4);
+        ctx.lineTo(-SHIP_HEIGHT / 2 - flameLength, 0);
+        ctx.lineTo(-SHIP_HEIGHT / 2 - flameLength * 0.7, 4);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+
+        // 2. Draw Ship Body
         ctx.beginPath();
         ctx.moveTo(SHIP_HEIGHT / 2, 0);
         ctx.lineTo(-SHIP_HEIGHT / 2, -SHIP_BASE / 2);
@@ -426,6 +494,7 @@
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 1.5;
         ctx.stroke();
+
         ctx.restore();
     }
 
@@ -538,8 +607,76 @@
         }
     }
 
+    // Function to render the animated waiting screen
+    function renderWaitingScreen() {
+        ctx.fillStyle = '#121218';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Render the background starfield
+        renderStarfield();
+
+        const time = Date.now() / 200;
+        const centerX = canvas.width / 2;
+        // Make the ship float up and down gently
+        const centerY = canvas.height / 2 + Math.sin(time) * 15;
+
+        // Draw the spaceship pointing upwards (it will automatically draw its own flame now)
+        drawSpaceship(centerX, centerY, -Math.PI / 2, {hex: '#00ffcc'});
+
+        // Draw dynamic status text below the ship
+        ctx.save();
+        ctx.font = 'bold 24px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#9ee7ff';
+        ctx.shadowColor = '#00ffcc';
+        ctx.shadowBlur = 10;
+
+        const displayStatus = statusEl.textContent || 'Connecting...';
+        ctx.fillText(displayStatus.toUpperCase(), centerX, centerY + 80);
+        ctx.restore();
+    }
+
+    // Function to render the animated death screen
+    function renderDeathScreen() {
+        // Draw a semi-transparent dark overlay to slowly fade out the frozen canvas
+        ctx.fillStyle = 'rgba(13, 13, 17, 0.05)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const time = Date.now() / 150;
+        const glow = 20 + Math.sin(time) * 15; // Pulsing glow effect
+
+        ctx.save();
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+
+        // Slight pulsing scale for the text
+        const scale = 1 + Math.sin(time * 0.5) * 0.03;
+        ctx.scale(scale, scale);
+
+        // Main text styling
+        ctx.font = 'bold 72px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        ctx.shadowColor = '#ff0000';
+        ctx.shadowBlur = glow;
+        ctx.fillStyle = '#ff1a1a';
+
+        ctx.fillText("YOU ARE DEAD", 0, -20);
+
+        // Subtitle text styling
+        ctx.font = '24px monospace';
+        ctx.shadowBlur = glow / 2;
+        ctx.fillStyle = '#ff8080';
+        ctx.fillText("Waiting for match to end...", 0, 50);
+
+        ctx.restore();
+    }
+
     function render() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Render the background starfield behind everything else
+        renderStarfield();
 
         ctx.save();
         // Universal coordinate translation based on arena center
@@ -549,16 +686,28 @@
 
         drawArenaBounds();
         drawWalls();
-        // Pass the entire bullet object to drawBullet
+
         currentBullets.forEach(bullet => drawBullet(bullet));
         currentShips.forEach(ship => drawSpaceship(ship.position.x, ship.position.y, ship.angle, colorOf(ship.id)));
-        currentBullets.forEach(bullet => drawBullet(bullet.x, bullet.y));
         updateAndDrawParticles();
 
         ctx.restore();
     }
 
     function gameLoop() {
+        // Handle priority screens before rendering the actual game
+        if (isWaiting) {
+            renderWaitingScreen();
+            requestAnimationFrame(gameLoop);
+            return;
+        }
+
+        if (isDead) {
+            renderDeathScreen();
+            requestAnimationFrame(gameLoop);
+            return;
+        }
+
         processInput();
         render();
         requestAnimationFrame(gameLoop);
@@ -571,6 +720,7 @@
     socket.addEventListener('close', () => {
         if (!turnedAway) {
             statusEl.textContent = 'Disconnected from server';
+            isWaiting = true; // Switch back to waiting screen on disconnect
         }
     });
 
