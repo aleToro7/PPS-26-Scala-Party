@@ -4,8 +4,10 @@ import scala.concurrent.duration.*
 
 import cats.effect.IO
 import cats.effect.testing.scalatest.AsyncIOSpec
+import com.unibo.scalaparty.core.dto.EntityDto
 import com.unibo.scalaparty.core.ecs.{EntityId, GameWorld}
 import com.unibo.scalaparty.core.engine.GameEngine
+import com.unibo.scalaparty.core.geometry.{Point2D, Shape}
 import com.unibo.scalaparty.core.model.{GameCommand, GameEvent, MatchState}
 import com.unibo.scalaparty.infrastructure.model.{MatchId, PlayerId}
 import com.unibo.scalaparty.infrastructure.network.dto.PlayerInput
@@ -19,13 +21,15 @@ class MatchRunnerSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
     val matchId: MatchId = MatchId.random()
     val playerId: PlayerId = PlayerId.random()
     val entityId: EntityId = EntityId.generate()
-
-    var capturedCommands: List[GameCommand] = List.empty
     var publishedStates: List[MatchState] = List.empty
+    var capturedCommands: List[GameCommand] = List.empty
 
-    val engine: GameEngine = (commands: List[GameCommand], dt: Long) =>
-      capturedCommands = capturedCommands ++ commands
-      List.empty
+    val engine: GameEngine = new GameEngine:
+      override def arena: Shape.AABB = Shape.AABB(100.0, 100.0, Point2D.origin)
+
+      override def update(commands: List[GameCommand], dt: Long): List[EntityDto] =
+        capturedCommands = capturedCommands ++ commands
+        List.empty
 
     val publisher: MatchEventPublisher[IO] = new MatchEventPublisher[IO]:
       def broadcastState(mId: MatchId, state: MatchState): IO[Unit] = IO:
