@@ -4,9 +4,8 @@ import com.unibo.scalaparty.core.dto.{toDto, EntityDto}
 import com.unibo.scalaparty.core.ecs.*
 import com.unibo.scalaparty.core.ecs.systems.*
 import com.unibo.scalaparty.core.engine.input.InputGateway
-import com.unibo.scalaparty.core.geometry.{Point2D, Shape, Vector2D}
-import com.unibo.scalaparty.core.model.{GameCommand, GameSettings}
-import com.unibo.scalaparty.core.model.map.GameMap
+import com.unibo.scalaparty.core.geometry.Shape
+import com.unibo.scalaparty.core.model.GameCommand
 
 /** A trait representing the game engine responsible for updating the state of the game world based on player commands and elapsed time. */
 trait GameEngine:
@@ -37,35 +36,17 @@ object GameEngine:
    *  @return a new instance of GameEngine
    */
   def apply(config: GameConfig, pipeline: SystemPipeline): GameEngine =
-    new SinglePlayerGameEngine(config, pipeline)
+    new DefaultGameEngine(config, pipeline)
 
 private class DefaultGameEngine(
-    override val arena: Shape.AABB,
-    private var world: GameWorld,
+    config: GameConfig,
     pipeline: SystemPipeline
 ) extends GameEngine:
+  private var world: GameWorld = config.map.buildWorld(config.settings)(config.players)
+  val arena: Shape.AABB = config.map.shape
 
   override def update(list: List[GameCommand], dt: Long): List[EntityDto] =
     world = InputGateway.processCommands(this.world, list)
-    val (updatedWorld, _) = pipeline
-      .toList
-      .foldLeft((world, Set.empty[GameEvent])):
-        case ((currentWorld, events), system) => system.update(currentWorld, events, dt)
-    world = updatedWorld
-    world.serialized
-
-private class SinglePlayerGameEngine(config: GameConfig, pipeline: SystemPipeline) extends GameEngine:
-
-  override def arena: Shape.AABB = config.map.shape
-
-  private var world: GameWorld = initializeWorld(config)
-
-  private def initializeWorld(config: GameConfig): GameWorld = config.map.buildWorld(config.settings)(config.players)
-
-  override def update(list: List[GameCommand], dt: Long): List[EntityDto] =
-    // Process player commands and update the world state
-    world = InputGateway.processCommands(this.world, list)
-    // Execute pipeline of systems
     val (updatedWorld, _) = pipeline
       .toList
       .foldLeft((world, Set.empty[GameEvent])):
