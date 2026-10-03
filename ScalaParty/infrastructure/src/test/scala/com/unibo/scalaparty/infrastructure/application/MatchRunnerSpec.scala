@@ -2,7 +2,7 @@ package com.unibo.scalaparty.infrastructure.application
 
 import scala.concurrent.duration.*
 
-import cats.effect.IO
+import cats.effect.{IO, Ref}
 import cats.effect.testing.scalatest.AsyncIOSpec
 import com.unibo.scalaparty.core.dto.EntityDto
 import com.unibo.scalaparty.core.ecs.{EntityId, GameWorld}
@@ -37,9 +37,15 @@ class MatchRunnerSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
 
       def broadcastEvent(mId: MatchId, event: GameEvent): IO[Unit] = IO.unit
 
-    /** A runner ticking for exactly the given number of frames. */
-    def runnerFor(session: MatchSession, ticks: Int, commands: GameCommandService): MatchRunner =
-      new MatchRunner(session, commands, engine, publisher, MatchRunner.TickInterval * ticks.toLong)
+    /** A runner ticking for exactly the given number of frames, by default with no player ever leaving. */
+    def runnerFor(
+        session: MatchSession,
+        ticks: Int,
+        commands: GameCommandService,
+        roster: Option[IO[Set[PlayerId]]] = None
+    ): MatchRunner =
+      val players = roster.getOrElse(IO.pure(session.players.keySet))
+      new MatchRunner(session, commands, engine, publisher, players, MatchRunner.TickInterval * ticks.toLong)
 
   "A MatchRunner".should:
 
@@ -96,5 +102,29 @@ class MatchRunnerSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
         commandService <- GameCommandService()
         runner = f.runnerFor(session, ticks = 1, commandService)
         _ <- commandService.handleCommand(f.matchId, unregisteredPlayer, PlayerInput.Shoot)
+        _ <- runner.run.compile.drain
+      yield f.capturedCommands shouldBe empty
+
+    "tell the engine to remove the spaceship of a player who left, only once".in:
+      val f = Fixture()
+      val staying = PlayerId.random()
+      val stayingEntity = EntityId.generate()
+      val session =
+        MatchSession(f.matchId, Map(f.playerId -> f.entityId, staying -> stayingEntity), GameWorld(Map.empty))
+
+      for
+        commandService <- GameCommandService()
+        roster         <- Ref.of[IO, Set[PlayerId]](Set(staying))
+        runner = f.runnerFor(session, ticks = 3, commandService, Some(roster.get))
+        _ <- runner.run.compile.drain
+      yield f.capturedCommands shouldBe List(GameCommand.LeaveCommand(f.entityId))
+
+    "leave the spaceships of the players still in the match alone".in:
+      val f = Fixture()
+      val session = MatchSession(f.matchId, Map(f.playerId -> f.entityId), GameWorld(Map.empty))
+
+      for
+        commandService <- GameCommandService()
+        runner = f.runnerFor(session, ticks = 3, commandService)
         _ <- runner.run.compile.drain
       yield f.capturedCommands shouldBe empty

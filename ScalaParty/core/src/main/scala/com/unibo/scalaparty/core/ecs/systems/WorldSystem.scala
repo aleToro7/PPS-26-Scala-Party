@@ -60,6 +60,7 @@ object SystemPipeline:
    *  3. CollisionSystem: Checks for collisions between entities and generates collision events.
    *  4. ShootingSystem: Processes shooting events and updates the state of projectiles.
    *  5. DamageSystem: Applies damage to entities based on collision and shooting events.
+   *  6. DeathSystem: Removes the entities whose health has been depleted.
    *
    *  @param settings the game settings used to configure the systems
    *  @return a new system pipeline with the default systems
@@ -68,9 +69,10 @@ object SystemPipeline:
     MovementSystem // First, move entities based on their velocity
       >> ArenaSystem(settings) // Then, check for arena boundaries
       >> CollisionSystem // Next, check for collisions between entities
-      // The order of the following is not important
+      // The order of the following two is not important
       >> ShootingSystem
       >> DamageSystem
+      >> DeathSystem // Finally, remove the entities destroyed by the damage applied in this tick
 
   extension (pipeline: SystemPipeline)
 
