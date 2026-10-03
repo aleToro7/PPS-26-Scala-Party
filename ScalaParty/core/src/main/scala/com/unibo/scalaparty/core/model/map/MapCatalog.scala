@@ -1,7 +1,7 @@
 //noinspection DuplicatedCode
 package com.unibo.scalaparty.core.model.map
 
-import com.unibo.scalaparty.core.model.map.Dsl.{/, S, TileSize, W, |}
+import com.unibo.scalaparty.core.model.map.Dsl.{/, |, S, W}
 
 private[map] object MapCatalog:
   given TileSize = TileSize(50)
