@@ -3,7 +3,7 @@ package com.unibo.scalaparty.infrastructure.network.dto
 import com.unibo.scalaparty.core.dto.EntityDto
 import com.unibo.scalaparty.core.ecs.EntityId
 import com.unibo.scalaparty.core.geometry.{Point2D, Vector2D}
-import com.unibo.scalaparty.core.geometry.Shape.AABB
+import com.unibo.scalaparty.core.geometry.Shape.{AABB, Circle}
 import com.unibo.scalaparty.core.model.{MatchOutcome, MatchState}
 import com.unibo.scalaparty.infrastructure.model.ServerMessage
 import com.unibo.scalaparty.infrastructure.network.dto.ProtocolCodecs.given
@@ -49,7 +49,8 @@ class ProtocolCodecsSpec extends AnyWordSpec with Matchers:
         AABB(2.0, 2.0, Point2D.origin),
         45.0
       )
-      val bullet = EntityDto.Bullet(EntityId.fromLong(2L), Point2D(15.0, 20.0), Vector2D(100.0, 0.0))
+      val bullet =
+        EntityDto.Bullet(EntityId.fromLong(2L), Point2D(15.0, 20.0), Vector2D(100.0, 0.0), Circle(1.0, Point2D.origin))
       val state = MatchState(tick = 1L, entities = List(spaceship, bullet))
       val json = state.asJson.noSpaces
 

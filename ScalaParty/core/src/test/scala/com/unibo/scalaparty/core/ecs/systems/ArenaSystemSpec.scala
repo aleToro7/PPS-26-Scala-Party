@@ -2,23 +2,28 @@ package com.unibo.scalaparty.core.ecs.systems
 
 import com.unibo.scalaparty.core.ecs.*
 import com.unibo.scalaparty.core.geometry.{Point2D, Shape, Vector2D}
-import com.unibo.scalaparty.core.model.{ArenaSettings, GameSettings}
+import com.unibo.scalaparty.core.model.GameSettings
+import com.unibo.scalaparty.core.model.map.{Dimension, GameMap}
+import com.unibo.scalaparty.core.utils.half
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 class ArenaSystemSpec extends AnyFlatSpec with Matchers:
 
-  private val arenaWidth = 200.0
-  private val maxArenaX = arenaWidth / 2.0
+  private val map = new GameMap:
+    override def buildWorld(settings: GameSettings)(players: Iterable[EntityId]): GameWorld = GameWorld.empty
+
+    override val dimension: Dimension = Dimension(200, 200)
+
+  private val arenaWidth = map.dimension.width
+  private val maxArenaX = arenaWidth.half
   private val minArenaX = -maxArenaX
-  private val arenaHeight = 200.0
-  private val maxArenaY = arenaHeight / 2.0
+  private val arenaHeight = map.dimension.height
+  private val maxArenaY = arenaHeight.half
   private val minArenaY = -maxArenaY
   private val entityRadius = 5.0
 
-  private val settings = GameSettings(
-    arena = ArenaSettings(arenaWidth.toInt, arenaHeight.toInt)
-  )
+  private val settings = GameSettings(map = map)
   private val dt = 1_000L // 1 second in milliseconds
 
   private def createBoundedEntity(

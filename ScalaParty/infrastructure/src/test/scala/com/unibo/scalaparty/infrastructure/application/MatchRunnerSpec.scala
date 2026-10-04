@@ -7,6 +7,7 @@ import cats.effect.testing.scalatest.AsyncIOSpec
 import com.unibo.scalaparty.core.ecs.{EntityId, GameWorld}
 import com.unibo.scalaparty.core.ecs.GameEvent.MatchEnded
 import com.unibo.scalaparty.core.engine.{GameEngine, TickResult}
+import com.unibo.scalaparty.core.geometry.{Point2D, Shape}
 import com.unibo.scalaparty.core.model.{GameCommand, GameEvent, MatchOutcome, MatchState}
 import com.unibo.scalaparty.infrastructure.model.{MatchId, PlayerId}
 import com.unibo.scalaparty.infrastructure.network.dto.PlayerInput
@@ -20,15 +21,16 @@ class MatchRunnerSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
     val matchId: MatchId = MatchId.random()
     val playerId: PlayerId = PlayerId.random()
     val entityId: EntityId = EntityId.generate()
-
-    var capturedCommands: List[GameCommand] = List.empty
     var publishedStates: List[MatchState] = List.empty
+    var capturedCommands: List[GameCommand] = List.empty
 
     /** An engine running out of time once it has been updated `ticks` times. */
     def engineEndingAfter(ticks: Int): GameEngine = new GameEngine:
       private var updates = 0
 
-      def update(commands: List[GameCommand], dt: Long): TickResult =
+      override def arena: Shape.AABB = Shape.AABB(100.0, 100.0, Point2D.origin)
+
+      override def update(commands: List[GameCommand], dt: Long): TickResult =
         updates += 1
         capturedCommands = capturedCommands ++ commands
         TickResult(List.empty, Option.when(updates >= ticks)(MatchEnded(MatchOutcome.TimeUp)).toSet)

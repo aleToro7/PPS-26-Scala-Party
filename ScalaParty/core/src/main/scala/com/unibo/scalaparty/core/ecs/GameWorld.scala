@@ -8,6 +8,19 @@ import com.unibo.scalaparty.core.utils.collectFirstOfClass
 
 type EntityWithComponents = (EntityId, List[Component])
 
+extension (self: EntityWithComponents)
+  /** Retrieves the unique identifier of the entity.
+   *
+   *  @return the [[EntityId]] of the entity
+   */
+  def id: EntityId = self._1
+
+  /** Retrieves the list of components associated with the entity.
+   *
+   *  @return a list of [[Component]]s associated with the entity
+   */
+  def components: List[Component] = self._2
+
 opaque type WorldId = Long
 
 object WorldId:
@@ -119,6 +132,12 @@ object GameWorld:
    *  @return a new instance of [[GameWorld]] containing the provided entities and components
    */
   def apply(list: List[EntityWithComponents]): GameWorld = GameWorld(list.toMap)
+
+  /** Creates an empty instance of [[GameWorld]] with no entities or components.
+   *
+   *  @return a new instance of [[GameWorld]] with no entities or components
+   */
+  def empty: GameWorld = GameWorld(Map.empty)
 
 private class GameWorldImpl(private val entityMap: Map[EntityId, List[Component]]) extends GameWorld:
 

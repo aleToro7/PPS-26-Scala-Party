@@ -71,7 +71,7 @@ class MatchRunner(
             result = engine.update(ecsCommands ++ leaveCommands, MatchRunner.TickInterval.toMillis)
 
             // Publish the new authoritative state
-            _ <- publisher.broadcastState(session.matchId, MatchState(tick, result.entities))
+            _ <- publisher.broadcastState(session.matchId, MatchState(tick, engine.arena, result.entities))
 
             // How the match ended, if it did during this tick
             ended = result.events.collectFirst { case GameEvent.MatchEnded(outcome) => outcome }

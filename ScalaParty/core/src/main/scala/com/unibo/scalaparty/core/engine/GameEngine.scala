@@ -4,11 +4,14 @@ import com.unibo.scalaparty.core.dto.{toDto, EntityDto}
 import com.unibo.scalaparty.core.ecs.*
 import com.unibo.scalaparty.core.ecs.systems.*
 import com.unibo.scalaparty.core.engine.input.InputGateway
-import com.unibo.scalaparty.core.geometry.{Point2D, Vector2D}
-import com.unibo.scalaparty.core.model.{ArenaSettings, GameCommand}
+import com.unibo.scalaparty.core.geometry.Shape
+import com.unibo.scalaparty.core.model.GameCommand
 
 /** A trait representing the game engine responsible for updating the state of the game world based on player commands and elapsed time. */
 trait GameEngine:
+  /** Returns the bounding box of the game arena. */
+  def arena: Shape.AABB
+
   /** Updates the state of the game world based on the provided player commands and the elapsed time.
    *
    *  @param list  a list of player commands to be processed
@@ -33,62 +36,24 @@ object GameEngine:
    *  @return a new instance of GameEngine
    */
   def apply(config: GameConfig, pipeline: SystemPipeline): GameEngine =
-    new SinglePlayerGameEngine(config, pipeline)
+    new DefaultGameEngine(config, pipeline)
 
-private class SinglePlayerGameEngine(config: GameConfig, pipeline: SystemPipeline) extends GameEngine:
-
-  private var world: GameWorld = initializeWorld(config)
-
-  /** Starts the match clock and spawns one spaceship for each player, each on its own spawn point. */
-  private def initializeWorld(config: GameConfig): GameWorld =
-    val spaceship = config.settings.spaceship
-    val spawns = SinglePlayerGameEngine.spawnPoints(config.players.size, config.settings.arena)
-
-    val spaceships = config.players.zip(spawns).map { case (playerId, (position, heading)) =>
-      EntityFactory.createSpaceship(
-        position = position,
-        velocity = Vector2D(spaceship.speed, 0).rotated(heading),
-        entityId = playerId,
-        weapon = Weapon.fromSettings(config.settings.shooting),
-        maxHealth = spaceship.maxHealth,
-        collisionDamage = spaceship.collisionDamage,
-        rotation = heading
-      )
-    }
-
-    GameWorld(EntityFactory.createMatchClock() :: spaceships)
+private class DefaultGameEngine(
+    config: GameConfig,
+    pipeline: SystemPipeline
+) extends GameEngine:
+  private var world: GameWorld =
+    config.map.buildWorld(config.settings)(config.players) + EntityFactory.createMatchClock()
+  val arena: Shape.AABB = config.map.shape
 
   override def update(list: List[GameCommand], dt: Long): TickResult =
-    // Process player commands and update the world state
     world = InputGateway.processCommands(this.world, list)
-    // Execute pipeline of systems
     val (updatedWorld, events) = pipeline
       .toList
       .foldLeft((world, Set.empty[GameEvent])):
         case ((currentWorld, events), system) => system.update(currentWorld, events, dt)
     world = updatedWorld
     TickResult(world.serialized, events)
-
-private object SinglePlayerGameEngine:
-
-  /** Where the given number of players enter the arena, as positions and headings in degrees.
-   *
-   *  A lone player starts in the center of the arena, which is the origin. Several players start evenly spaced on a
-   *  circle around the center, each facing it, so that nobody starts next to or aiming at a wall. This placement only
-   *  lasts until the game map provides its own spawn points.
-   *
-   *  @param players how many players enter the arena
-   *  @param arena   the bounds of the arena
-   *  @return one spawn point for each player
-   */
-  def spawnPoints(players: Int, arena: ArenaSettings): List[(Point2D, Double)] =
-    val center = Point2D.origin
-    if players == 1 then List((center, 0.0))
-    else
-      val radius = Math.min(arena.width, arena.height) / 4
-      List.tabulate(players): index =>
-        val angle = 180.0 + 360.0 * index / players
-        (center + Vector2D(radius, 0).rotated(angle), (angle + 180.0) % 360.0)
 
 extension (world: GameWorld)
 
