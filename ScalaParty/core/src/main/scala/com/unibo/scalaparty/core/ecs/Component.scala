@@ -82,3 +82,17 @@ object HealthComponent:
  */
 case class CollisionDamageComponent(damage: Double) extends Component:
   require(damage >= 0.0, "Collision damage cannot be negative")
+
+/** Represents how long a match has been going on.
+ *  @param elapsed the simulated time since the match began, in milliseconds
+ */
+case class MatchClockComponent(elapsed: Long = 0L) extends Component:
+  require(elapsed >= 0L, "Elapsed time cannot be negative")
+
+  /** Lets the given time pass.
+   *  @param dt the non-negative time to let pass, in milliseconds
+   *  @return a new component whose elapsed time is increased by dt
+   */
+  def advanced(dt: Long): MatchClockComponent =
+    require(dt >= 0L, "Time cannot flow backwards")
+    copy(elapsed = elapsed + dt)
