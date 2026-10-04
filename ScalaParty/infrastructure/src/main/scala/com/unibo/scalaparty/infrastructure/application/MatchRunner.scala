@@ -68,10 +68,10 @@ class MatchRunner(
             leaveCommands = leaving.toList.flatMap(session.players.get).map(GameCommand.LeaveCommand(_))
 
             // Process the resolved commands in the game engine
-            newEntities = engine.update(ecsCommands ++ leaveCommands, MatchRunner.TickInterval.toMillis)
+            result = engine.update(ecsCommands ++ leaveCommands, MatchRunner.TickInterval.toMillis)
 
             // Publish the new authoritative state
-            _ <- publisher.broadcastState(session.matchId, MatchState(tick, newEntities))
+            _ <- publisher.broadcastState(session.matchId, MatchState(tick, result.entities))
           yield (departed ++ leaving, engine.outcome)
       .collectFirst:
         case (_, Some(outcome)) => outcome

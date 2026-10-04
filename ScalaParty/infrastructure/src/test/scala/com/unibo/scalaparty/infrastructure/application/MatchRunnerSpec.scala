@@ -4,9 +4,8 @@ import scala.concurrent.duration.*
 
 import cats.effect.{IO, Ref}
 import cats.effect.testing.scalatest.AsyncIOSpec
-import com.unibo.scalaparty.core.dto.EntityDto
 import com.unibo.scalaparty.core.ecs.{EntityId, GameWorld}
-import com.unibo.scalaparty.core.engine.GameEngine
+import com.unibo.scalaparty.core.engine.{GameEngine, TickResult}
 import com.unibo.scalaparty.core.model.{GameCommand, GameEvent, MatchOutcome, MatchState}
 import com.unibo.scalaparty.infrastructure.model.{MatchId, PlayerId}
 import com.unibo.scalaparty.infrastructure.network.dto.PlayerInput
@@ -28,10 +27,10 @@ class MatchRunnerSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
     def engineEndingAfter(ticks: Int): GameEngine = new GameEngine:
       private var updates = 0
 
-      def update(commands: List[GameCommand], dt: Long): List[EntityDto] =
+      def update(commands: List[GameCommand], dt: Long): TickResult =
         updates += 1
         capturedCommands = capturedCommands ++ commands
-        List.empty
+        TickResult(List.empty, Set.empty)
 
       def outcome: Option[MatchOutcome] = Option.when(updates >= ticks)(MatchOutcome.TimeUp)
 
