@@ -1,7 +1,7 @@
 package com.unibo.scalaparty.core.engine
 
 import com.unibo.scalaparty.core.ecs.{EntityId, GameWorld}
-import com.unibo.scalaparty.core.ecs.systems.{WorldSystem}
+import com.unibo.scalaparty.core.ecs.systems.WorldSystem
 import com.unibo.scalaparty.core.model.GameSettings
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
