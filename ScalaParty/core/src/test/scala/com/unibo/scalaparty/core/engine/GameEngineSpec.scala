@@ -1,14 +1,14 @@
 package com.unibo.scalaparty.core.engine
 
 import com.unibo.scalaparty.core.ecs.{EntityId, GameWorld}
-import com.unibo.scalaparty.core.ecs.systems.{SystemPipeline, WorldSystem}
+import com.unibo.scalaparty.core.ecs.systems.{WorldSystem}
 import com.unibo.scalaparty.core.model.GameSettings
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 class GameEngineSpec extends AnyFlatSpec with Matchers:
 
-  private val emptyPipeline = SystemPipeline()
+  private val emptyPipeline: WorldSystem = (world, events, _) => (world, events)
   private val testSettings = GameSettings.default
   private val someDeltaTime = 100L
 
@@ -34,7 +34,7 @@ class GameEngineSpec extends AnyFlatSpec with Matchers:
         players = List(player),
         settings = testSettings,
       ),
-      SystemPipeline(clearWorldSystem)
+      clearWorldSystem
     )
     val initialState = engine.update(Nil, 0L)
     initialState should not be empty

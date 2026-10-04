@@ -2,7 +2,7 @@ package com.unibo.scalaparty.core.engine
 
 import com.unibo.scalaparty.core.dto.EntityDto
 import com.unibo.scalaparty.core.ecs.EntityId
-import com.unibo.scalaparty.core.ecs.systems.SystemPipeline
+import com.unibo.scalaparty.core.ecs.systems.WorldSystem
 import com.unibo.scalaparty.core.geometry.{Point2D, Vector2D}
 import com.unibo.scalaparty.core.model.GameCommand.LeaveCommand
 import com.unibo.scalaparty.core.model.GameSettings
@@ -15,10 +15,11 @@ class MultiplayerGameEngineSpec extends AnyFlatSpec with Matchers:
   private val arena = settings.map.dimension
   // The arena is centered on the origin.
   private val center = Point2D.origin
+  private val emptyPipeline: WorldSystem = (world, events, _) => (world, events)
 
   /** The spaceships of a match of the given players, as they are before anything moves. */
   private def spawnedShips(players: List[EntityId]): List[EntityDto.Spaceship] =
-    GameEngine(GameConfig(settings, players), SystemPipeline())
+    GameEngine(GameConfig(settings, players), emptyPipeline)
       .update(Nil, 0L)
       .collect { case ship: EntityDto.Spaceship => ship }
 
@@ -42,6 +43,6 @@ class MultiplayerGameEngineSpec extends AnyFlatSpec with Matchers:
 
   it should "remove the spaceship of a player who left, keeping the others" in:
     val players @ List(leaving, staying) = List.fill(2)(EntityId.generate()): @unchecked
-    val engine = GameEngine(GameConfig(settings, players), SystemPipeline())
+    val engine = GameEngine(GameConfig(settings, players), emptyPipeline)
     val ids = engine.update(List(LeaveCommand(leaving)), 0L).collect { case ship: EntityDto.Spaceship => ship.id }
     ids shouldBe List(staying)
