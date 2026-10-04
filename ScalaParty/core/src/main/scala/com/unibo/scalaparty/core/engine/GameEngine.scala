@@ -57,9 +57,15 @@ extension (world: GameWorld)
    *
    *  @return a list of EntityDto representing the entities in the game world
    */
-  def serialized: List[EntityDto] = world.entitiesWithComponents
+  private def serialized: List[EntityDto] = world.entitiesWithComponents
     .map(_.toDto)
     .collect:
       case Some(dto) => dto
 
-  def computeNext(pipeline: WorldSystem, dt: Long): SystemOutput = pipeline.update(world, Set.empty, dt)
+  /** Computes the next state of the game world by applying the provided system pipeline and elapsed time.
+   * 
+   * @param pipeline the system pipeline to be applied to the game world
+   * @param dt the elapsed time since the last update, in milliseconds
+   * @return a tuple containing the updated game world and a set of new game events generated during the update
+   */
+  private def computeNext(pipeline: WorldSystem, dt: Long): SystemOutput = pipeline.update(world, Set.empty, dt)
