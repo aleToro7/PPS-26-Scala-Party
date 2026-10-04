@@ -3,6 +3,7 @@ package com.unibo.scalaparty.core.engine
 import com.unibo.scalaparty.core.ecs.{EntityId, GameEvent, GameWorld}
 import com.unibo.scalaparty.core.ecs.systems.{SystemPipeline, WorldSystem}
 import com.unibo.scalaparty.core.model.{GameSettings, MatchOutcome, MatchSettings}
+import com.unibo.scalaparty.core.model.GameCommand.LeaveCommand
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -53,48 +54,33 @@ class GameEngineSpec extends AnyFlatSpec with Matchers:
     )
     engine.update(Nil, someDeltaTime).events shouldBe Set(GameEvent.Death(player))
 
-  it should "not be over before its time limit has elapsed" in:
+  "A GameEngine with the default pipeline" should "keep the match going before its time limit has elapsed" in:
+    val engine = engineWithTimeLimit(2 * someDeltaTime)
+    endOf(engine.update(Nil, someDeltaTime)) shouldBe None
+
+  it should "end the match once the simulated time reaches its time limit" in:
     val engine = engineWithTimeLimit(2 * someDeltaTime)
     engine.update(Nil, someDeltaTime)
-    engine.outcome shouldBe None
+    endOf(engine.update(Nil, someDeltaTime)) shouldBe Some(MatchOutcome.TimeUp)
 
-  it should "be over once the simulated time reaches its time limit" in:
-    val engine = engineWithTimeLimit(2 * someDeltaTime)
-    engine.update(Nil, someDeltaTime)
-    engine.update(Nil, someDeltaTime)
-    engine.outcome shouldBe Some(MatchOutcome.TimeUp)
-
-  it should "be over with no survivors once the spaceships of its players are gone" in:
-    val destroyEverything: WorldSystem = (_, events, _) => (GameWorld(Nil), events)
-    val engine = GameEngine(
-      GameConfig(
-        players = List(EntityId.generate(), EntityId.generate()),
-        settings = testSettings
-      ),
-      SystemPipeline(destroyEverything)
-    )
-    engine.update(Nil, someDeltaTime)
-    engine.outcome shouldBe Some(MatchOutcome.NoSurvivors)
-
-  it should "be won by the player whose spaceship is the last one left" in:
+  it should "declare the winner once the other players left" in:
     val winner = EntityId.generate()
     val loser = EntityId.generate()
-    val destroyLoser: WorldSystem = (world, events, _) => (world - loser, events)
     val engine = GameEngine(
       GameConfig(
         players = List(winner, loser),
         settings = testSettings
-      ),
-      SystemPipeline(destroyLoser)
+      )
     )
-    engine.update(Nil, someDeltaTime)
-    engine.outcome shouldBe Some(MatchOutcome.LastStanding(winner))
+    endOf(engine.update(List(LeaveCommand(loser)), someDeltaTime)) shouldBe Some(MatchOutcome.LastStanding(winner))
 
   private def engineWithTimeLimit(timeLimit: Long): GameEngine =
     GameEngine(
       GameConfig(
         players = List(EntityId.generate()),
         settings = testSettings.copy(matchSettings = MatchSettings(timeLimit))
-      ),
-      emptyPipeline
+      )
     )
+
+  private def endOf(result: TickResult): Option[MatchOutcome] =
+    result.events.collectFirst { case GameEvent.MatchEnded(outcome) => outcome }

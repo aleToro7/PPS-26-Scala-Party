@@ -4,7 +4,7 @@ import scala.concurrent.duration.*
 
 import cats.effect.IO
 import fs2.Stream
-import com.unibo.scalaparty.core.ecs.{EntityId, GameWorld}
+import com.unibo.scalaparty.core.ecs.{EntityId, GameEvent, GameWorld}
 import com.unibo.scalaparty.core.engine.GameEngine
 import com.unibo.scalaparty.core.model.{GameCommand, MatchOutcome, MatchState}
 import com.unibo.scalaparty.infrastructure.application.CommandAdapter.*
@@ -26,8 +26,8 @@ case class MatchSession(
  *  the players who are no longer in the match are looked up, and the engine is told to remove the
  *  spaceship of each of them, once.
  *
- *  The engine alone decides when the match is over: the loop stops right after broadcasting the
- *  state of the tick that ended it, which is what lets the waiting queue move on.
+ *  The match is over once the engine reports a [[GameEvent.MatchEnded]] event: the loop stops right
+ *  after broadcasting the state of the tick that ended it, which is what lets the waiting queue move on.
  *
  *  @param session      The match and the entity each of its players controls.
  *  @param commandQueue Buffer the gameplay inputs are drained from.
@@ -43,7 +43,7 @@ class MatchRunner(
     roster: IO[Set[PlayerId]]
 ):
 
-  /** Ticks the match until the engine declares it over.
+  /** Ticks the match until the engine reports its end.
    *
    *  @return an effect completing with how the match ended
    */
@@ -72,7 +72,10 @@ class MatchRunner(
 
             // Publish the new authoritative state
             _ <- publisher.broadcastState(session.matchId, MatchState(tick, result.entities))
-          yield (departed ++ leaving, engine.outcome)
+
+            // How the match ended, if it did during this tick
+            ended = result.events.collectFirst { case GameEvent.MatchEnded(outcome) => outcome }
+          yield (departed ++ leaving, ended)
       .collectFirst:
         case (_, Some(outcome)) => outcome
       .compile

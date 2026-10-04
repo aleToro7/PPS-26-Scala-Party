@@ -5,6 +5,7 @@ import scala.concurrent.duration.*
 import cats.effect.{IO, Ref}
 import cats.effect.testing.scalatest.AsyncIOSpec
 import com.unibo.scalaparty.core.ecs.{EntityId, GameWorld}
+import com.unibo.scalaparty.core.ecs.GameEvent.MatchEnded
 import com.unibo.scalaparty.core.engine.{GameEngine, TickResult}
 import com.unibo.scalaparty.core.model.{GameCommand, GameEvent, MatchOutcome, MatchState}
 import com.unibo.scalaparty.infrastructure.model.{MatchId, PlayerId}
@@ -30,9 +31,7 @@ class MatchRunnerSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
       def update(commands: List[GameCommand], dt: Long): TickResult =
         updates += 1
         capturedCommands = capturedCommands ++ commands
-        TickResult(List.empty, Set.empty)
-
-      def outcome: Option[MatchOutcome] = Option.when(updates >= ticks)(MatchOutcome.TimeUp)
+        TickResult(List.empty, Option.when(updates >= ticks)(MatchEnded(MatchOutcome.TimeUp)).toSet)
 
     val publisher: MatchEventPublisher[IO] = new MatchEventPublisher[IO]:
       def broadcastState(mId: MatchId, state: MatchState): IO[Unit] = IO:
@@ -72,7 +71,7 @@ class MatchRunnerSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
         _ <- runner.run
       yield f.publishedStates.map(_.tick) shouldEqual List(0L, 1L, 2L)
 
-    "end on its own once the engine declares the match over".in:
+    "end on its own once the engine reports the end of the match".in:
       val f = Fixture()
       val session = MatchSession(f.matchId, Map.empty, GameWorld(Map.empty))
 
@@ -83,7 +82,7 @@ class MatchRunnerSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
         _ <- runner.run.timeout(10.seconds)
       yield f.publishedStates.length shouldEqual 2
 
-    "complete with the outcome declared by the engine".in:
+    "complete with the outcome reported by the engine".in:
       val f = Fixture()
       val session = MatchSession(f.matchId, Map.empty, GameWorld(Map.empty))
 

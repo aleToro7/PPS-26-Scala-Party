@@ -10,7 +10,7 @@ import org.scalatest.matchers.should.Matchers
 class SystemPipelineSpec extends AnyFlatSpec with Matchers:
 
   private val defaultDt = 1_000L
-  private val defaultSystems = SystemPipeline.default(GameSettings.default).toList
+  private val defaultSystems = SystemPipeline.default(GameSettings.default, players = 1).toList
 
   private def runDefaultPipeline(world: GameWorld): SystemOutput =
     defaultSystems.foldLeft((world, Set.empty[GameEvent])):
@@ -33,3 +33,9 @@ class SystemPipelineSpec extends AnyFlatSpec with Matchers:
 
     updatedWorld.entities shouldBe empty
     events should contain(Death(shipId))
+
+  it should "let the time of an update pass before anything else happens" in:
+    defaultSystems.head shouldBe ClockSystem
+
+  it should "judge the match only once every other system has run" in:
+    defaultSystems.last shouldBe a[MatchEndSystem]
