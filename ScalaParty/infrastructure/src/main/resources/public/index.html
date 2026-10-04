@@ -246,6 +246,23 @@
         }
     }
 
+    // What each way a match can end is shown as, keyed by its case name and given the data it carries.
+    // The winner is told apart by the spaceship of this player and the colors of the match, so these
+    // texts are only meaningful before the match is cleared.
+    const OUTCOME_TEXTS = {
+        TimeUp: () => 'time is up',
+        NoSurvivors: () => 'nobody survived',
+        LastStanding: ({winner}) => winner === myShipId ? 'you won!' : `the ${colorOf(winner).name} spaceship won`
+    };
+
+    // The outcome is tagged with its case name like the notifications (e.g. { LastStanding: { winner: 7 } }):
+    // an outcome this client does not know yet is shown by that name.
+    function describeOutcome(outcome) {
+        const [reason] = Object.keys(outcome ?? {});
+        const describe = OUTCOME_TEXTS[reason];
+        return describe ? describe(outcome[reason]) : reason ?? 'unknown reason';
+    }
+
     // Lobby notifications are tagged with their case name (e.g. { Queued: { playersAhead: 0 } }),
     // unlike the match state, which is a plain { tick, entities } object.
     // Returns whether the payload was one of them.
@@ -263,6 +280,7 @@
             isWaiting = false; // Turn off waiting screen
             statusEl.textContent = `Match started with ${message.MatchStarted.players} player(s)`;
         } else if (message.MatchEnded) {
+            statusEl.textContent = `Match over: ${describeOutcome(message.MatchEnded.outcome)}`;
             myShipId = null;
             shipColors = new Map();
             showIdentity(null);
@@ -270,7 +288,6 @@
             currentBullets.length = 0;
             isDead = false;
             isWaiting = true; // Turn waiting screen back on
-            statusEl.textContent = 'Match over. Waiting for next...';
         } else {
             return false;
         }

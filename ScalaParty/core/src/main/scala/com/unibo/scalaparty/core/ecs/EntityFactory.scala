@@ -91,3 +91,11 @@ object EntityFactory:
       ShapeComponent(Shape.AABB(width, height, (0.0, 0.0)))
     )
     (entityId, components)
+
+  /** Creates a new match clock entity, set at the beginning of the match.
+   *
+   *  @param entityId the unique identifier of the clock
+   *  @return a tuple containing the unique identifier of the created clock entity and its associated list of components
+   */
+  def createMatchClock(entityId: EntityId = EntityId.generate()): EntityWithComponents =
+    (entityId, List(MatchClockComponent()))

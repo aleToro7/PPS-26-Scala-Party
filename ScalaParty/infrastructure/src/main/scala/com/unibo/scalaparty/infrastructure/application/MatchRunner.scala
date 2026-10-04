@@ -4,9 +4,9 @@ import scala.concurrent.duration.*
 
 import cats.effect.IO
 import fs2.Stream
-import com.unibo.scalaparty.core.ecs.{EntityId, GameWorld}
+import com.unibo.scalaparty.core.ecs.{EntityId, GameEvent, GameWorld}
 import com.unibo.scalaparty.core.engine.GameEngine
-import com.unibo.scalaparty.core.model.{GameCommand, MatchState}
+import com.unibo.scalaparty.core.model.{GameCommand, MatchOutcome, MatchState}
 import com.unibo.scalaparty.infrastructure.application.CommandAdapter.*
 import com.unibo.scalaparty.infrastructure.model.{MatchId, PlayerId}
 import com.unibo.scalaparty.infrastructure.ports.MatchEventPublisher
@@ -26,29 +26,28 @@ case class MatchSession(
  *  the players who are no longer in the match are looked up, and the engine is told to remove the
  *  spaceship of each of them, once.
  *
- *  The stream is finite. There being no win condition in the game yet, a match simply lasts
- *  [[duration]] and then ends, which is what lets the waiting queue move on.
+ *  The match is over once the engine reports a [[GameEvent.MatchEnded]] event: the loop stops right
+ *  after broadcasting the state of the tick that ended it, which is what lets the waiting queue move on.
  *
  *  @param session      The match and the entity each of its players controls.
  *  @param commandQueue Buffer the gameplay inputs are drained from.
  *  @param engine       The engine advancing the game world.
  *  @param publisher    Broadcasts the authoritative state to everybody in the match.
  *  @param roster       The players still taking part in the match.
- *  @param duration     How long the match lasts.
  */
 class MatchRunner(
     session: MatchSession,
     commandQueue: GameCommandService,
     engine: GameEngine,
     publisher: MatchEventPublisher[IO],
-    roster: IO[Set[PlayerId]],
-    duration: FiniteDuration = MatchRunner.DefaultDuration
+    roster: IO[Set[PlayerId]]
 ):
 
-  /** How many ticks fit in the match duration. */
-  private val ticks: Long = (duration / MatchRunner.TickInterval).toLong
-
-  def run: Stream[IO, Unit] =
+  /** Ticks the match until the engine reports its end.
+   *
+   *  @return an effect completing with how the match ended
+   */
+  def run: IO[MatchOutcome] =
     Stream
       .fixedRate[IO](MatchRunner.TickInterval)
       .zipWithIndex
@@ -69,17 +68,19 @@ class MatchRunner(
             leaveCommands = leaving.toList.flatMap(session.players.get).map(GameCommand.LeaveCommand(_))
 
             // Process the resolved commands in the game engine
-            newEntities = engine.update(ecsCommands ++ leaveCommands, MatchRunner.TickInterval.toMillis)
+            result = engine.update(ecsCommands ++ leaveCommands, MatchRunner.TickInterval.toMillis)
 
             // Publish the new authoritative state
-            _ <- publisher.broadcastState(session.matchId, MatchState(tick, engine.arena, newEntities))
-          yield (departed ++ leaving, ())
-      .take(ticks)
-      .as(())
+            _ <- publisher.broadcastState(session.matchId, MatchState(tick, engine.arena, result.entities))
+
+            // How the match ended, if it did during this tick
+            ended = result.events.collectFirst { case GameEvent.MatchEnded(outcome) => outcome }
+          yield (departed ++ leaving, ended)
+      .collectFirst:
+        case (_, Some(outcome)) => outcome
+      .compile
+      .lastOrError
 
 object MatchRunner:
   /** The server ticks at roughly 60 frames per second. */
   val TickInterval: FiniteDuration = 16.millis
-
-  /** How long a match lasts when no other duration is given. */
-  val DefaultDuration: FiniteDuration = 60.seconds

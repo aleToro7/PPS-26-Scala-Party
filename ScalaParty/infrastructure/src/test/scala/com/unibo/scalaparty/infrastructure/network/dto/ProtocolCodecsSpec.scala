@@ -4,7 +4,7 @@ import com.unibo.scalaparty.core.dto.EntityDto
 import com.unibo.scalaparty.core.ecs.EntityId
 import com.unibo.scalaparty.core.geometry.{Point2D, Vector2D}
 import com.unibo.scalaparty.core.geometry.Shape.{AABB, Circle}
-import com.unibo.scalaparty.core.model.MatchState
+import com.unibo.scalaparty.core.model.{MatchOutcome, MatchState}
 import com.unibo.scalaparty.infrastructure.model.ServerMessage
 import com.unibo.scalaparty.infrastructure.network.dto.ProtocolCodecs.given
 import io.circe.syntax.*
@@ -61,3 +61,18 @@ class ProtocolCodecsSpec extends AnyWordSpec with Matchers:
       val message: ServerMessage = ServerMessage.MatchStarted(players = 2, you = EntityId.fromLong(7L))
 
       message.asJson.noSpaces shouldEqual """{"MatchStarted":{"players":2,"you":7}}"""
+
+    "tell clients why a match ended" in:
+      val ended: ServerMessage = ServerMessage.MatchEnded(MatchOutcome.TimeUp)
+
+      ended.asJson.noSpaces shouldEqual """{"MatchEnded":{"outcome":{"TimeUp":{}}}}"""
+
+    "tell clients that nobody survived a match" in:
+      val ended: ServerMessage = ServerMessage.MatchEnded(MatchOutcome.NoSurvivors)
+
+      ended.asJson.noSpaces shouldEqual """{"MatchEnded":{"outcome":{"NoSurvivors":{}}}}"""
+
+    "tell clients which spaceship won a match" in:
+      val ended: ServerMessage = ServerMessage.MatchEnded(MatchOutcome.LastStanding(EntityId.fromLong(2L)))
+
+      ended.asJson.noSpaces shouldEqual """{"MatchEnded":{"outcome":{"LastStanding":{"winner":2}}}}"""
