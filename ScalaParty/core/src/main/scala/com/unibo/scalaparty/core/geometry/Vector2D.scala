@@ -69,6 +69,13 @@ final case class Vector2D(x: Double, y: Double):
       x * sinTheta + y * cosTheta // y' = r * sin(alpha + theta) --> expand
     )
 
+  /** Computes the angle of this vector in degrees relative to the positive X-axis.
+   *  The angle is measured counter-clockwise from the positive X-axis to the vector.
+   *
+   *  @return the angle in degrees as a [[Double]]
+   */
+  def angle: Double = math.atan2(y, x).toDegrees
+
 object Vector2D:
   /** A constant vector representing the origin `(0.0, 0.0)`. */
   val zero: Vector2D = Vector2D(0.0, 0.0)

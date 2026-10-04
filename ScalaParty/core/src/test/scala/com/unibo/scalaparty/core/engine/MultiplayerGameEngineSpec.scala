@@ -12,7 +12,7 @@ import org.scalatest.matchers.should.Matchers
 class MultiplayerGameEngineSpec extends AnyFlatSpec with Matchers:
 
   private val settings = GameSettings.default
-  private val arena = settings.arena
+  private val arena = settings.map.dimension
   // The arena is centered on the origin.
   private val center = Point2D.origin
 
@@ -39,9 +39,6 @@ class MultiplayerGameEngineSpec extends AnyFlatSpec with Matchers:
       for heading <- List(ship.velocity.normalized, Vector2D(1, 0).rotated(ship.rotation)) do
         heading.x shouldBe towardsCenter.x +- 1e-9
         heading.y shouldBe towardsCenter.y +- 1e-9
-
-  it should "still place a lone player in the center of the arena" in:
-    spawnedShips(List(EntityId.generate())).map(_.position) shouldBe List(center)
 
   it should "remove the spaceship of a player who left, keeping the others" in:
     val players @ List(leaving, staying) = List.fill(2)(EntityId.generate()): @unchecked

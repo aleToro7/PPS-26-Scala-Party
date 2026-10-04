@@ -59,3 +59,13 @@ class DeathSystemSpec extends AnyFlatSpec with Matchers:
     val (_, events) = updateWorld(world.withHealth(shipId, 0.0), collision)
 
     events shouldBe Set(collision, Death(shipId))
+
+  it should "remove bullets hitting walls without triggering death events" in:
+    val wallId = EntityId.generate()
+    val wallSize = 50
+    val wall = EntityFactory.createWall(Point2D.origin, wallSize, wallSize, wallId)
+    val worldWithWall = world + wall
+    val collision = CollisionDetected(bulletId, wallId)
+    val (updatedWorld, events) = updateWorld(worldWithWall, collision)
+    updatedWorld.entities should not contain bulletId
+    events should not contain (Death(bulletId))

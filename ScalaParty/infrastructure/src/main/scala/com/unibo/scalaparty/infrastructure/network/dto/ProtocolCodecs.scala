@@ -27,19 +27,22 @@ object ProtocolCodecs:
       "y" -> point.y.asJson
     )
 
+  /** Custom encoder for [[Shape.AABB]] instances. */
+  given Encoder[Shape.AABB] = Encoder.instance: aabb =>
+    Json.obj(
+      "type" -> "AABB".asJson,
+      "width" -> aabb.width.asJson,
+      "height" -> aabb.height.asJson,
+      "center" -> aabb.center.asJson
+    )
+
   /** Custom encoder for [[Shape]] instances. */
   given Encoder[Shape] = Encoder.instance:
+    case aabb: Shape.AABB => aabb.asJson
     case Shape.Circle(radius, center) =>
       Json.obj(
         "type" -> "Circle".asJson,
         "radius" -> radius.asJson,
-        "center" -> center.asJson
-      )
-    case Shape.AABB(width, height, center) =>
-      Json.obj(
-        "type" -> "AABB".asJson,
-        "width" -> width.asJson,
-        "height" -> height.asJson,
         "center" -> center.asJson
       )
     case Shape.Polygon(vertices*) =>

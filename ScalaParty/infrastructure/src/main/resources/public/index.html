@@ -63,7 +63,7 @@
         canvas {
             border: 2px solid #2a2a3a;
             background-color: #121218;
-            box-shadow: 0 0 20px rgba(0, 255, 204, 0.15);
+            box-shadow: 0 0 20px rgba(212, 0, 255, 0.15);
         }
 
         .status {
@@ -101,7 +101,7 @@
 
     const SHIP_HEIGHT = 24;
     const SHIP_BASE = 14;
-    const BULLET_RADIUS = 3;
+    const BULLET_FALLBACK_RADIUS = 3;
 
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
     const host = window.location.hostname || 'localhost';
@@ -123,10 +123,34 @@
     let shipColors = new Map();
     // Whether the server turned this player away, so that the closing connection is not reported as a failure.
     let turnedAway = false;
+    // Tracks if the player's ship has been destroyed
+    let isDead = false;
+    // Tracks if the player is currently waiting for a match (initially true)
+    let isWaiting = true;
 
     let currentBullets = [];
     let knownBulletIds = new Set();
     let particles = [];
+    let currentWalls = [];
+
+    // Initialize a simple starfield for the background animation
+    const backgroundStars = Array.from({ length: 150 }, () => ({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        size: Math.random() * 2,
+        speed: Math.random() * 3 + 0.5,
+        color: Math.random() > 0.8 ? '#00ffcc' : '#ffffff'
+    }));
+
+    // --- Arena State (dynamically updated from server) ---
+    let currentArena = {
+        width: 800,
+        height: 800,
+        center: {x: 0, y: 0}
+    };
+
+    // Flag to ensure arena is initialized only once from the JSON payload
+    let arenaInitialized = false;
 
     // --- Input Management System ---
     const activeKeys = new Set();
@@ -143,10 +167,16 @@
     });
 
     function processInput() {
-        // A dead spaceship can no longer be controlled
-        if (socket.readyState !== WebSocket.OPEN || !findMyShip()) return;
+        // A dead spaceship or waiting screen can no longer be controlled
+        if (socket.readyState !== WebSocket.OPEN || isDead || isWaiting || !findMyShip()) return;
 
-        if (activeKeys.has('r')) {
+        // Counter-clockwise rotation
+        if (activeKeys.has('q')) {
+            sendCommand({Rotate: {angle: -2.0}});
+        }
+
+        // Clockwise rotation
+        if (activeKeys.has('s')) {
             sendCommand({Rotate: {angle: 2.0}});
         }
 
@@ -170,14 +200,28 @@
                 : null;
     }
 
-    function toShipState(ship) {
-        const vel = ship.velocity ?? {x: 1, y: 0};
+    function toShipState(ship, previous = {}) {
+        const pos = ship.position ?? previous.position ?? {x: 0, y: 0};
+        const vel = ship.velocity ?? previous.velocity ?? {x: 0, y: 0};
+
+        // Convert server rotation (degrees) to radians, fallback to velocity calculation if not present
+        const angle = ship.rotation !== undefined
+            ? ship.rotation * (Math.PI / 180)
+            : (previous.angle !== undefined ? previous.angle : Math.atan2(Number(vel.y ?? 0), Number(vel.x ?? 1)));
+
         return {
-            id: ship.id,
-            position: toPosition(ship),
-            angle: Math.atan2(Number(vel.y ?? 0), Number(vel.x ?? 1)),
-            health: Number(ship.health ?? 100),
-            maxHealth: Number(ship.maxHealth ?? 100)
+            id: ship.id ?? previous.id,
+            position: {
+                x: Number(pos.x ?? 0),
+                y: Number(pos.y ?? 0)
+            },
+            velocity: {
+                x: Number(vel.x ?? 0),
+                y: Number(vel.y ?? 0)
+            },
+            angle: angle,
+            health: Number(ship.health ?? previous.health ?? 100),
+            maxHealth: Number(ship.maxHealth ?? previous.maxHealth ?? 100)
         };
     }
 
@@ -215,6 +259,8 @@
         } else if (message.MatchStarted) {
             myShipId = message.MatchStarted.you;
             shipColors = new Map();
+            isDead = false;
+            isWaiting = false; // Turn off waiting screen
             statusEl.textContent = `Match started with ${message.MatchStarted.players} player(s)`;
         } else if (message.MatchEnded) {
             myShipId = null;
@@ -222,7 +268,9 @@
             showIdentity(null);
             currentShips = [];
             currentBullets.length = 0;
-            statusEl.textContent = 'Match over';
+            isDead = false;
+            isWaiting = true; // Turn waiting screen back on
+            statusEl.textContent = 'Match over. Waiting for next...';
         } else {
             return false;
         }
@@ -275,13 +323,14 @@
         const myShip = findMyShip();
         const hp = myShip ? myShip.health : 0;
 
+        if (!myShip && !isDead) {
+            isDead = true;
+            statusEl.textContent = "You're dead";
+        }
+
         // Skip DOM manipulation if health hasn't changed
         if (hp === lastRenderedHealth) return;
         lastRenderedHealth = hp;
-
-        if (!myShip) {
-            statusEl.textContent = "You're dead";
-        }
 
         const maxHp = myShip ? myShip.maxHealth : lastMaxHealth;
         lastMaxHealth = maxHp;
@@ -300,18 +349,44 @@
         }
     }
 
+    function updateArenaDimensions(arena) {
+        // Discard subsequent updates once initialized
+        if (arenaInitialized) return;
+
+        const w = Number(arena.width ?? currentArena.width);
+        const h = Number(arena.height ?? currentArena.height);
+        const cx = Number(arena.center?.x ?? currentArena.center.x);
+        const cy = Number(arena.center?.y ?? currentArena.center.y);
+
+        currentArena = {width: w, height: h, center: {x: cx, y: cy}};
+        canvas.width = w;
+        canvas.height = h;
+        const hud = document.querySelector('.hud-container');
+        if (hud) hud.style.width = `${w}px`;
+
+        arenaInitialized = true;
+    }
+
     function updateFromServer(rawMessage) {
         try {
             const payload = JSON.parse(rawMessage);
             if (handleServerMessage(payload)) {
                 return;
             }
+
+            if (payload.arena) {
+                updateArenaDimensions(payload.arena);
+            }
+
             const entities = extractEntities(payload);
             if (entities === null) return;
 
-            // Clear the arrays without reallocating memory
+            // Save old ships to fallback state correctly, then clear arrays
+            const previousShips = [...currentShips];
+
             currentShips.length = 0;
             currentBullets.length = 0;
+            currentWalls.length = 0;
             const currentBulletIds = new Set();
 
             for (let i = 0; i < entities.length; i++) {
@@ -319,13 +394,17 @@
                 if (!entry) continue;
 
                 if ('Spaceship' in entry) {
-                    currentShips.push(toShipState(entry.Spaceship));
+                    const oldShip = previousShips.find(s => s.id === entry.Spaceship.id);
+                    currentShips.push(toShipState(entry.Spaceship, oldShip));
                 } else if ('Bullet' in entry) {
                     const bulletData = entry.Bullet;
                     const pos = toPosition(bulletData);
 
-                    // Push to the existing array instead of creating a new one via map()
-                    currentBullets.push(pos);
+                    // Extract radius from the nested shape object
+                    const radius = Number(bulletData.shape?.radius ?? BULLET_FALLBACK_RADIUS);
+
+                    // Push an object holding position and radius
+                    currentBullets.push({x: pos.x, y: pos.y, radius: radius});
 
                     if (bulletData.id !== undefined) {
                         currentBulletIds.add(bulletData.id);
@@ -333,6 +412,19 @@
                             spawnParticles(pos.x, pos.y);
                         }
                     }
+                } else if ('Wall' in entry) {
+                    const wallData = entry.Wall;
+                    const pos = toPosition(wallData);
+                    const shape = wallData.shape || {};
+                    const w = Number(shape.width ?? 80);
+                    const h = Number(shape.height ?? 80);
+                    currentWalls.push({
+                        id: wallData.id,
+                        x: pos.x - w / 2,
+                        y: pos.y - h / 2,
+                        width: w,
+                        height: h
+                    });
                 }
             }
 
@@ -344,12 +436,53 @@
         }
     }
 
+    // Shared function to render the scrolling starfield background with increased transparency
+    function renderStarfield() {
+        ctx.fillStyle = '#ffffff';
+        backgroundStars.forEach(star => {
+            star.y += star.speed;
+            // Wrap stars around the screen
+            if (star.y > canvas.height) {
+                star.y = 0;
+                star.x = Math.random() * canvas.width;
+            }
+            ctx.fillStyle = star.color;
+            // Much more transparent for a subtle deep-space effect
+            ctx.globalAlpha = Math.random() > 0.95 ? 0.05 : 0.25;
+            ctx.beginPath();
+            ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+            ctx.fill();
+        });
+        ctx.globalAlpha = 1.0;
+    }
+
     // Each spaceship has the color of its player, the same in every client.
     function drawSpaceship(x, y, angle, color) {
         ctx.save();
         ctx.translate(x, y);
         ctx.rotate(angle);
 
+        const time = Date.now() / 200;
+
+        // 1. Draw Mini Thruster Engine Flame
+        ctx.save();
+        ctx.fillStyle = color.hex;
+        ctx.globalAlpha = 0.4 + Math.sin(time * 5) * 0.3; // Rapid but soft pulsing for a small fire
+
+        ctx.beginPath();
+        // Base of the ship is at -SHIP_HEIGHT/2
+        ctx.moveTo(-SHIP_HEIGHT / 2, 0);
+
+        // Draw a much smaller, erratic flame shape pointing backwards
+        const flameLength = 20 + Math.random() * 6; // Flame extends 6 to 12 pixels
+        ctx.lineTo(-SHIP_HEIGHT / 2 - flameLength * 0.7, -4);
+        ctx.lineTo(-SHIP_HEIGHT / 2 - flameLength, 0);
+        ctx.lineTo(-SHIP_HEIGHT / 2 - flameLength * 0.7, 4);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+
+        // 2. Draw Ship Body
         ctx.beginPath();
         ctx.moveTo(SHIP_HEIGHT / 2, 0);
         ctx.lineTo(-SHIP_HEIGHT / 2, -SHIP_BASE / 2);
@@ -361,23 +494,30 @@
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 1.5;
         ctx.stroke();
+
         ctx.restore();
     }
 
-    function drawBullet(x, y) {
+    function drawBullet(bullet) {
         const timeOffset = Date.now() / 80;
-        const pulseRadius = BULLET_RADIUS + Math.sin(timeOffset) * 1.5;
+
+        // Base the pulse visual on the actual radius provided by the server payload
+        // We use a minimum multiplier just in case radius = 1 is too hard to see on screen
+        const visualRadius = Math.max(bullet.radius, 2);
+        const pulseRadius = visualRadius + Math.sin(timeOffset) * (visualRadius * 0.5);
 
         ctx.save();
 
         // Replaced expensive shadowBlur with a high-performance radial gradient
-        const gradient = ctx.createRadialGradient(x, y, 0, x, y, pulseRadius * 2);
+        // The gradient glow is slightly larger than the core
+        const gradientRadius = pulseRadius * 2.5;
+        const gradient = ctx.createRadialGradient(bullet.x, bullet.y, 0, bullet.x, bullet.y, gradientRadius);
         gradient.addColorStop(0, '#ffffff');
-        gradient.addColorStop(0.4, '#ff3366');
+        gradient.addColorStop(0.3, '#ff3366');
         gradient.addColorStop(1, 'rgba(255, 0, 85, 0)');
 
         ctx.beginPath();
-        ctx.arc(x, y, pulseRadius * 2, 0, Math.PI * 2);
+        ctx.arc(bullet.x, bullet.y, gradientRadius, 0, Math.PI * 2);
         ctx.fillStyle = gradient;
         ctx.fill();
 
@@ -407,20 +547,167 @@
         ctx.globalCompositeOperation = 'source-over';
     }
 
-    function render() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    function drawArenaBounds() {
+        ctx.save();
+        const halfW = currentArena.width / 2;
+        const halfH = currentArena.height / 2;
+        const left = currentArena.center.x - halfW;
+        const top = currentArena.center.y - halfH;
+
+        ctx.strokeStyle = 'rgba(212, 0, 255, 0.3)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(left, top, currentArena.width, currentArena.height);
+        ctx.restore();
+    }
+
+    function drawWall(wall) {
+        ctx.save();
+
+        // 1. Outer purple/fuchsia glow effect
+        ctx.shadowColor = '#d400ff';
+        ctx.shadowBlur = 12;
+
+        // 2. Translucent forcefield background (dark purplish tint)
+        ctx.fillStyle = 'rgba(30, 10, 45, 0.7)';
+        ctx.fillRect(wall.x, wall.y, wall.width, wall.height);
+
+        // Reduce shadow blur for the crisp inner elements to improve performance
+        ctx.shadowBlur = 4;
+
+        // 3. Bright fuchsia border
+        ctx.strokeStyle = '#ff00ff';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(wall.x, wall.y, wall.width, wall.height);
+
+        // 4. Light pink inner core outline
+        ctx.strokeStyle = 'rgba(255, 150, 255, 0.6)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(wall.x + 4, wall.y + 4, wall.width - 8, wall.height - 8);
+
+        // 5. Diagonal scanlines / sci-fi grid overlay in purple/fuchsia
+        ctx.strokeStyle = 'rgba(212, 0, 255, 0.25)';
+        ctx.beginPath();
+        // Draw diagonal lines across the wall block
+        for (let i = 8; i < wall.width + wall.height; i += 12) {
+            let startX = Math.min(wall.x + i, wall.x + wall.width);
+            let startY = Math.max(wall.y, wall.y + i - wall.width);
+            let endX = Math.max(wall.x, wall.x + i - wall.height);
+            let endY = Math.min(wall.y + i, wall.y + wall.height);
+            ctx.moveTo(startX, startY);
+            ctx.lineTo(endX, endY);
+        }
+        ctx.stroke();
+
+        ctx.restore();
+    }
+
+    function drawWalls() {
+        for (let i = 0; i < currentWalls.length; i++) {
+            drawWall(currentWalls[i]);
+        }
+    }
+
+    // Function to render the animated waiting screen
+    function renderWaitingScreen() {
+        ctx.fillStyle = '#121218';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Render the background starfield
+        renderStarfield();
+
+        const time = Date.now() / 200;
+        const centerX = canvas.width / 2;
+        // Make the ship float up and down gently
+        const centerY = canvas.height / 2 + Math.sin(time) * 15;
+
+        // Draw the spaceship pointing upwards (it will automatically draw its own flame now)
+        drawSpaceship(centerX, centerY, -Math.PI / 2, {hex: '#00ffcc'});
+
+        // Draw dynamic status text below the ship
+        ctx.save();
+        ctx.font = 'bold 24px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#9ee7ff';
+        ctx.shadowColor = '#00ffcc';
+        ctx.shadowBlur = 10;
+
+        const displayStatus = statusEl.textContent || 'Connecting...';
+        ctx.fillText(displayStatus.toUpperCase(), centerX, centerY + 80);
+        ctx.restore();
+    }
+
+    // Function to render the animated death screen
+    function renderDeathScreen() {
+        // Draw a semi-transparent dark overlay to slowly fade out the frozen canvas
+        ctx.fillStyle = 'rgba(13, 13, 17, 0.05)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const time = Date.now() / 150;
+        const glow = 20 + Math.sin(time) * 15; // Pulsing glow effect
 
         ctx.save();
         ctx.translate(canvas.width / 2, canvas.height / 2);
 
+        // Slight pulsing scale for the text
+        const scale = 1 + Math.sin(time * 0.5) * 0.03;
+        ctx.scale(scale, scale);
+
+        // Main text styling
+        ctx.font = 'bold 72px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        ctx.shadowColor = '#ff0000';
+        ctx.shadowBlur = glow;
+        ctx.fillStyle = '#ff1a1a';
+
+        ctx.fillText("YOU ARE DEAD", 0, -20);
+
+        // Subtitle text styling
+        ctx.font = '24px monospace';
+        ctx.shadowBlur = glow / 2;
+        ctx.fillStyle = '#ff8080';
+        ctx.fillText("Waiting for match to end...", 0, 50);
+
+        ctx.restore();
+    }
+
+    function render() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Render the background starfield behind everything else
+        renderStarfield();
+
+        ctx.save();
+        // Universal coordinate translation based on arena center
+        const offsetX = canvas.width / 2 - currentArena.center.x;
+        const offsetY = canvas.height / 2 - currentArena.center.y;
+        ctx.translate(offsetX, offsetY);
+
+        drawArenaBounds();
+        drawWalls();
+
+        currentBullets.forEach(bullet => drawBullet(bullet));
         currentShips.forEach(ship => drawSpaceship(ship.position.x, ship.position.y, ship.angle, colorOf(ship.id)));
-        currentBullets.forEach(bullet => drawBullet(bullet.x, bullet.y));
         updateAndDrawParticles();
 
         ctx.restore();
     }
 
     function gameLoop() {
+        // Handle priority screens before rendering the actual game
+        if (isWaiting) {
+            renderWaitingScreen();
+            requestAnimationFrame(gameLoop);
+            return;
+        }
+
+        if (isDead) {
+            renderDeathScreen();
+            requestAnimationFrame(gameLoop);
+            return;
+        }
+
         processInput();
         render();
         requestAnimationFrame(gameLoop);
@@ -433,6 +720,7 @@
     socket.addEventListener('close', () => {
         if (!turnedAway) {
             statusEl.textContent = 'Disconnected from server';
+            isWaiting = true; // Switch back to waiting screen on disconnect
         }
     });
 

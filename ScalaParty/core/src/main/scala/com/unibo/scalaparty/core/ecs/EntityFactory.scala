@@ -1,7 +1,7 @@
 package com.unibo.scalaparty.core.ecs
 
 import com.unibo.scalaparty.core.geometry.{Point2D, Shape, Vector2D, given}
-import com.unibo.scalaparty.core.model.GameSettings
+import com.unibo.scalaparty.core.model.{GameSettings, ShootingSettings}
 
 object EntityFactory:
 
@@ -11,7 +11,6 @@ object EntityFactory:
    *  @param velocity the initial velocity of the spaceship
    *  @param maxHealth the health points the spaceship spawns with
    *  @param collisionDamage the damage the spaceship deals to the entities it collides with
-   *  @param rotation the angle in degrees the spaceship initially faces, which should match its velocity
    *  @return a tuple containing the unique identifier of the created spaceship entity and its associated list of components
    */
   def createSpaceship(
@@ -20,13 +19,12 @@ object EntityFactory:
       entityId: EntityId = EntityId.generate(),
       weapon: Weapon = Weapon.default,
       maxHealth: Double = GameSettings.default.spaceship.maxHealth,
-      collisionDamage: Double = GameSettings.default.spaceship.collisionDamage,
-      rotation: Double = 0.0
+      collisionDamage: Double = GameSettings.default.spaceship.collisionDamage
   ): (EntityId, List[Component]) =
     val components: List[Component] = List(
       PositionComponent(position),
       MovementComponent(velocity),
-      RotationComponent(rotation),
+      RotationComponent(velocity.angle),
       EntityTypeComponent(EntityType.Spaceship),
       ShootingComponent(weapon = weapon),
       EntityTypeComponent(EntityType.Spaceship),
@@ -35,6 +33,20 @@ object EntityFactory:
       CollisionDamageComponent(collisionDamage)
     )
     (entityId, components)
+
+  def createSpaceshipFromConfig(settings: GameSettings)(
+      position: Point2D,
+      direction: Vector2D,
+      entityId: EntityId = EntityId.generate()
+  ): EntityWithComponents =
+    createSpaceship(
+      position = position,
+      velocity = direction.normalized * settings.spaceship.speed,
+      entityId = entityId,
+      weapon = Weapon.fromSettings(settings.shooting),
+      maxHealth = settings.spaceship.maxHealth,
+      collisionDamage = settings.spaceship.collisionDamage
+    )
 
     /** Creates a new bullet entity with the specified position, velocity, and power.
      *
@@ -56,6 +68,26 @@ object EntityFactory:
       MovementComponent(velocity),
       EntityTypeComponent(EntityType.Bullet),
       BulletComponent(power, shooterId),
-      ShapeComponent(Shape.Circle(1.0, (0.0, 0.0)))
+      ShapeComponent(Shape.Circle(3.0, (0.0, 0.0)))
+    )
+    (entityId, components)
+
+  /** Creates a new wall entity with the specified position, width, and height.
+   *
+   *  @param position the position of the wall
+   *  @param width the width of the wall
+   *  @param height the height of the wall
+   *  @return a tuple containing the unique identifier of the created wall entity and its associated list of components
+   */
+  def createWall(
+      position: Point2D,
+      width: Double,
+      height: Double,
+      entityId: EntityId = EntityId.generate()
+  ): EntityWithComponents =
+    val components: List[Component] = List(
+      PositionComponent(position),
+      EntityTypeComponent(EntityType.Wall),
+      ShapeComponent(Shape.AABB(width, height, (0.0, 0.0)))
     )
     (entityId, components)

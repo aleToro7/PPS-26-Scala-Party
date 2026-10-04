@@ -72,7 +72,7 @@ class MatchRunner(
             newEntities = engine.update(ecsCommands ++ leaveCommands, MatchRunner.TickInterval.toMillis)
 
             // Publish the new authoritative state
-            _ <- publisher.broadcastState(session.matchId, MatchState(tick, newEntities))
+            _ <- publisher.broadcastState(session.matchId, MatchState(tick, engine.arena, newEntities))
           yield (departed ++ leaving, ())
       .take(ticks)
       .as(())

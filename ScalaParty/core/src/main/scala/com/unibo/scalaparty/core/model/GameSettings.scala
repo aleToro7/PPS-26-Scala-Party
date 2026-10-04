@@ -1,15 +1,6 @@
 package com.unibo.scalaparty.core.model
 
-/** Configuration settings for the game arena.
- *
- *  @param width  the horizontal width of the arena
- *  @param height the vertical height of the arena
- */
-final case class ArenaSettings(
-    width: Int = 800,
-    height: Int = 800
-):
-  require(width > 0 && height > 0, "Arena dimensions must be positive")
+import com.unibo.scalaparty.core.model.map.GameMap
 
 /** Configuration settings for spaceship dynamics.
  *
@@ -19,10 +10,10 @@ final case class ArenaSettings(
  *  @param collisionDamage the damage a spaceship deals to the entities it collides with
  */
 final case class SpaceshipSettings(
-    speed: Double = 50.0,
+    speed: Double = 120.0,
     rotationSpeed: Double = 180.0,
     maxHealth: Double = 100.0,
-    collisionDamage: Double = 20.0
+    collisionDamage: Double = 1.0
 ):
   require(speed > 0.0, "Spaceship speed must be positive")
   require(rotationSpeed > 0.0, "Rotation speed must be positive")
@@ -37,10 +28,10 @@ final case class SpaceshipSettings(
  *  @param muzzleOffset  the distance from the shooter's center at which bullets are spawned (the spaceship's nose)
  */
 final case class ShootingSettings(
-    bulletPower: Double = 10.0,
-    bulletSpeed: Double = 100.0,
-    shootCooldown: Long = 250L,
-    muzzleOffset: Double = 12.0
+    bulletPower: Double = 15.0,
+    bulletSpeed: Double = 300.0,
+    shootCooldown: Long = 500L,
+    muzzleOffset: Double = 20.0
 ):
   require(bulletPower > 0.0, "Bullet power must be positive")
   require(bulletSpeed > 0.0, "Bullet speed must be positive")
@@ -49,14 +40,14 @@ final case class ShootingSettings(
 
 /** Unified configuration grouping all arena, entity, and gameplay mechanics parameters.
  *
- *  @param arena     settings controlling arena bounds
  *  @param spaceship settings controlling spaceship dynamics
  *  @param shooting  settings controlling weapon firing and bullet behavior
+ *  @param map      the map layout and spawn points for the game world
  */
 final case class GameSettings(
-    arena: ArenaSettings = ArenaSettings(),
     spaceship: SpaceshipSettings = SpaceshipSettings(),
-    shooting: ShootingSettings = ShootingSettings()
+    shooting: ShootingSettings = ShootingSettings(),
+    map: GameMap = GameMap.default
 )
 
 object GameSettings:
