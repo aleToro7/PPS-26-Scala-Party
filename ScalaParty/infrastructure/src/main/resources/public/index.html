@@ -102,6 +102,16 @@
     const SHIP_HEIGHT = 24;
     const SHIP_BASE = 14;
     const BULLET_FALLBACK_RADIUS = 3;
+    // Matches the default pickup radius of the server, so that the drawn pad shows where a power-up is picked up.
+    const POWER_UP_SPOT_RADIUS = 25;
+    // The look of every power-up, by the name the server gives it.
+    const POWER_UP_STYLES = {
+        'rapid-fire': {color: '#ffd000', symbol: 'R'},
+        'damage': {color: '#ff5500', symbol: 'D'},
+        'repair': {color: '#33ff66', symbol: '+'}
+    };
+    // The look of the power-ups this client does not know yet.
+    const FALLBACK_POWER_UP_STYLE = {color: '#00ccff', symbol: '?'};
 
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
     const host = window.location.hostname || 'localhost';
@@ -132,6 +142,7 @@
     let knownBulletIds = new Set();
     let particles = [];
     let currentWalls = [];
+    let currentPowerUpSpots = [];
 
     // Initialize a simple starfield for the background animation
     const backgroundStars = Array.from({ length: 150 }, () => ({
@@ -404,6 +415,7 @@
             currentShips.length = 0;
             currentBullets.length = 0;
             currentWalls.length = 0;
+            currentPowerUpSpots.length = 0;
             const currentBulletIds = new Set();
 
             for (let i = 0; i < entities.length; i++) {
@@ -442,6 +454,11 @@
                         width: w,
                         height: h
                     });
+                } else if ('PowerUpSpot' in entry) {
+                    const spotData = entry.PowerUpSpot;
+                    const pos = toPosition(spotData);
+                    // A recharging spot holds no power-up
+                    currentPowerUpSpots.push({x: pos.x, y: pos.y, powerUp: spotData.powerUp ?? null});
                 }
             }
 
@@ -624,6 +641,53 @@
         }
     }
 
+    function drawPowerUpSpot(spot) {
+        ctx.save();
+
+        // 1. Dashed pad marking the pickup area, always visible so that players know where power-ups appear
+        ctx.beginPath();
+        ctx.arc(spot.x, spot.y, POWER_UP_SPOT_RADIUS, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(158, 231, 255, 0.25)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 6]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        if (spot.powerUp !== null) {
+            const style = POWER_UP_STYLES[spot.powerUp] ?? FALLBACK_POWER_UP_STYLE;
+            const pulse = 1 + Math.sin(Date.now() / 200) * 0.1;
+            const coreRadius = POWER_UP_SPOT_RADIUS * 0.5 * pulse;
+
+            // 2. Pulsing glow in the color of the power-up
+            const glowRadius = coreRadius * 1.8;
+            const gradient = ctx.createRadialGradient(spot.x, spot.y, 0, spot.x, spot.y, glowRadius);
+            gradient.addColorStop(0, style.color);
+            gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.beginPath();
+            ctx.arc(spot.x, spot.y, glowRadius, 0, Math.PI * 2);
+            ctx.fillStyle = gradient;
+            ctx.fill();
+
+            // 3. Dark core outlined in the color of the power-up
+            ctx.beginPath();
+            ctx.arc(spot.x, spot.y, coreRadius, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(13, 13, 17, 0.85)';
+            ctx.fill();
+            ctx.strokeStyle = style.color;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // 4. Symbol telling the power-ups apart
+            ctx.font = 'bold 14px monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = style.color;
+            ctx.fillText(style.symbol, spot.x, spot.y);
+        }
+
+        ctx.restore();
+    }
+
     // Function to render the animated waiting screen
     function renderWaitingScreen() {
         ctx.fillStyle = '#121218';
@@ -703,6 +767,7 @@
 
         drawArenaBounds();
         drawWalls();
+        currentPowerUpSpots.forEach(spot => drawPowerUpSpot(spot));
 
         currentBullets.forEach(bullet => drawBullet(bullet));
         currentShips.forEach(ship => drawSpaceship(ship.position.x, ship.position.y, ship.angle, colorOf(ship.id)));
