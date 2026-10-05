@@ -1,6 +1,7 @@
 package com.unibo.scalaparty.core.ecs
 
-import com.unibo.scalaparty.core.ecs.Effect.Boost
+import com.unibo.scalaparty.core.model.{Stat, StatModifier}
+import com.unibo.scalaparty.core.model.Effect.Boost
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

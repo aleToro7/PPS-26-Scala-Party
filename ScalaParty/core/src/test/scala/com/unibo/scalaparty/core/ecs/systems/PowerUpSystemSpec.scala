@@ -1,10 +1,10 @@
 package com.unibo.scalaparty.core.ecs.systems
 
 import com.unibo.scalaparty.core.ecs.*
-import com.unibo.scalaparty.core.ecs.Effect.{Boost, Repair}
 import com.unibo.scalaparty.core.ecs.PowerUpSpotComponent.State.{Available, Recharging}
 import com.unibo.scalaparty.core.geometry.Point2D
-import com.unibo.scalaparty.core.model.PowerUpSettings
+import com.unibo.scalaparty.core.model.{PowerUp, PowerUpSettings, Stat, StatModifier}
+import com.unibo.scalaparty.core.model.Effect.{Boost, Repair}
 import com.unibo.scalaparty.core.utils.PseudoRandom
 import org.scalatest.OptionValues
 import org.scalatest.flatspec.AnyFlatSpec

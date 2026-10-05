@@ -4,7 +4,7 @@ import scala.reflect.ClassTag
 
 import com.unibo.scalaparty.core.ecs.*
 import com.unibo.scalaparty.core.geometry.Point2D
-import com.unibo.scalaparty.core.model.PowerUpSettings
+import com.unibo.scalaparty.core.model.{Effect, PowerUpSettings}
 import com.unibo.scalaparty.core.utils.collectFirstOfClass
 
 /** A system responsible for the power-up spots of the map and the effects of the power-ups picked up from them.

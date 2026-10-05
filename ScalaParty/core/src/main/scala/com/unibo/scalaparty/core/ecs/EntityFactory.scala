@@ -1,7 +1,7 @@
 package com.unibo.scalaparty.core.ecs
 
 import com.unibo.scalaparty.core.geometry.{Point2D, Shape, Vector2D, given}
-import com.unibo.scalaparty.core.model.{GameSettings, ShootingSettings}
+import com.unibo.scalaparty.core.model.{GameSettings, PowerUp, ShootingSettings}
 import com.unibo.scalaparty.core.utils.PseudoRandom
 
 object EntityFactory:

@@ -1,5 +1,5 @@
 package com.unibo.scalaparty.core.ecs
-import com.unibo.scalaparty.core.model.ShootingSettings
+import com.unibo.scalaparty.core.model.{ShootingSettings, Stat}
 
 /** Weapon specifications for entity firing capabilities.
  *

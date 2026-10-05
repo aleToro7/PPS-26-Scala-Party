@@ -1,4 +1,4 @@
-package com.unibo.scalaparty.core.ecs
+package com.unibo.scalaparty.core.model
 
 /** A collectible bonus granting a special advantage to the spaceship that picks it up.
  *
@@ -49,19 +49,3 @@ enum Stat:
  */
 final case class StatModifier(stat: Stat, factor: Double):
   require(factor > 0.0, "Modifier factor must be positive")
-
-/** A stat modifier currently affecting a spaceship.
- *
- *  @param modifier  how the stat is modified
- *  @param remaining how long the modification still lasts, in milliseconds
- */
-final case class ActiveEffect(modifier: StatModifier, remaining: Long):
-  require(remaining > 0L, "An active effect must have some time left")
-
-  /** Lets the given time pass.
-   *
-   *  @param dt the time to let pass, in milliseconds
-   *  @return the effect with less time left, or None if it runs out
-   */
-  def advanced(dt: Long): Option[ActiveEffect] =
-    Option.when(remaining > dt)(copy(remaining = remaining - dt))

@@ -1,6 +1,5 @@
 package com.unibo.scalaparty.core.model
 
-import com.unibo.scalaparty.core.ecs.{Effect, PowerUp, Stat, StatModifier}
 import com.unibo.scalaparty.core.model.map.GameMap
 
 /** Configuration settings for spaceship dynamics.

@@ -1,7 +1,7 @@
 package com.unibo.scalaparty.core.ecs
 
 import com.unibo.scalaparty.core.geometry.{Point2D, Shape, Vector2D}
-import com.unibo.scalaparty.core.model.{GameSettings, ShootingSettings, SpaceshipSettings}
+import com.unibo.scalaparty.core.model.{Effect, GameSettings, PowerUp, ShootingSettings, SpaceshipSettings}
 import com.unibo.scalaparty.core.utils.{collectFirstOfClass, PseudoRandom}
 import org.scalatest.OptionValues.convertOptionToValuable
 import org.scalatest.flatspec.AnyFlatSpec

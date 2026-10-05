@@ -1,6 +1,7 @@
 package com.unibo.scalaparty.core.ecs
 
 import com.unibo.scalaparty.core.geometry.{Point2D, Shape, Vector2D}
+import com.unibo.scalaparty.core.model.{Effect, PowerUp, Stat, StatModifier}
 import com.unibo.scalaparty.core.utils.PseudoRandom
 
 /** A marker trait for all components in the Entity-Component-System (ECS) architecture.
