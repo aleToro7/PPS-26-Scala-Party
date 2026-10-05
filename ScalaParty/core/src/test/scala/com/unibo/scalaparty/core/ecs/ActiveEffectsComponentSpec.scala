@@ -8,7 +8,7 @@ import org.scalatest.matchers.should.Matchers
 class ActiveEffectsComponentSpec extends AnyFlatSpec with Matchers:
 
   private val rapidFire = StatModifier(Stat.ShootCooldown, 0.5)
-  private val speedBoost = StatModifier(Stat.Speed, 1.5)
+  private val shield = StatModifier(Stat.DamageTaken, 0.5)
 
   "ActiveEffectsComponent" should "have no effects in action by default" in:
     ActiveEffectsComponent().effects shouldBe empty
@@ -20,17 +20,17 @@ class ActiveEffectsComponentSpec extends AnyFlatSpec with Matchers:
     ActiveEffectsComponent().activated(Boost(rapidFire, 5000L)).effects shouldBe List(ActiveEffect(rapidFire, 5000L))
 
   it should "modify only the stat targeted by a boost" in:
-    val effects = ActiveEffectsComponent().activated(Boost(speedBoost, 5000L))
-    effects.factorOf(Stat.Speed) shouldBe 1.5
+    val effects = ActiveEffectsComponent().activated(Boost(shield, 5000L))
+    effects.factorOf(Stat.DamageTaken) shouldBe 0.5
     effects.factorOf(Stat.ShootCooldown) shouldBe 1.0
 
   it should "multiply the factors of the boosts on the same stat" in:
-    val boost = Boost(speedBoost, 5000L)
-    ActiveEffectsComponent().activated(boost).activated(boost).factorOf(Stat.Speed) shouldBe 2.25
+    val boost = Boost(shield, 5000L)
+    ActiveEffectsComponent().activated(boost).activated(boost).factorOf(Stat.DamageTaken) shouldBe 0.25
 
   it should "drop only the effects that run out when time passes" in:
-    val effects = ActiveEffectsComponent(List(ActiveEffect(rapidFire, 1000L), ActiveEffect(speedBoost, 3000L)))
-    effects.advanced(1000L) shouldBe ActiveEffectsComponent(List(ActiveEffect(speedBoost, 2000L)))
+    val effects = ActiveEffectsComponent(List(ActiveEffect(rapidFire, 1000L), ActiveEffect(shield, 3000L)))
+    effects.advanced(1000L) shouldBe ActiveEffectsComponent(List(ActiveEffect(shield, 2000L)))
 
   it should "leave a stat unmodified once its effects run out" in:
     val expired = ActiveEffectsComponent().activated(Boost(rapidFire, 1000L)).advanced(1000L)

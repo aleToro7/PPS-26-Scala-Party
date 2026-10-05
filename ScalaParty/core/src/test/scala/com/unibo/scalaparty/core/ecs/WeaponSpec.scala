@@ -105,6 +105,6 @@ class WeaponSpec extends AnyFlatSpec with Matchers:
     base.boostedBy(effects) shouldBe base.copy(shootCooldown = 250L, bulletPower = 2 * validPower)
 
   it should "ignore the effects on stats other than its own" in:
-    val effects = ActiveEffectsComponent(List(ActiveEffect(StatModifier(Stat.Speed, 1.5), 1000L)))
+    val effects = ActiveEffectsComponent(List(ActiveEffect(StatModifier(Stat.DamageTaken, 0.5), 1000L)))
 
     Weapon.default.boostedBy(effects) shouldBe Weapon.default

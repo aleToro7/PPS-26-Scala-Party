@@ -36,9 +36,6 @@ enum Stat:
   /** The damage dealt by each bullet. */
   case BulletPower
 
-  /** The movement speed. */
-  case Speed
-
   /** The share of the incoming damage actually suffered. */
   case DamageTaken
 
