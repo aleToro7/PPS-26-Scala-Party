@@ -66,6 +66,14 @@ case class HealthComponent(current: Double, max: Double) extends Component:
     require(amount >= 0.0, "Damage cannot be negative")
     copy(current = math.max(0.0, current - amount))
 
+  /** Restores the given health, never letting it exceed the maximum.
+   *  @param amount the non-negative health to restore
+   *  @return a new component with the increased health
+   */
+  def healed(amount: Double): HealthComponent =
+    require(amount >= 0.0, "Healing cannot be negative")
+    copy(current = math.min(max, current + amount))
+
   /** Whether the health has been completely depleted.
    *  @return true if no health points are left, false otherwise
    */
