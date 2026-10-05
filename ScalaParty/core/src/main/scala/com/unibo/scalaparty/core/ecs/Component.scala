@@ -1,6 +1,7 @@
 package com.unibo.scalaparty.core.ecs
 
 import com.unibo.scalaparty.core.geometry.{Point2D, Shape, Vector2D}
+import com.unibo.scalaparty.core.utils.PseudoRandom
 
 /** A marker trait for all components in the Entity-Component-System (ECS) architecture.
  *  A Component represents a specific aspect of an entity's state or behavior, such as position, movement, health, etc.
@@ -123,3 +124,60 @@ case class ActiveEffectsComponent(effects: List[ActiveEffect] = Nil) extends Com
    */
   def factorOf(stat: Stat): Double =
     effects.map(_.modifier).collect { case StatModifier(`stat`, factor) => factor }.product
+
+/** Represents a fixed spot of the map where a new power-up appears some time after the previous one is picked up.
+ *  @param state  whether a power-up is ready to be picked up, or how long until the next one appears
+ *  @param random the generator drawing the kind of the next power-up to appear
+ */
+case class PowerUpSpotComponent(state: PowerUpSpotComponent.State, random: PseudoRandom) extends Component:
+  import PowerUpSpotComponent.State.*
+
+  /** The power-up ready to be picked up from this spot.
+   *  @return the power-up on the spot, or None if the spot is recharging
+   */
+  def powerUp: Option[PowerUp] = state match
+    case Available(powerUp) => Some(powerUp)
+    case Recharging(_) => None
+
+  /** Empties this spot, so that a new power-up appears after the given delay.
+   *  @param respawnDelay the positive time before the next power-up appears, in milliseconds
+   *  @return a new component recharging for the whole delay
+   */
+  def emptied(respawnDelay: Long): PowerUpSpotComponent =
+    require(respawnDelay > 0L, "Respawn delay must be positive")
+    copy(state = Recharging(respawnDelay))
+
+  /** Lets the given time pass, making a new power-up appear once the spot is recharged.
+   *  @param dt      the non-negative time to let pass, in milliseconds
+   *  @param catalog the power-ups that can appear, each with the same probability
+   *  @return a new component, recharged with a power-up drawn from the catalog if its delay has run out
+   */
+  def advanced(dt: Long, catalog: Seq[PowerUp]): PowerUpSpotComponent =
+    require(dt >= 0L, "Time cannot flow backwards")
+    state match
+      case Recharging(remaining) if remaining > dt => copy(state = Recharging(remaining - dt))
+      case Recharging(_) => PowerUpSpotComponent.stocked(catalog, random)
+      case Available(_) => this
+
+object PowerUpSpotComponent:
+
+  /** Whether a power-up spot can be picked up from. */
+  enum State:
+    /** A power-up is ready to be picked up.
+     *  @param powerUp the power-up on the spot
+     */
+    case Available(powerUp: PowerUp)
+
+    /** The spot is waiting for its next power-up.
+     *  @param remaining the time before the next power-up appears, in milliseconds
+     */
+    case Recharging(remaining: Long)
+
+  /** Creates a spot holding a power-up drawn from the given catalog.
+   *  @param catalog the power-ups that can appear, each with the same probability
+   *  @param random  the generator drawing the power-up
+   *  @return a new component with a power-up ready to be picked up
+   */
+  def stocked(catalog: Seq[PowerUp], random: PseudoRandom): PowerUpSpotComponent =
+    val (powerUp, next) = random.pick(catalog)
+    PowerUpSpotComponent(State.Available(powerUp), next)

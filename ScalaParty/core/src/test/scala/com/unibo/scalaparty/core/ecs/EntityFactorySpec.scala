@@ -2,7 +2,7 @@ package com.unibo.scalaparty.core.ecs
 
 import com.unibo.scalaparty.core.geometry.{Point2D, Shape, Vector2D}
 import com.unibo.scalaparty.core.model.{GameSettings, ShootingSettings, SpaceshipSettings}
-import com.unibo.scalaparty.core.utils.collectFirstOfClass
+import com.unibo.scalaparty.core.utils.{collectFirstOfClass, PseudoRandom}
 import org.scalatest.OptionValues.convertOptionToValuable
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers.{contain, should, shouldBe}
@@ -108,3 +108,18 @@ class EntityFactorySpec extends AnyFlatSpec:
       ShapeComponent(Shape.AABB(width, height, Point2D.origin)),
       EntityTypeComponent(EntityType.Wall)
     )
+
+  "A PowerUpSpot" should "be created at its position, holding a power-up from the catalog" in:
+    val position = Point2D(5, 5)
+    val catalog = List(PowerUp("repair", Effect.Repair(30.0)))
+    val random = PseudoRandom(42L)
+    val (_, components) = EntityFactory.createPowerUpSpot(position, catalog, random)
+    components should contain allOf (
+      PositionComponent(position),
+      PowerUpSpotComponent.stocked(catalog, random)
+    )
+
+  it should "have no shape, so that moving entities pass through it" in:
+    val (_, components) =
+      EntityFactory.createPowerUpSpot(Point2D.origin, List(PowerUp("repair", Effect.Repair(30.0))), PseudoRandom(42L))
+    components.collectFirstOfClass[ShapeComponent] shouldBe None

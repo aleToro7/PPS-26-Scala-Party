@@ -2,6 +2,7 @@ package com.unibo.scalaparty.core.ecs
 
 import com.unibo.scalaparty.core.geometry.{Point2D, Shape, Vector2D, given}
 import com.unibo.scalaparty.core.model.{GameSettings, ShootingSettings}
+import com.unibo.scalaparty.core.utils.PseudoRandom
 
 object EntityFactory:
 
@@ -99,3 +100,20 @@ object EntityFactory:
    */
   def createMatchClock(entityId: EntityId = EntityId.generate()): EntityWithComponents =
     (entityId, List(MatchClockComponent()))
+
+  /** Creates a new power-up spot, holding a power-up ready to be picked up.
+   *
+   *  The spot has no shape on purpose: it is not a physical body, so moving entities pass through it.
+   *
+   *  @param position the fixed position of the spot
+   *  @param catalog  the power-ups that can appear on the spot
+   *  @param random   the generator drawing the power-ups appearing on the spot
+   *  @return a tuple containing the unique identifier of the created spot entity and its associated list of components
+   */
+  def createPowerUpSpot(
+      position: Point2D,
+      catalog: Seq[PowerUp],
+      random: PseudoRandom,
+      entityId: EntityId = EntityId.generate()
+  ): EntityWithComponents =
+    (entityId, List(PositionComponent(position), PowerUpSpotComponent.stocked(catalog, random)))
