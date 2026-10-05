@@ -27,30 +27,22 @@ trait WorldSystem:
    */
   def update(world: GameWorld, events: Set[GameEvent], dt: Long): SystemOutput
 
+  /** Composes two systems into a single system that executes them in sequence.
+   *
+   *  The resulting system will first execute the `system` and then execute the `nextSystem`, passing the updated
+   *  game world and events from the first system to the second system.
+   *
+   *  @param next the system to be executed after the current system
+   *  @return a new system that represents the composition of the two systems
+   */
+  def compose(next: WorldSystem): WorldSystem = (world, events, dt) =>
+    val (nextWorld, nextEvents) = this.update(world, events, dt)
+    next.update(nextWorld, nextEvents, dt)
+
+  /** Alias for the [[compose]] method. */
+  def >>(next: WorldSystem): WorldSystem = this.compose(next)
+
 object WorldSystem:
-  extension (system: WorldSystem)
-    /** Composes two systems into a single system that executes them in sequence.
-     *
-     *  The resulting system will first execute the `system` and then execute the `nextSystem`, passing the updated
-     *  game world and events from the first system to the second system.
-     *
-     *  @param nextSystem the system to be executed after the current system
-     *  @return a new system that represents the composition of the two systems
-     */
-    def >>(nextSystem: WorldSystem): SystemPipeline = SystemPipeline(system, nextSystem)
-
-/** Represents a pipeline of systems to be executed in sequence.
- *  The systems in the pipeline are executed in the order they are defined, with each system receiving the updated game world and events from the previous system.
- *  The order is very important, as it can affect the final state of the game world and the events generated.
- *
- *  @see [[WorldSystem]] for more information on how to define a system.
- */
-opaque type SystemPipeline = List[WorldSystem]
-
-object SystemPipeline:
-  def apply(systems: WorldSystem*): SystemPipeline = systems.toList
-
-  private def apply(systems: List[WorldSystem]): SystemPipeline = systems
 
   /** Creates a default system pipeline based on the provided game settings.
    *
@@ -64,35 +56,18 @@ object SystemPipeline:
    *  7. DeathSystem: Removes the entities whose health has been depleted.
    *  8. MatchEndSystem: Tells when the match is over and how it ended.
    *
-   *  @param settings the game settings used to configure the systems
+   *  @param settings the game configuration used to set up the systems
    *  @param players  how many players the match starts with
    *  @return a new system pipeline with the default systems
    */
-  def default(settings: GameSettings, players: Int): SystemPipeline =
+  def defaultPipeline(settings: GameSettings): WorldSystem =
     ClockSystem // First, let the time of this tick pass
       >> MovementSystem // Then, move entities based on their velocity
       >> ArenaSystem(settings) // Then, check for arena boundaries
       >> CollisionSystem // Next, check for collisions between entities
-      // The order of the following two is not important
       >> ShootingSystem
       >> DamageSystem
-      >> DeathSystem // Then, remove the entities destroyed by the damage applied in this tick
-      >> MatchEndSystem(settings.matchSettings, players) // Finally, judge the match on what is left of it
-
-  extension (pipeline: SystemPipeline)
-
-    /** Composes two systems into a single system pipeline that executes them in sequence.
-     *
-     *  The resulting system pipeline will first execute the `pipeline` and then execute the `nextSystem`, passing the updated
-     *  game world and events from the first system to the second system.
-     *  *
-     *  @param nextSystem the system to be executed after the current pipeline
-     *  @return a new system pipeline that represents the composition of the two systems
-     */
-    def >>(nextSystem: WorldSystem): SystemPipeline = pipeline :+ nextSystem
-
-    /** Converts the system pipeline to an ordered list of systems.
-     *
-     *  @return a list of systems in the pipeline
-     */
-    def toList: List[WorldSystem] = pipeline
+      >> DeathSystem
+      // Needs to be executed at the end,
+      // it could completely erase the world and the events if the match is over.
+      >> MatchEndSystem(settings.matchSettings)

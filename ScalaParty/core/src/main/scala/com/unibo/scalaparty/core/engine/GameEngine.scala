@@ -14,11 +14,11 @@ trait GameEngine:
 
   /** Updates the state of the game world based on the provided player commands and the elapsed time.
    *
-   *  @param list  a list of player commands to be processed
+   *  @param commands  a list of player commands to be processed
    *  @param dt    the elapsed time since the last update, in milliseconds
    *  @return the entities representing the updated state of the game world, along with the events occurred meanwhile
    */
-  def update(list: List[GameCommand], dt: Long): TickResult
+  def update(commands: List[GameCommand], dt: Long): TickResult
 
 object GameEngine:
   /** Creates a new instance of the game engine based on the provided game configuration.
@@ -27,7 +27,7 @@ object GameEngine:
    *  @return a new instance of GameEngine
    */
   def apply(config: GameConfig): GameEngine =
-    GameEngine(config, SystemPipeline.default(config.settings, config.players.size))
+    GameEngine(config, WorldSystem.defaultPipeline(config.settings))
 
   /** Creates a new instance of the game engine based on the provided game configuration and system pipeline.
    *
@@ -35,24 +35,22 @@ object GameEngine:
    *  @param pipeline the system pipeline to be used for updating the game world
    *  @return a new instance of GameEngine
    */
-  def apply(config: GameConfig, pipeline: SystemPipeline): GameEngine =
+  def apply(config: GameConfig, pipeline: WorldSystem): GameEngine =
     new DefaultGameEngine(config, pipeline)
 
 private class DefaultGameEngine(
     config: GameConfig,
-    pipeline: SystemPipeline
+    pipeline: WorldSystem
 ) extends GameEngine:
   private var world: GameWorld =
     config.map.buildWorld(config.settings)(config.players) + EntityFactory.createMatchClock()
   val arena: Shape.AABB = config.map.shape
 
-  override def update(list: List[GameCommand], dt: Long): TickResult =
-    world = InputGateway.processCommands(this.world, list)
-    val (updatedWorld, events) = pipeline
-      .toList
-      .foldLeft((world, Set.empty[GameEvent])):
-        case ((currentWorld, events), system) => system.update(currentWorld, events, dt)
-    world = updatedWorld
+  override def update(commands: List[GameCommand], dt: Long): TickResult =
+    val (nextWorld, events) = InputGateway
+      .processCommands(this.world, commands)
+      .computeNext(pipeline, dt)
+    world = nextWorld
     TickResult(world.serialized, events)
 
 extension (world: GameWorld)
@@ -61,7 +59,15 @@ extension (world: GameWorld)
    *
    *  @return a list of EntityDto representing the entities in the game world
    */
-  def serialized: List[EntityDto] = world.entitiesWithComponents
+  private def serialized: List[EntityDto] = world.entitiesWithComponents
     .map(_.toDto)
     .collect:
       case Some(dto) => dto
+
+  /** Computes the next state of the game world by applying the provided system pipeline and elapsed time.
+   *
+   *  @param pipeline the system pipeline to be applied to the game world
+   *  @param dt the elapsed time since the last update, in milliseconds
+   *  @return a tuple containing the updated game world and a set of new game events generated during the update
+   */
+  private def computeNext(pipeline: WorldSystem, dt: Long): SystemOutput = pipeline.update(world, Set.empty, dt)

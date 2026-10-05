@@ -29,7 +29,7 @@ class MatchEndSystemSpec extends AnyFlatSpec with Matchers:
     )
   )
 
-  private val system = MatchEndSystem(MatchSettings(timeLimit), startingPlayers = 3)
+  private val system = MatchEndSystem(MatchSettings(timeLimit))
 
   private def spaceship(entityId: EntityId): EntityWithComponents =
     EntityFactory.createSpaceship(Point2D.origin, Vector2D.zero, entityId)
@@ -64,11 +64,6 @@ class MatchEndSystemSpec extends AnyFlatSpec with Matchers:
 
   it should "declare the winner even when the time limit is reached too" in:
     endOf(world.at(timeLimit).without(second, third)) shouldBe Some(MatchOutcome.LastStanding(first))
-
-  it should "keep a match started by a single player going while its spaceship is alive" in:
-    val singlePlayer = MatchEndSystem(MatchSettings(timeLimit), startingPlayers = 1)
-
-    endOf(world.without(second, third), singlePlayer) shouldBe None
 
   it should "leave the world untouched" in:
     val endedWorld = world.without(first, second, third)
