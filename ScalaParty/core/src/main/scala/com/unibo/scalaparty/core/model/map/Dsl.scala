@@ -15,6 +15,9 @@ enum MapTile:
   /** A spawn tile. */
   case Spawn
 
+  /** A power-up spot tile. */
+  case PowerUp
+
 object Dsl:
   /** Alias for [[MapTile.Spawn]] */
   val S: MapTile = MapTile.Spawn
@@ -24,6 +27,9 @@ object Dsl:
 
   /** Alias for [[MapTile.Empty]] */
   val / : MapTile = MapTile.Empty
+
+  /** Alias for [[MapTile.PowerUp]] */
+  val P: MapTile = MapTile.PowerUp
 
   /** A MapRow represents a row of MapTiles in the game map.
    *  @tparam N the number of tiles in the row

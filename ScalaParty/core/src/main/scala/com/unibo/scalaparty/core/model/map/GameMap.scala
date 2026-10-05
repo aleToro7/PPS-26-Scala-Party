@@ -6,6 +6,7 @@ import com.unibo.scalaparty.core.ecs.{EntityFactory, EntityId, GameWorld}
 import com.unibo.scalaparty.core.geometry.{Point2D, Shape, Vector2D}
 import com.unibo.scalaparty.core.model.GameSettings
 import com.unibo.scalaparty.core.model.map.Dsl.MapRow
+import com.unibo.scalaparty.core.utils.PseudoRandom
 
 /** A GameMap represents a layout strategy used to build a GameWorld.
  *  It should define the shape of the map, the placement of walls, and the spawn points for players.
@@ -114,4 +115,14 @@ class GridMap[S <: Int](val tileSize: Int, rows: Vector[MapRow[S]]) extends Game
         // If the spawn point is at the center of the map, default to a direction pointing upwards (0, 1)
         val direction = if mapCenter != spawnPoint then mapCenter - spawnPoint else Vector2D(0, 1)
         EntityFactory.createSpaceshipFromConfig(settings)(spawnPoint, direction, playerId)
-    GameWorld((walls ++ spawnedPlayers).toList)
+    val powerUpSpots = tilesWithCords
+      .collect { case (MapTile.PowerUp, point) => point }
+      .zipWithIndex
+      .map((point, index) =>
+        EntityFactory.createPowerUpSpot(
+          point,
+          settings.powerUps.catalog,
+          PseudoRandom(settings.powerUps.seed + index)
+        )
+      )
+    GameWorld((walls ++ spawnedPlayers ++ powerUpSpots).toList)
