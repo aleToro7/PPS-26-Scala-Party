@@ -3,6 +3,7 @@ package com.unibo.scalaparty.core.ecs.systems
 import com.unibo.scalaparty.core.ecs.*
 import com.unibo.scalaparty.core.ecs.GameEvent.CollisionDetected
 import com.unibo.scalaparty.core.geometry.{Point2D, Vector2D}
+import com.unibo.scalaparty.core.model.{Stat, StatModifier}
 import org.scalatest.OptionValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -29,6 +30,10 @@ class DamageSystemSpec extends AnyFlatSpec with Matchers with OptionValues:
 
   private def bulletShotBy(shooterId: EntityId, entityId: EntityId = bulletId): EntityWithComponents =
     EntityFactory.createBullet(shooterId, Point2D.origin, Vector2D.zero, bulletPower, entityId)
+
+  private def shielded(ship: EntityWithComponents, factor: Double): EntityWithComponents =
+    val shield = ActiveEffectsComponent(List(ActiveEffect(StatModifier(Stat.DamageTaken, factor), 5_000L)))
+    (ship.id, shield :: ship.components.filterNot(_.isInstanceOf[ActiveEffectsComponent]))
 
   private def updateWorld(world: GameWorld, events: GameEvent*): (GameWorld, Set[GameEvent]) =
     DamageSystem.update(world, events.toSet, defaultDt)
@@ -108,3 +113,25 @@ class DamageSystemSpec extends AnyFlatSpec with Matchers with OptionValues:
     val (_, events) = updateWorld(world, collision)
 
     events shouldBe Set(collision)
+
+  it should "scale the damage suffered by a shielded spaceship" in:
+    val world = GameWorld(List(shielded(ship(shipId), 0.25), bulletShotBy(otherShipId)))
+
+    val (updatedWorld, _) = updateWorld(world, CollisionDetected(bulletId, shipId))
+
+    updatedWorld.healthOf(shipId) shouldBe maxHealth - bulletPower * 0.25
+
+  it should "still consume a bullet hitting a shielded spaceship" in:
+    val world = GameWorld(List(shielded(ship(shipId), 0.25), bulletShotBy(otherShipId)))
+
+    val (updatedWorld, _) = updateWorld(world, CollisionDetected(bulletId, shipId))
+
+    updatedWorld.entities should not contain bulletId
+
+  it should "shield only the spaceship the shield acts on" in:
+    val world = GameWorld(List(shielded(ship(shipId), 0.25), ship(otherShipId)))
+
+    val (updatedWorld, _) = updateWorld(world, CollisionDetected(shipId, otherShipId))
+
+    updatedWorld.healthOf(shipId) shouldBe maxHealth - collisionDamage * 0.25
+    updatedWorld.healthOf(otherShipId) shouldBe maxHealth - collisionDamage

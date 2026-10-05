@@ -72,6 +72,7 @@ object PowerUpSettings:
   val defaultCatalog: List[PowerUp] = List(
     PowerUp("rapid-fire", Effect.Boost(StatModifier(Stat.ShootCooldown, 0.5), boostDuration)),
     PowerUp("damage", Effect.Boost(StatModifier(Stat.BulletPower, 2.0), boostDuration)),
+    PowerUp("shield", Effect.Boost(StatModifier(Stat.DamageTaken, 0.25), boostDuration)),
     PowerUp("repair", Effect.Repair(30.0))
   )
 

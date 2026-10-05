@@ -2,12 +2,15 @@ package com.unibo.scalaparty.core.ecs.systems
 
 import com.unibo.scalaparty.core.ecs.*
 import com.unibo.scalaparty.core.ecs.GameEvent.CollisionDetected
+import com.unibo.scalaparty.core.model.Stat
+import com.unibo.scalaparty.core.utils.collectFirstOfClass
 
 /** A system responsible for applying damage to the entities involved in a collision.
  *
  *  Every [[GameEvent.CollisionDetected]] event is resolved symmetrically: each entity strikes the other one, dealing
  *  its impact damage (the bullet power for projectiles, the collision damage for any other entity) if the target has
- *  health. A projectile never damages its own shooter and is consumed as soon as it damages an entity.
+ *  health. A projectile never damages its own shooter and is consumed as soon as it damages an entity. The damage
+ *  suffered by the target is scaled by the power-up effects in action on it, if any, such as a shield.
  *  Collision events are forwarded untouched, so that subsequent systems can still react to them.
  */
 object DamageSystem extends WorldSystem:
@@ -28,7 +31,7 @@ object DamageSystem extends WorldSystem:
           target   <- world.findComponents(targetId)
           damage   <- impactDamage(attacker, targetId)
           health   <- target.collectFirst { case hc: HealthComponent => hc }
-          damagedWorld = world.updateComponent(targetId, health.damaged(damage))
+          damagedWorld = world.updateComponent(targetId, health.damaged(damage * damageTakenFactor(target)))
         yield if isProjectile(attacker) then damagedWorld - attackerId else damagedWorld
       struckWorld.getOrElse(world)
 
@@ -38,6 +41,9 @@ object DamageSystem extends WorldSystem:
         case bullet: BulletComponent => Option.when(bullet.shooterId != targetId)(bullet.power)
         case CollisionDamageComponent(damage) => Some(damage)
       .flatten
+
+  private def damageTakenFactor(target: List[Component]): Double =
+    target.collectFirstOfClass[ActiveEffectsComponent].fold(1.0)(_.factorOf(Stat.DamageTaken))
 
   private def isProjectile(components: List[Component]): Boolean =
     components.exists(_.isInstanceOf[BulletComponent])
