@@ -57,6 +57,13 @@ class ProtocolCodecsSpec extends AnyWordSpec with Matchers:
       json should include(""""Spaceship":{"id":1""")
       json should include(""""Bullet":{"id":2""")
 
+    "tell clients which power-up a spot holds, if any" in:
+      val stocked: EntityDto = EntityDto.PowerUpSpot(EntityId.fromLong(3L), Point2D(5.0, 5.0), Some("repair"))
+      val recharging: EntityDto = EntityDto.PowerUpSpot(EntityId.fromLong(4L), Point2D(5.0, 5.0), None)
+
+      stocked.asJson.noSpaces shouldEqual """{"PowerUpSpot":{"id":3,"position":{"x":5.0,"y":5.0},"powerUp":"repair"}}"""
+      recharging.asJson.noSpaces shouldEqual """{"PowerUpSpot":{"id":4,"position":{"x":5.0,"y":5.0},"powerUp":null}}"""
+
     "tell a player starting a match which entity is its own" in:
       val message: ServerMessage = ServerMessage.MatchStarted(players = 2, you = EntityId.fromLong(7L))
 

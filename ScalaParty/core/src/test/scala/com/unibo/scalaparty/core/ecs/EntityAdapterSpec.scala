@@ -1,9 +1,11 @@
 package com.unibo.scalaparty.core.ecs
 
-import com.unibo.scalaparty.core.dto.EntityDto.{Bullet, Spaceship, Wall}
+import com.unibo.scalaparty.core.dto.EntityDto.{Bullet, PowerUpSpot, Spaceship, Wall}
 import com.unibo.scalaparty.core.dto.toDto
 import com.unibo.scalaparty.core.geometry.{Point2D, Vector2D}
 import com.unibo.scalaparty.core.geometry.Shape.{AABB, Circle}
+import com.unibo.scalaparty.core.model.{Effect, PowerUp}
+import com.unibo.scalaparty.core.utils.PseudoRandom
 import org.scalatest.OptionValues.convertOptionToValuable
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -53,6 +55,22 @@ class EntityAdapterSpec extends AnyFlatSpec with Matchers:
     val dto = entity.toDto
     dto should not be None
     dto.value shouldBe a[Wall]
+
+  it should "convert a stocked power-up spot to a DTO naming its power-up" in:
+    val entityId = EntityId.generate()
+    val position = Point2D(5, 5)
+    val repair = PowerUp("repair", Effect.Repair(30.0))
+    val entity = EntityFactory.createPowerUpSpot(position, List(repair), PseudoRandom(42L), entityId)
+    entity.toDto.value shouldBe PowerUpSpot(entityId, position, Some("repair"))
+
+  it should "convert a recharging power-up spot to a DTO without power-up" in:
+    val entityId = EntityId.generate()
+    val components = List(
+      PositionComponent(Point2D.origin),
+      EntityTypeComponent(EntityType.PowerUpSpot),
+      PowerUpSpotComponent(PowerUpSpotComponent.State.Recharging(1_000L), PseudoRandom(42L))
+    )
+    (entityId, components).toDto.value shouldBe PowerUpSpot(entityId, Point2D.origin, None)
 
   it should "return None for a spaceship entity missing required components" in:
     val entityId = EntityId.generate()

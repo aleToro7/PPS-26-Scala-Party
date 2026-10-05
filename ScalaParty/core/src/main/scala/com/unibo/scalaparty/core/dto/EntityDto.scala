@@ -43,3 +43,11 @@ enum EntityDto:
    *  @param shape    the shape of the wall
    */
   case Wall(id: EntityId, position: Point2D, shape: Shape)
+
+  /** Represents a fixed spot of the map where power-ups appear.
+   *
+   *  @param id       the unique identifier of the spot entity
+   *  @param position the 2D spatial coordinates of the spot
+   *  @param powerUp  the name of the power-up ready to be picked up, or None if the spot is recharging
+   */
+  case PowerUpSpot(id: EntityId, position: Point2D, powerUp: Option[String])

@@ -120,6 +120,7 @@ class EntityFactorySpec extends AnyFlatSpec:
     val (_, components) = EntityFactory.createPowerUpSpot(position, catalog, random)
     components should contain allOf (
       PositionComponent(position),
+      EntityTypeComponent(EntityType.PowerUpSpot),
       PowerUpSpotComponent.stocked(catalog, random)
     )
 

@@ -1,8 +1,13 @@
 package com.unibo.scalaparty.core.dto
 
-import com.unibo.scalaparty.core.dto.EntityDto.{Bullet as BulletDto, Spaceship as SpaceshipDto, Wall as WallDto}
+import com.unibo.scalaparty.core.dto.EntityDto.{
+  Bullet as BulletDto,
+  PowerUpSpot as PowerUpSpotDto,
+  Spaceship as SpaceshipDto,
+  Wall as WallDto
+}
 import com.unibo.scalaparty.core.ecs.*
-import com.unibo.scalaparty.core.ecs.EntityType.{Bullet, Spaceship, Wall}
+import com.unibo.scalaparty.core.ecs.EntityType.{Bullet, PowerUpSpot, Spaceship, Wall}
 import com.unibo.scalaparty.core.utils.collectFirstOfClass
 
 object EntityAdapter:
@@ -19,6 +24,7 @@ object EntityAdapter:
       case Some(Spaceship) => extractSpaceship(entityId, components)
       case Some(Bullet) => extractBullet(entityId, components)
       case Some(Wall) => extractWall(entityId, components)
+      case Some(PowerUpSpot) => extractPowerUpSpot(entityId, components)
       case None => None
 
   private def extractBullet(
@@ -53,6 +59,12 @@ object EntityAdapter:
       position <- components.collectFirstOfClass[PositionComponent].map(_.position)
       shape    <- components.collectFirstOfClass[ShapeComponent].map(_.shape)
     yield EntityDto.Wall(entityId, position, shape)
+
+  private def extractPowerUpSpot(entityId: EntityId, components: List[Component]): Option[PowerUpSpotDto] =
+    for
+      position <- components.collectFirstOfClass[PositionComponent].map(_.position)
+      spot     <- components.collectFirstOfClass[PowerUpSpotComponent]
+    yield PowerUpSpotDto(entityId, position, spot.powerUp.map(_.name))
 
 extension (e: EntityWithComponents)
   /** Converts the entity ID and its associated components to an EntityDto based on the specified entity type.

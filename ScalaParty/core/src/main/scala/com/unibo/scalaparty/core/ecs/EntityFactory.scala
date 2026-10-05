@@ -117,4 +117,9 @@ object EntityFactory:
       random: PseudoRandom,
       entityId: EntityId = EntityId.generate()
   ): EntityWithComponents =
-    (entityId, List(PositionComponent(position), PowerUpSpotComponent.stocked(catalog, random)))
+    val components: List[Component] = List(
+      PositionComponent(position),
+      EntityTypeComponent(EntityType.PowerUpSpot),
+      PowerUpSpotComponent.stocked(catalog, random)
+    )
+    (entityId, components)
