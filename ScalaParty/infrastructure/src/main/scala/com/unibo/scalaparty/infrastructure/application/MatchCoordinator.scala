@@ -120,12 +120,24 @@ class MatchCoordinator(
     val engine = GameEngine(
       GameConfig(
         players = mapping.values.toList,
-        settings = settings
+        settings = seededFor(activeMatch.matchId)
       )
     )
     val roster = lobby.playersOf(activeMatch.matchId)
     val runner = new MatchRunner(session, commands, engine, publisher, roster)
     runner.run.flatMap(concludeMatch(activeMatch, _))
+
+  /** Tailors the shared settings to a match, so that it draws power-ups of its own.
+   *
+   *  The power-up seed is taken from the random identifier of the match: every match differs from the others, while
+   *  staying reproducible from its identifier.
+   *
+   *  @param matchId the match about to be played
+   *  @return the shared settings, with the power-up seed of the match
+   */
+  private def seededFor(matchId: MatchId): GameSettings =
+    val id = matchId.value
+    settings.copy(powerUps = settings.powerUps.copy(seed = id.getMostSignificantBits ^ id.getLeastSignificantBits))
 
   /** Releases the players of a finished match, telling them how it ended, and lets the next one in.
    *
