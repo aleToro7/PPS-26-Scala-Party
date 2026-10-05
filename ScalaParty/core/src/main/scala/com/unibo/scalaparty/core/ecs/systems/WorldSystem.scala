@@ -59,10 +59,11 @@ object SystemPipeline:
    *  2. MovementSystem: Moves entities based on their velocity.
    *  3. ArenaSystem: Checks for arena boundaries and handles entities that go out of bounds.
    *  4. CollisionSystem: Checks for collisions between entities and generates collision events.
-   *  5. ShootingSystem: Processes shooting events and updates the state of projectiles.
-   *  6. DamageSystem: Applies damage to entities based on collision and shooting events.
-   *  7. DeathSystem: Removes the entities whose health has been depleted.
-   *  8. MatchEndSystem: Tells when the match is over and how it ended.
+   *  5. PowerUpSystem: Hands the power-ups to the spaceships picking them up and runs down their effects.
+   *  6. ShootingSystem: Processes shooting events and updates the state of projectiles.
+   *  7. DamageSystem: Applies damage to entities based on collision and shooting events.
+   *  8. DeathSystem: Removes the entities whose health has been depleted.
+   *  9. MatchEndSystem: Tells when the match is over and how it ended.
    *
    *  @param settings the game settings used to configure the systems
    *  @param players  how many players the match starts with
@@ -73,6 +74,7 @@ object SystemPipeline:
       >> MovementSystem // Then, move entities based on their velocity
       >> ArenaSystem(settings) // Then, check for arena boundaries
       >> CollisionSystem // Next, check for collisions between entities
+      >> PowerUpSystem(settings.powerUps) // Then, pick up power-ups from the final positions, before they are used
       // The order of the following two is not important
       >> ShootingSystem
       >> DamageSystem

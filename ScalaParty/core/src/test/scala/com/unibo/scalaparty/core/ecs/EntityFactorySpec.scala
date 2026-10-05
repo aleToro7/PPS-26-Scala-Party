@@ -33,6 +33,10 @@ class EntityFactorySpec extends AnyFlatSpec:
       CollisionDamageComponent(collisionDamage)
     )
 
+  it should "be created able to receive power-ups, with no effects in action" in:
+    val (_, components) = EntityFactory.createSpaceship(Point2D.origin, Vector2D.zero)
+    components should contain(ActiveEffectsComponent())
+
   it should "be created from settings with the correct health component" in:
     val health = 80.0
     val settings = GameSettings.default.copy(

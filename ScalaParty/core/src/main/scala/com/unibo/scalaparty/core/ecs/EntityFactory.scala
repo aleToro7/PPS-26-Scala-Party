@@ -31,7 +31,8 @@ object EntityFactory:
       EntityTypeComponent(EntityType.Spaceship),
       ShapeComponent(Shape.Polygon((12.0, 0.0), (-12.0, -7.0), (-12.0, 7.0))),
       HealthComponent.full(maxHealth),
-      CollisionDamageComponent(collisionDamage)
+      CollisionDamageComponent(collisionDamage),
+      ActiveEffectsComponent()
     )
     (entityId, components)
 
