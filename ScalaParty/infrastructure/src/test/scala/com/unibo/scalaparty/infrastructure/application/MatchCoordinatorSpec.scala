@@ -188,12 +188,14 @@ class MatchCoordinatorSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
       yield next.map(_.players) shouldBe Set(Set(waiting))
 
     "tell the players of the finished match how it ended".in:
-      val playing = PlayerId.random()
+      val player1 = PlayerId.random()
+      val player2 = PlayerId.random()
       val timeUp = ServerMessage.MatchEnded(MatchOutcome.TimeUp)
       for
-        f        <- fixture()
-        _        <- f.join(playing)
-        messages <- eventually(f.notifier.messagesFor(playing))(_.contains(timeUp))
+        f        <- fixture(timeLimit = 50L, minPlayers = 2, maxPlayers = 2)
+        _        <- f.join(player1)
+        _        <- f.join(player2)
+        messages <- eventually(f.notifier.messagesFor(player1))(_.contains(timeUp))
       yield messages should contain(timeUp)
 
     "leave the arena free when nobody else is waiting".in:

@@ -15,9 +15,8 @@ import com.unibo.scalaparty.core.model.{MatchOutcome, MatchSettings}
  *  the final state of the update.
  *
  *  @param settings        the rules of the match
- *  @param startingPlayers how many players the match started with
  */
-final case class MatchEndSystem(settings: MatchSettings, startingPlayers: Int) extends WorldSystem:
+final case class MatchEndSystem(settings: MatchSettings) extends WorldSystem:
 
   /** @inheritdoc */
   override def update(world: GameWorld, events: Set[GameEvent], dt: Long): SystemOutput =
@@ -26,7 +25,7 @@ final case class MatchEndSystem(settings: MatchSettings, startingPlayers: Int) e
   private def outcome(world: GameWorld): Option[MatchOutcome] =
     world.spaceships match
       case Nil => Some(MatchOutcome.NoSurvivors)
-      case List(winner) if startingPlayers > 1 => Some(MatchOutcome.LastStanding(winner))
+      case List(winner) => Some(MatchOutcome.LastStanding(winner))
       case _ => Option.when(world.clock.exists(_.elapsed >= settings.timeLimit))(MatchOutcome.TimeUp)
 
   extension (world: GameWorld)
