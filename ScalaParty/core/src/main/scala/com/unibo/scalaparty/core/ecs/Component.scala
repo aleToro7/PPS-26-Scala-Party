@@ -96,3 +96,30 @@ case class MatchClockComponent(elapsed: Long = 0L) extends Component:
   def advanced(dt: Long): MatchClockComponent =
     require(dt >= 0L, "Time cannot flow backwards")
     copy(elapsed = elapsed + dt)
+
+/** Represents the power-up effects currently affecting an entity.
+ *  @param effects the stat modifiers still in action
+ */
+case class ActiveEffectsComponent(effects: List[ActiveEffect] = Nil) extends Component:
+
+  /** Starts the given boost, on top of the effects already in action.
+   *  @param boost the boost to start
+   *  @return a new component including the boost for its whole duration
+   */
+  def activated(boost: Effect.Boost): ActiveEffectsComponent =
+    copy(effects = ActiveEffect(boost.modifier, boost.duration) :: effects)
+
+  /** Lets the given time pass, dropping the effects that run out.
+   *  @param dt the non-negative time to let pass, in milliseconds
+   *  @return a new component with only the effects still in action
+   */
+  def advanced(dt: Long): ActiveEffectsComponent =
+    require(dt >= 0L, "Time cannot flow backwards")
+    copy(effects = effects.flatMap(_.advanced(dt)))
+
+  /** Combines the factors of all the effects in action on the given stat.
+   *  @param stat the stat to inspect
+   *  @return the product of the factors applied to the stat, or 1.0 if no effect modifies it
+   */
+  def factorOf(stat: Stat): Double =
+    effects.map(_.modifier).collect { case StatModifier(`stat`, factor) => factor }.product
