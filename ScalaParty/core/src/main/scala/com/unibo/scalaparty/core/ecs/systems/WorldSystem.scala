@@ -47,21 +47,27 @@ object WorldSystem:
   /** Creates a default system pipeline based on the provided game settings.
    *
    *  The default pipeline includes the following systems in order:
-   *  1. MovementSystem: Moves entities based on their velocity.
-   *  2. ArenaSystem: Checks for arena boundaries and handles entities that go out of bounds.
-   *  3. CollisionSystem: Checks for collisions between entities and generates collision events.
-   *  4. ShootingSystem: Processes shooting events and updates the state of projectiles.
-   *  5. DamageSystem: Applies damage to entities based on collision and shooting events.
-   *  6. DeathSystem: Removes the entities whose health has been depleted.
+   *  1. ClockSystem: Keeps track of how long the match has been going on.
+   *  2. MovementSystem: Moves entities based on their velocity.
+   *  3. ArenaSystem: Checks for arena boundaries and handles entities that go out of bounds.
+   *  4. CollisionSystem: Checks for collisions between entities and generates collision events.
+   *  5. ShootingSystem: Processes shooting events and updates the state of projectiles.
+   *  6. DamageSystem: Applies damage to entities based on collision and shooting events.
+   *  7. DeathSystem: Removes the entities whose health has been depleted.
+   *  8. MatchEndSystem: Tells when the match is over and how it ended.
    *
-   *  @param settings the game settings used to configure the systems
+   *  @param settings the game configuration used to set up the systems
+   *  @param players  how many players the match starts with
    *  @return a new system pipeline with the default systems
    */
   def defaultPipeline(settings: GameSettings): WorldSystem =
-    MovementSystem // First, move entities based on their velocity
+    ClockSystem // First, let the time of this tick pass
+      >> MovementSystem // Then, move entities based on their velocity
       >> ArenaSystem(settings) // Then, check for arena boundaries
       >> CollisionSystem // Next, check for collisions between entities
-      // The order of the following two is not important
       >> ShootingSystem
       >> DamageSystem
-      >> DeathSystem // Finally, remove the entities destroyed by the damage applied in this tick
+      >> DeathSystem
+      // Needs to be executed at the end,
+      // it could completely erase the world and the events if the match is over.
+      >> MatchEndSystem(settings.matchSettings)

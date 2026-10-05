@@ -8,7 +8,7 @@ import cats.effect.testing.scalatest.AsyncIOSpec
 import cats.syntax.all.*
 import com.unibo.scalaparty.core.dto.EntityDto
 import com.unibo.scalaparty.core.ecs.EntityId
-import com.unibo.scalaparty.core.model.{GameEvent, GameSettings, MatchState}
+import com.unibo.scalaparty.core.model.{GameEvent, GameSettings, MatchOutcome, MatchSettings, MatchState}
 import com.unibo.scalaparty.infrastructure.model.{Admission, MatchId, PlayerId, ServerMessage}
 import com.unibo.scalaparty.infrastructure.network.ConnectionRegistry
 import com.unibo.scalaparty.infrastructure.ports.{MatchEventPublisher, PlayerNotifier}
@@ -67,7 +67,7 @@ class MatchCoordinatorSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
       connect(playerId) *> coordinator.joinLobby(playerId)
 
   private def fixture(
-      matchDuration: FiniteDuration = 50.millis,
+      timeLimit: Long = 50L,
       minPlayers: Int = 1,
       maxPlayers: Int = 1,
       maxMatches: Int = 1,
@@ -80,8 +80,8 @@ class MatchCoordinatorSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
       sent      <- Ref.of[IO, List[(PlayerId, ServerMessage)]](List.empty)
       publisher <- CountingPublisher()
       notifier = RecordingNotifier(sent)
-      settings = GameSettings.default
-      coordinator <- MatchCoordinator(lobby, registry, commands, notifier, publisher, settings, matchDuration)
+      settings = GameSettings(matchSettings = MatchSettings(timeLimit))
+      coordinator <- MatchCoordinator(lobby, registry, commands, notifier, publisher, settings)
     yield Fixture(lobby, registry, notifier, publisher, coordinator)
 
   /** Retries the given check until it holds, rather than guessing how long a match takes. */
@@ -121,7 +121,7 @@ class MatchCoordinatorSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
     "tell the playing player which spaceship is its own".in:
       val playerId = PlayerId.random()
       for
-        f         <- fixture(matchDuration = 10.seconds)
+        f         <- fixture(timeLimit = 10_000L)
         _         <- f.join(playerId)
         matchId   <- f.registry.matchOf(playerId).map(_.get)
         published <- eventually(f.publisher.shipsIn(matchId))(_.nonEmpty)
@@ -158,7 +158,7 @@ class MatchCoordinatorSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
     "turn a player away once the queue is full, telling it why".in:
       val players = List.fill(3)(PlayerId.random())
       for
-        f          <- fixture(matchDuration = 10.seconds, maxQueued = 1)
+        f          <- fixture(timeLimit = 10_000L, maxQueued = 1)
         admissions <- players.traverse(f.join)
         messages   <- f.notifier.messagesFor(players.last)
       yield
@@ -168,7 +168,7 @@ class MatchCoordinatorSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
     "keep a rejected player out of the queue and of every match".in:
       val players = List.fill(3)(PlayerId.random())
       for
-        f       <- fixture(matchDuration = 10.seconds, maxQueued = 1)
+        f       <- fixture(timeLimit = 10_000L, maxQueued = 1)
         _       <- players.traverse(f.join)
         waiting <- f.lobby.waitingPlayers
         bound   <- f.registry.matchOf(players.last)
@@ -187,13 +187,16 @@ class MatchCoordinatorSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
         next <- eventually(f.lobby.activeMatches)(_.exists(_.players == Set(waiting)))
       yield next.map(_.players) shouldBe Set(Set(waiting))
 
-    "tell the players of the finished match that it is over".in:
-      val playing = PlayerId.random()
+    "tell the players of the finished match how it ended".in:
+      val player1 = PlayerId.random()
+      val player2 = PlayerId.random()
+      val timeUp = ServerMessage.MatchEnded(MatchOutcome.TimeUp)
       for
-        f        <- fixture()
-        _        <- f.join(playing)
-        messages <- eventually(f.notifier.messagesFor(playing))(_.contains(ServerMessage.MatchEnded))
-      yield messages should contain(ServerMessage.MatchEnded)
+        f        <- fixture(timeLimit = 50L, minPlayers = 2, maxPlayers = 2)
+        _        <- f.join(player1)
+        _        <- f.join(player2)
+        messages <- eventually(f.notifier.messagesFor(player1))(_.contains(timeUp))
+      yield messages should contain(timeUp)
 
     "leave the arena free when nobody else is waiting".in:
       val playing = PlayerId.random()
@@ -231,7 +234,7 @@ class MatchCoordinatorSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
       val playing = PlayerId.random()
       val waiting = PlayerId.random()
       for
-        f       <- fixture(matchDuration = 10.seconds)
+        f       <- fixture(timeLimit = 10_000L)
         _       <- f.join(playing)
         _       <- f.join(waiting)
         _       <- f.coordinator.leaveLobby(playing)
@@ -241,7 +244,7 @@ class MatchCoordinatorSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
     "stop ticking the match once its last player has quit and nobody is waiting".in:
       val playing = PlayerId.random()
       for
-        f       <- fixture(matchDuration = 10.seconds)
+        f       <- fixture(timeLimit = 10_000L)
         _       <- f.join(playing)
         _       <- f.coordinator.leaveLobby(playing)
         settled <- f.publisher.count
@@ -262,7 +265,7 @@ class MatchCoordinatorSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
           override def send(pId: PlayerId, message: ServerMessage): IO[Unit] = message match
             case ServerMessage.MatchStarted(_, _) => coordinator.get.flatMap(_.leaveLobby(pId))
             case _ => IO.unit
-        created <- MatchCoordinator(lobby, registry, commands, quitting, publisher, GameSettings.default, 10.seconds)
+        created <- MatchCoordinator(lobby, registry, commands, quitting, publisher, GameSettings.default)
         _       <- coordinator.complete(created)
         _       <- Queue.unbounded[IO, WebSocketFrame].flatMap(registry.register(playerId, _))
         _       <- created.joinLobby(playerId)
@@ -275,7 +278,7 @@ class MatchCoordinatorSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
       val giveUp = PlayerId.random()
       val last = PlayerId.random()
       for
-        f        <- fixture(matchDuration = 10.seconds)
+        f        <- fixture(timeLimit = 10_000L)
         _        <- f.join(playing)
         _        <- f.join(giveUp)
         _        <- f.join(last)
@@ -288,7 +291,7 @@ class MatchCoordinatorSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
       val first = PlayerId.random()
       val second = PlayerId.random()
       for
-        f           <- fixture(matchDuration = 10.seconds, maxMatches = 2)
+        f           <- fixture(timeLimit = 10_000L, maxMatches = 2)
         _           <- f.join(first)
         _           <- f.join(second)
         firstBound  <- f.registry.matchOf(first)
@@ -302,7 +305,7 @@ class MatchCoordinatorSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
       val first = PlayerId.random()
       val second = PlayerId.random()
       for
-        f           <- fixture(matchDuration = 10.seconds, maxMatches = 2)
+        f           <- fixture(timeLimit = 10_000L, maxMatches = 2)
         _           <- f.join(first)
         _           <- f.join(second)
         firstMatch  <- f.registry.matchOf(first)
@@ -315,7 +318,7 @@ class MatchCoordinatorSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
     "queue the players arriving once every room is taken".in:
       val players = List.fill(3)(PlayerId.random())
       for
-        f        <- fixture(matchDuration = 10.seconds, maxMatches = 2)
+        f        <- fixture(timeLimit = 10_000L, maxMatches = 2)
         _        <- players.traverse_(f.join)
         messages <- f.notifier.messagesFor(players.last)
         bound    <- f.registry.matchOf(players.last)
@@ -328,7 +331,7 @@ class MatchCoordinatorSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
       val second = PlayerId.random()
       val waiting = PlayerId.random()
       for
-        f           <- fixture(matchDuration = 10.seconds, maxMatches = 2)
+        f           <- fixture(timeLimit = 10_000L, maxMatches = 2)
         _           <- f.join(first)
         _           <- f.join(second)
         _           <- f.join(waiting)
@@ -344,7 +347,7 @@ class MatchCoordinatorSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
       val quitting = PlayerId.random()
       val staying = PlayerId.random()
       for
-        f           <- fixture(matchDuration = 10.seconds, maxMatches = 2)
+        f           <- fixture(timeLimit = 10_000L, maxMatches = 2)
         _           <- f.join(quitting)
         _           <- f.join(staying)
         quitMatch   <- f.registry.matchOf(quitting).map(_.get)
@@ -363,7 +366,7 @@ class MatchCoordinatorSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
     "keep the first player waiting until enough players have arrived".in:
       val first = PlayerId.random()
       for
-        f        <- fixture(matchDuration = 10.seconds, minPlayers = 2, maxPlayers = 2)
+        f        <- fixture(timeLimit = 10_000L, minPlayers = 2, maxPlayers = 2)
         _        <- f.join(first)
         matches  <- f.lobby.activeMatches
         messages <- f.notifier.messagesFor(first)
@@ -374,7 +377,7 @@ class MatchCoordinatorSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
     "begin with all of them, telling each one its own spaceship among those in the match".in:
       val players = List.fill(2)(PlayerId.random())
       for
-        f         <- fixture(matchDuration = 10.seconds, minPlayers = 2, maxPlayers = 2)
+        f         <- fixture(timeLimit = 10_000L, minPlayers = 2, maxPlayers = 2)
         _         <- players.traverse_(f.join)
         matchIds  <- players.traverse(f.registry.matchOf)
         published <- eventually(f.publisher.shipsIn(matchIds.head.get))(_.nonEmpty)
@@ -390,18 +393,31 @@ class MatchCoordinatorSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
 
     "go on without the spaceship of a player who quits, for the players left".in:
       val quitting = PlayerId.random()
-      val staying = PlayerId.random()
+      val staying = List.fill(2)(PlayerId.random())
       for
-        f       <- fixture(matchDuration = 10.seconds, minPlayers = 2, maxPlayers = 2)
-        _       <- f.join(quitting)
-        _       <- f.join(staying)
-        matchId <- f.registry.matchOf(staying).map(_.get)
-        ships   <- f.notifier.messagesFor(staying).map(_.collect { case ServerMessage.MatchStarted(_, you) => you })
-        _       <- eventually(f.publisher.shipsIn(matchId))(_.size == 2)
+        f       <- fixture(timeLimit = 10_000L, minPlayers = 3, maxPlayers = 3)
+        _       <- (quitting :: staying).traverse_(f.join)
+        matchId <- f.registry.matchOf(quitting).map(_.get)
+        ships   <- staying.flatTraverse(f.notifier.messagesFor(_).map(_.collect {
+          case ServerMessage.MatchStarted(_, you) => you
+        }))
+        _       <- eventually(f.publisher.shipsIn(matchId))(_.size == 3)
         _       <- f.coordinator.leaveLobby(quitting)
-        left    <- eventually(f.publisher.shipsIn(matchId))(_.size == 1)
+        left    <- eventually(f.publisher.shipsIn(matchId))(_.size == 2)
         matches <- f.lobby.activeMatches
-        _       <- f.coordinator.leaveLobby(staying)
+        _       <- staying.traverse_(f.coordinator.leaveLobby)
       yield
         left shouldBe ships.toSet
-        matches.map(_.players) shouldBe Set(Set(staying))
+        matches.map(_.players) shouldBe Set(staying.toSet)
+
+    "end once a single player is left, telling it that its spaceship won".in:
+      val quitting = PlayerId.random()
+      val staying = PlayerId.random()
+      for
+        f        <- fixture(timeLimit = 10_000L, minPlayers = 2, maxPlayers = 2)
+        _        <- f.join(quitting)
+        _        <- f.join(staying)
+        ships    <- f.notifier.messagesFor(staying).map(_.collect { case ServerMessage.MatchStarted(_, you) => you })
+        _        <- f.coordinator.leaveLobby(quitting)
+        messages <- eventually(f.notifier.messagesFor(staying))(_.exists(_.isInstanceOf[ServerMessage.MatchEnded]))
+      yield messages should contain(ServerMessage.MatchEnded(MatchOutcome.LastStanding(ships.head)))

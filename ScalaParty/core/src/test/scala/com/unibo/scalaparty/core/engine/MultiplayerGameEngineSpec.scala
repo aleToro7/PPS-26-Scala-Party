@@ -21,6 +21,7 @@ class MultiplayerGameEngineSpec extends AnyFlatSpec with Matchers:
   private def spawnedShips(players: List[EntityId]): List[EntityDto.Spaceship] =
     GameEngine(GameConfig(settings, players), emptyPipeline)
       .update(Nil, 0L)
+      .entities
       .collect { case ship: EntityDto.Spaceship => ship }
 
   "A GameEngine with several players" should "spawn one spaceship for each of them, with their own ids" in:
@@ -44,5 +45,8 @@ class MultiplayerGameEngineSpec extends AnyFlatSpec with Matchers:
   it should "remove the spaceship of a player who left, keeping the others" in:
     val players @ List(leaving, staying) = List.fill(2)(EntityId.generate()): @unchecked
     val engine = GameEngine(GameConfig(settings, players), emptyPipeline)
-    val ids = engine.update(List(LeaveCommand(leaving)), 0L).collect { case ship: EntityDto.Spaceship => ship.id }
+    val ids = engine
+      .update(List(LeaveCommand(leaving)), 0L)
+      .entities
+      .collect { case ship: EntityDto.Spaceship => ship.id }
     ids shouldBe List(staying)
