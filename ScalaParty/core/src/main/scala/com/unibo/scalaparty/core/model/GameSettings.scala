@@ -1,5 +1,7 @@
 package com.unibo.scalaparty.core.model
 
+import scala.concurrent.duration.DurationInt
+
 import com.unibo.scalaparty.core.model.map.GameMap
 
 /** Configuration settings for spaceship dynamics.
@@ -66,14 +68,16 @@ final case class PowerUpSettings(
   require(pickupRadius > 0.0, "Pickup radius must be positive")
 
 object PowerUpSettings:
-  private val boostDuration = 8_000L
+  import PowerUpDsl.*
+
+  private val boostDuration = 8.seconds
 
   /** The power-ups available by default. */
   val defaultCatalog: List[PowerUp] = List(
-    PowerUp("rapid-fire", Effect.Boost(StatModifier(Stat.ShootCooldown, 0.5), boostDuration)),
-    PowerUp("damage", Effect.Boost(StatModifier(Stat.BulletPower, 2.0), boostDuration)),
-    PowerUp("shield", Effect.Boost(StatModifier(Stat.DamageTaken, 0.25), boostDuration)),
-    PowerUp("repair", Effect.Repair(30.0))
+    powerUp("rapid-fire") lasting boostDuration scaling ShootCooldown by 0.5,
+    powerUp("damage") lasting boostDuration scaling BulletPower by 2.0,
+    powerUp("shield") lasting boostDuration scaling DamageTaken by 0.25,
+    powerUp("repair") healing 30
   )
 
 /** Unified configuration grouping all arena, entity, and gameplay mechanics parameters.
