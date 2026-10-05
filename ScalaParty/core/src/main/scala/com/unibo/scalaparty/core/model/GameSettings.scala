@@ -52,11 +52,14 @@ final case class MatchSettings(
  *  @param catalog      the power-ups that can appear on a spot, each with the same probability
  *  @param respawnDelay the time before a new power-up appears on a spot once picked up, in milliseconds
  *  @param pickupRadius the distance from a spot within which a spaceship picks up its power-up
+ *  @param seed         the seed drawing the power-ups of the match: the same seed always yields the same power-ups,
+ *                      so it should be chosen at random outside the core to make every match different
  */
 final case class PowerUpSettings(
     catalog: List[PowerUp] = PowerUpSettings.defaultCatalog,
     respawnDelay: Long = 10_000L,
-    pickupRadius: Double = 25.0
+    pickupRadius: Double = 25.0,
+    seed: Long = 0L
 ):
   require(catalog.nonEmpty, "Power-up catalog cannot be empty")
   require(respawnDelay > 0L, "Respawn delay must be positive")
