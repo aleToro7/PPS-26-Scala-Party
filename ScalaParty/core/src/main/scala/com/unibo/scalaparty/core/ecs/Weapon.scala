@@ -8,7 +8,7 @@ import com.unibo.scalaparty.core.model.ShootingSettings
  *  @param shootCooldown the delay in milliseconds before the next shot
  *  @param muzzleOffset  the distance from the shooter's center at which bullets are spawned
  */
-final case class Weapon( // enum o trait extended by multiple case class in the eventuality of powerup implementation
+final case class Weapon(
     bulletPower: Double,
     bulletSpeed: Double,
     shootCooldown: Long,
@@ -18,6 +18,17 @@ final case class Weapon( // enum o trait extended by multiple case class in the 
   require(bulletSpeed > 0.0, "Bullet speed must be positive")
   require(shootCooldown >= 0L, "Shoot cooldown cannot be negative")
   require(muzzleOffset >= 0.0, "Muzzle offset cannot be negative")
+
+  /** Applies the given power-up effects to this weapon.
+   *
+   *  @param effects the effects in action on the entity holding the weapon
+   *  @return a new weapon whose cooldown and bullet power are scaled by the effects
+   */
+  def boostedBy(effects: ActiveEffectsComponent): Weapon =
+    copy(
+      shootCooldown = math.round(shootCooldown * effects.factorOf(Stat.ShootCooldown)),
+      bulletPower = bulletPower * effects.factorOf(Stat.BulletPower)
+    )
 
 object Weapon:
 

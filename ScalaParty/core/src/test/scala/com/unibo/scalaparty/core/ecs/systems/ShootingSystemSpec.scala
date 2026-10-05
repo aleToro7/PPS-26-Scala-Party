@@ -127,3 +127,20 @@ class ShootingSystemSpec extends AnyFlatSpec with Matchers with OptionValues:
 
     val bulletMovement = bulletComponents.collectFirst { case mc: MovementComponent => mc }.value
     bulletMovement.velocity shouldBe Vector2D(weapon.bulletSpeed, 0.0)
+
+  it should "fire with the weapon boosted by the effects in action on the shooter" in:
+    val weapon = weaponWith(shootCooldown = 500L, bulletPower = 10.0)
+    val effects = ActiveEffectsComponent(
+      List(
+        ActiveEffect(StatModifier(Stat.ShootCooldown, 0.5), 5_000L),
+        ActiveEffect(StatModifier(Stat.BulletPower, 2.0), 5_000L)
+      )
+    )
+    val world = worldWith(ShootingComponent(weapon, isShooting = true), effects, positionComponent, movementComponent)
+
+    val (updatedWorld, _) = updateWorld(world)
+
+    val (_, bulletComponents) = updatedWorld.findEntitiesWithComponent[BulletComponent].head
+    bulletComponents.collectFirst { case bc: BulletComponent => bc.power }.value shouldBe 20.0
+    updatedWorld.shootingComponent.cooldownTimer shouldBe 250L
+    updatedWorld.shootingComponent.weapon shouldBe weapon

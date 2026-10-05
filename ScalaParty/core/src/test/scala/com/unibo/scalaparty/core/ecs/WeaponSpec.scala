@@ -88,3 +88,23 @@ class WeaponSpec extends AnyFlatSpec with Matchers:
     buffed.bulletSpeed shouldBe 200.0
     buffed.bulletPower shouldBe base.bulletPower
     buffed.shootCooldown shouldBe base.shootCooldown
+
+  it should "stay the same when boosted by no effects" in:
+    Weapon.default.boostedBy(ActiveEffectsComponent()) shouldBe Weapon.default
+
+  it should "scale its cooldown and bullet power when boosted" in:
+    val base =
+      Weapon(bulletPower = validPower, bulletSpeed = validSpeed, shootCooldown = 500L, muzzleOffset = validOffset)
+    val effects = ActiveEffectsComponent(
+      List(
+        ActiveEffect(StatModifier(Stat.ShootCooldown, 0.5), 1000L),
+        ActiveEffect(StatModifier(Stat.BulletPower, 2.0), 1000L)
+      )
+    )
+
+    base.boostedBy(effects) shouldBe base.copy(shootCooldown = 250L, bulletPower = 2 * validPower)
+
+  it should "ignore the effects on stats other than its own" in:
+    val effects = ActiveEffectsComponent(List(ActiveEffect(StatModifier(Stat.Speed, 1.5), 1000L)))
+
+    Weapon.default.boostedBy(effects) shouldBe Weapon.default

@@ -8,6 +8,7 @@ import com.unibo.scalaparty.core.utils.collectFirstOfClass
  *
  *  A shoot intent is consumed on every update: if the weapon is ready a bullet is spawned in front of the shooter,
  *  otherwise the intent is discarded, so shots requested during the cooldown are ignored.
+ *  The weapon is boosted by the power-up effects in action on the shooter, if any.
  */
 object ShootingSystem extends WorldSystem:
 
@@ -25,8 +26,8 @@ object ShootingSystem extends WorldSystem:
 
     private def isReady(dt: Long): Boolean = component.cooldownTimer - dt <= 0
 
-    private def reloaded: ShootingComponent =
-      component.copy(isShooting = false, cooldownTimer = component.weapon.shootCooldown)
+    private def reloaded(weapon: Weapon): ShootingComponent =
+      component.copy(isShooting = false, cooldownTimer = weapon.shootCooldown)
 
     private def cooledDown(dt: Long): ShootingComponent =
       component.copy(isShooting = false, cooldownTimer = Math.max(0, component.cooldownTimer - dt))
@@ -39,14 +40,18 @@ object ShootingSystem extends WorldSystem:
         shooting: ShootingComponent,
         dt: Long
     ): GameWorld =
+      val weapon = boosted(shooting.weapon, components)
       val bullet =
-        if shooting.isShooting && shooting.isReady(dt) then bulletFor(entityId, components, shooting.weapon)
+        if shooting.isShooting && shooting.isReady(dt) then bulletFor(entityId, components, weapon)
         else None
       bullet match
-        case Some(b) => (world + b).updateComponent(entityId, shooting.reloaded)
+        case Some(b) => (world + b).updateComponent(entityId, shooting.reloaded(weapon))
         case None =>
           val cooled = shooting.cooledDown(dt)
           if cooled == shooting then world else world.updateComponent(entityId, cooled)
+
+  private def boosted(weapon: Weapon, components: List[Component]): Weapon =
+    components.collectFirstOfClass[ActiveEffectsComponent].fold(weapon)(weapon.boostedBy)
 
   private def bulletFor(
       shooterId: EntityId,
