@@ -63,3 +63,19 @@ class GameSettingsSpec extends AnyWordSpec with Matchers:
     "reject a non-positive time limit" in:
       List(0L, -1L).foreach: invalid =>
         an[IllegalArgumentException] should be thrownBy MatchSettings(timeLimit = invalid)
+
+  "PowerUpSettings" should:
+
+    "be part of the default game settings" in:
+      GameSettings.default.powerUps shouldBe PowerUpSettings()
+
+    "reject an empty catalog" in:
+      an[IllegalArgumentException] should be thrownBy PowerUpSettings(catalog = Nil)
+
+    "reject a non-positive respawn delay" in:
+      List(0L, -1L).foreach: invalid =>
+        an[IllegalArgumentException] should be thrownBy PowerUpSettings(respawnDelay = invalid)
+
+    "reject a non-positive pickup radius" in:
+      nonPositiveDoubles.foreach: invalid =>
+        an[IllegalArgumentException] should be thrownBy PowerUpSettings(pickupRadius = invalid)
