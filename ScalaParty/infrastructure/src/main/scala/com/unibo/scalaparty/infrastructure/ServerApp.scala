@@ -49,8 +49,7 @@ object ServerApp extends IOApp.Simple:
       _        <- IO.println("Initializing services...")
       registry <- ConnectionRegistry()
       lobby    <- QueuedLobbyManager.of[IO](
-        minPlayers = playersPerMatch,
-        maxPlayers = playersPerMatch,
+        playersPerMatch = playersPerMatch,
         maxMatches = maxConcurrentMatches,
         maxQueued = maxQueuedPlayers
       )

@@ -17,13 +17,13 @@ class QueuedLobbyManagerSpec extends AsyncWordSpec with AsyncIOSpec with Matcher
   "a freshly created QueuedLobbyManager".should:
     "have no match being played".in:
       for
-        lobby   <- QueuedLobbyManager.of[IO]()
+        lobby   <- QueuedLobbyManager.of[IO](playersPerMatch = 1, maxMatches = 1, maxQueued = Int.MaxValue)
         matches <- lobby.activeMatches
       yield matches shouldBe empty
 
     "have nobody waiting".in:
       for
-        lobby   <- QueuedLobbyManager.of[IO]()
+        lobby   <- QueuedLobbyManager.of[IO](playersPerMatch = 1, maxMatches = 1, maxQueued = Int.MaxValue)
         waiting <- lobby.waitingPlayers
       yield waiting shouldBe empty
 
@@ -31,7 +31,7 @@ class QueuedLobbyManagerSpec extends AsyncWordSpec with AsyncIOSpec with Matcher
     "start a match right away for the first player".in:
       val playerId = PlayerId.random()
       for
-        lobby   <- QueuedLobbyManager.of[IO]()
+        lobby   <- QueuedLobbyManager.of[IO](playersPerMatch = 1, maxMatches = 1, maxQueued = Int.MaxValue)
         outcome <- lobby.join(playerId)
       yield outcome match
         case JoinOutcome.Playing(activeMatch) => activeMatch.players shouldBe Set(playerId)
@@ -42,7 +42,7 @@ class QueuedLobbyManagerSpec extends AsyncWordSpec with AsyncIOSpec with Matcher
       val second = PlayerId.random()
       val third = PlayerId.random()
       for
-        lobby       <- QueuedLobbyManager.of[IO]()
+        lobby       <- QueuedLobbyManager.of[IO](playersPerMatch = 1, maxMatches = 1, maxQueued = Int.MaxValue)
         _           <- lobby.join(first)
         secondJoins <- lobby.join(second)
         thirdJoins  <- lobby.join(third)
@@ -56,7 +56,7 @@ class QueuedLobbyManagerSpec extends AsyncWordSpec with AsyncIOSpec with Matcher
       val playing = PlayerId.random()
       val waitingPlayer = PlayerId.random()
       for
-        lobby   <- QueuedLobbyManager.of[IO]()
+        lobby   <- QueuedLobbyManager.of[IO](playersPerMatch = 1, maxMatches = 1, maxQueued = Int.MaxValue)
         _       <- lobby.join(playing)
         _       <- lobby.join(waitingPlayer)
         _       <- lobby.join(waitingPlayer)
@@ -66,16 +66,16 @@ class QueuedLobbyManagerSpec extends AsyncWordSpec with AsyncIOSpec with Matcher
     "keep reporting a player already in the match as playing".in:
       val playerId = PlayerId.random()
       for
-        lobby     <- QueuedLobbyManager.of[IO]()
+        lobby     <- QueuedLobbyManager.of[IO](playersPerMatch = 1, maxMatches = 1, maxQueued = Int.MaxValue)
         firstJoin <- lobby.join(playerId)
         joinAgain <- lobby.join(playerId)
       yield joinAgain shouldBe firstJoin
 
-    "hold the first players back until the minimum is reached".in:
+    "hold the first players back until a whole group is waiting".in:
       val first = PlayerId.random()
       val second = PlayerId.random()
       for
-        lobby       <- QueuedLobbyManager.of[IO](minPlayers = 2)
+        lobby       <- QueuedLobbyManager.of[IO](playersPerMatch = 2, maxMatches = 1, maxQueued = Int.MaxValue)
         firstJoins  <- lobby.join(first)
         secondJoins <- lobby.join(second)
         matches     <- lobby.activeMatches
@@ -88,7 +88,7 @@ class QueuedLobbyManagerSpec extends AsyncWordSpec with AsyncIOSpec with Matcher
       val first = PlayerId.random()
       val second = PlayerId.random()
       for
-        lobby       <- QueuedLobbyManager.of[IO](maxPlayers = 1, maxMatches = 2)
+        lobby       <- QueuedLobbyManager.of[IO](playersPerMatch = 1, maxMatches = 2, maxQueued = Int.MaxValue)
         firstJoins  <- lobby.join(first)
         secondJoins <- lobby.join(second)
         matches     <- lobby.activeMatches
@@ -99,7 +99,7 @@ class QueuedLobbyManagerSpec extends AsyncWordSpec with AsyncIOSpec with Matcher
     "queue the players arriving once every room is taken".in:
       val players = List.fill(3)(PlayerId.random())
       for
-        lobby    <- QueuedLobbyManager.of[IO](maxPlayers = 1, maxMatches = 2)
+        lobby    <- QueuedLobbyManager.of[IO](playersPerMatch = 1, maxMatches = 2, maxQueued = Int.MaxValue)
         outcomes <- players.traverse(lobby.join)
         waiting  <- lobby.waitingPlayers
       yield
@@ -110,7 +110,7 @@ class QueuedLobbyManagerSpec extends AsyncWordSpec with AsyncIOSpec with Matcher
     "turn a player away once the queue is full".in:
       val players = List.fill(3)(PlayerId.random())
       for
-        lobby    <- QueuedLobbyManager.of[IO](maxPlayers = 1, maxQueued = 1)
+        lobby    <- QueuedLobbyManager.of[IO](playersPerMatch = 1, maxMatches = 1, maxQueued = 1)
         outcomes <- players.traverse(lobby.join)
         waiting  <- lobby.waitingPlayers
       yield
@@ -121,7 +121,7 @@ class QueuedLobbyManagerSpec extends AsyncWordSpec with AsyncIOSpec with Matcher
       val playing = PlayerId.random()
       val latecomer = PlayerId.random()
       for
-        lobby   <- QueuedLobbyManager.of[IO](maxPlayers = 1, maxQueued = 0)
+        lobby   <- QueuedLobbyManager.of[IO](playersPerMatch = 1, maxMatches = 1, maxQueued = 0)
         _       <- lobby.join(playing)
         outcome <- lobby.join(latecomer)
         matches <- lobby.activeMatches
@@ -133,7 +133,7 @@ class QueuedLobbyManagerSpec extends AsyncWordSpec with AsyncIOSpec with Matcher
       val first = PlayerId.random()
       val second = PlayerId.random()
       for
-        lobby   <- QueuedLobbyManager.of[IO](minPlayers = 2, maxPlayers = 2, maxQueued = 1)
+        lobby   <- QueuedLobbyManager.of[IO](playersPerMatch = 2, maxMatches = 1, maxQueued = 1)
         _       <- lobby.join(first)
         outcome <- lobby.join(second)
       yield outcome match
@@ -144,7 +144,7 @@ class QueuedLobbyManagerSpec extends AsyncWordSpec with AsyncIOSpec with Matcher
       val playing = PlayerId.random()
       val waitingPlayer = PlayerId.random()
       for
-        lobby     <- QueuedLobbyManager.of[IO](maxPlayers = 1, maxQueued = 1)
+        lobby     <- QueuedLobbyManager.of[IO](playersPerMatch = 1, maxMatches = 1, maxQueued = 1)
         _         <- lobby.join(playing)
         _         <- lobby.join(waitingPlayer)
         joinAgain <- lobby.join(waitingPlayer)
@@ -155,7 +155,7 @@ class QueuedLobbyManagerSpec extends AsyncWordSpec with AsyncIOSpec with Matcher
       val giveUp = PlayerId.random()
       val latecomer = PlayerId.random()
       for
-        lobby   <- QueuedLobbyManager.of[IO](maxPlayers = 1, maxQueued = 1)
+        lobby   <- QueuedLobbyManager.of[IO](playersPerMatch = 1, maxMatches = 1, maxQueued = 1)
         _       <- lobby.join(playing)
         _       <- lobby.join(giveUp)
         _       <- lobby.leave(giveUp)
@@ -164,35 +164,35 @@ class QueuedLobbyManagerSpec extends AsyncWordSpec with AsyncIOSpec with Matcher
 
   "finishMatch".should:
     "hand the arena to the players left waiting".in:
-      val playing = PlayerId.random()
-      val queued = List.fill(3)(PlayerId.random())
+      val playing = List.fill(2)(PlayerId.random())
+      val queued = List.fill(2)(PlayerId.random())
       for
-        lobby   <- QueuedLobbyManager.of[IO]()
-        outcome <- lobby.join(playing)
+        lobby   <- QueuedLobbyManager.of[IO](playersPerMatch = 2, maxMatches = 1, maxQueued = Int.MaxValue)
+        joins   <- playing.traverse(lobby.join)
         _       <- queued.traverse(lobby.join)
-        started <- lobby.finishMatch(matchIdOf(outcome))
+        started <- lobby.finishMatch(matchIdOf(joins.last))
         waiting <- lobby.waitingPlayers
       yield
         started.map(_.players) shouldBe Some(queued.toSet)
         waiting shouldBe empty
 
-    "take no more players than a match can host".in:
-      val playing = PlayerId.random()
-      val queued = List.fill(QueuedLobbyManager.maxPlayersPerMatch + 2)(PlayerId.random())
+    "take no more players than a match is played by".in:
+      val playing = List.fill(2)(PlayerId.random())
+      val queued = List.fill(3)(PlayerId.random())
       for
-        lobby   <- QueuedLobbyManager.of[IO]()
-        outcome <- lobby.join(playing)
+        lobby   <- QueuedLobbyManager.of[IO](playersPerMatch = 2, maxMatches = 1, maxQueued = Int.MaxValue)
+        joins   <- playing.traverse(lobby.join)
         _       <- queued.traverse(lobby.join)
-        started <- lobby.finishMatch(matchIdOf(outcome))
+        started <- lobby.finishMatch(matchIdOf(joins.last))
         waiting <- lobby.waitingPlayers
       yield
-        started.map(_.players) shouldBe Some(queued.take(QueuedLobbyManager.maxPlayersPerMatch).toSet)
-        waiting shouldBe queued.drop(QueuedLobbyManager.maxPlayersPerMatch).toVector
+        started.map(_.players) shouldBe Some(queued.take(2).toSet)
+        waiting shouldBe queued.drop(2).toVector
 
     "leave the arena free when nobody is waiting".in:
       val playerId = PlayerId.random()
       for
-        lobby   <- QueuedLobbyManager.of[IO]()
+        lobby   <- QueuedLobbyManager.of[IO](playersPerMatch = 1, maxMatches = 1, maxQueued = Int.MaxValue)
         outcome <- lobby.join(playerId)
         started <- lobby.finishMatch(matchIdOf(outcome))
         matches <- lobby.activeMatches
@@ -200,12 +200,12 @@ class QueuedLobbyManagerSpec extends AsyncWordSpec with AsyncIOSpec with Matcher
         started shouldBe None
         matches shouldBe empty
 
-    "wait for the minimum number of players before starting the next match".in:
+    "wait for a whole group before starting the next match".in:
       val first = PlayerId.random()
       val second = PlayerId.random()
       val latecomer = PlayerId.random()
       for
-        lobby   <- QueuedLobbyManager.of[IO](minPlayers = 2)
+        lobby   <- QueuedLobbyManager.of[IO](playersPerMatch = 2, maxMatches = 1, maxQueued = Int.MaxValue)
         _       <- lobby.join(first)
         outcome <- lobby.join(second)
         _       <- lobby.join(latecomer)
@@ -218,7 +218,7 @@ class QueuedLobbyManagerSpec extends AsyncWordSpec with AsyncIOSpec with Matcher
     "be a no-op for a match that is not being played".in:
       val playerId = PlayerId.random()
       for
-        lobby   <- QueuedLobbyManager.of[IO]()
+        lobby   <- QueuedLobbyManager.of[IO](playersPerMatch = 1, maxMatches = 1, maxQueued = Int.MaxValue)
         outcome <- lobby.join(playerId)
         started <- lobby.finishMatch(MatchId.random())
         matches <- lobby.activeMatches
@@ -231,7 +231,7 @@ class QueuedLobbyManagerSpec extends AsyncWordSpec with AsyncIOSpec with Matcher
       val second = PlayerId.random()
       val waiting = PlayerId.random()
       for
-        lobby       <- QueuedLobbyManager.of[IO](maxPlayers = 1, maxMatches = 2)
+        lobby       <- QueuedLobbyManager.of[IO](playersPerMatch = 1, maxMatches = 2, maxQueued = Int.MaxValue)
         firstJoins  <- lobby.join(first)
         secondJoins <- lobby.join(second)
         _           <- lobby.join(waiting)
@@ -246,7 +246,7 @@ class QueuedLobbyManagerSpec extends AsyncWordSpec with AsyncIOSpec with Matcher
     "report the players taking part in a match".in:
       val players = List.fill(2)(PlayerId.random())
       for
-        lobby   <- QueuedLobbyManager.of[IO](minPlayers = 2, maxPlayers = 2)
+        lobby   <- QueuedLobbyManager.of[IO](playersPerMatch = 2, maxMatches = 1, maxQueued = Int.MaxValue)
         joins   <- players.traverse(lobby.join)
         playing <- lobby.playersOf(matchIdOf(joins.last))
       yield playing shouldBe players.toSet
@@ -254,7 +254,7 @@ class QueuedLobbyManagerSpec extends AsyncWordSpec with AsyncIOSpec with Matcher
     "stop reporting a player who left the match".in:
       val players @ List(quitting, staying) = List.fill(2)(PlayerId.random()): @unchecked
       for
-        lobby   <- QueuedLobbyManager.of[IO](minPlayers = 2, maxPlayers = 2)
+        lobby   <- QueuedLobbyManager.of[IO](playersPerMatch = 2, maxMatches = 1, maxQueued = Int.MaxValue)
         joins   <- players.traverse(lobby.join)
         _       <- lobby.leave(quitting)
         playing <- lobby.playersOf(matchIdOf(joins.last))
@@ -262,7 +262,7 @@ class QueuedLobbyManagerSpec extends AsyncWordSpec with AsyncIOSpec with Matcher
 
     "report nobody for a match that is not being played".in:
       for
-        lobby   <- QueuedLobbyManager.of[IO]()
+        lobby   <- QueuedLobbyManager.of[IO](playersPerMatch = 1, maxMatches = 1, maxQueued = Int.MaxValue)
         playing <- lobby.playersOf(MatchId.random())
       yield playing shouldBe empty
 
@@ -272,7 +272,7 @@ class QueuedLobbyManagerSpec extends AsyncWordSpec with AsyncIOSpec with Matcher
       val second = PlayerId.random()
       val third = PlayerId.random()
       for
-        lobby   <- QueuedLobbyManager.of[IO]()
+        lobby   <- QueuedLobbyManager.of[IO](playersPerMatch = 1, maxMatches = 1, maxQueued = Int.MaxValue)
         _       <- lobby.join(playing)
         _       <- lobby.join(second)
         _       <- lobby.join(third)
@@ -287,7 +287,7 @@ class QueuedLobbyManagerSpec extends AsyncWordSpec with AsyncIOSpec with Matcher
       val playing = PlayerId.random()
       val next = PlayerId.random()
       for
-        lobby   <- QueuedLobbyManager.of[IO]()
+        lobby   <- QueuedLobbyManager.of[IO](playersPerMatch = 1, maxMatches = 1, maxQueued = Int.MaxValue)
         joins   <- lobby.join(playing)
         _       <- lobby.join(next)
         outcome <- lobby.leave(playing)
@@ -300,7 +300,7 @@ class QueuedLobbyManagerSpec extends AsyncWordSpec with AsyncIOSpec with Matcher
     "disband the emptied match even when nobody is waiting to take the room".in:
       val playing = PlayerId.random()
       for
-        lobby   <- QueuedLobbyManager.of[IO]()
+        lobby   <- QueuedLobbyManager.of[IO](playersPerMatch = 1, maxMatches = 1, maxQueued = Int.MaxValue)
         joins   <- lobby.join(playing)
         outcome <- lobby.leave(playing)
         matches <- lobby.activeMatches
@@ -312,7 +312,7 @@ class QueuedLobbyManagerSpec extends AsyncWordSpec with AsyncIOSpec with Matcher
       val first = PlayerId.random()
       val second = PlayerId.random()
       for
-        lobby       <- QueuedLobbyManager.of[IO](maxPlayers = 1, maxMatches = 2)
+        lobby       <- QueuedLobbyManager.of[IO](playersPerMatch = 1, maxMatches = 2, maxQueued = Int.MaxValue)
         _           <- lobby.join(first)
         secondJoins <- lobby.join(second)
         _           <- lobby.leave(first)
@@ -323,7 +323,7 @@ class QueuedLobbyManagerSpec extends AsyncWordSpec with AsyncIOSpec with Matcher
       val first = PlayerId.random()
       val second = PlayerId.random()
       for
-        lobby   <- QueuedLobbyManager.of[IO](minPlayers = 2)
+        lobby   <- QueuedLobbyManager.of[IO](playersPerMatch = 2, maxMatches = 1, maxQueued = Int.MaxValue)
         _       <- lobby.join(first)
         _       <- lobby.join(second)
         outcome <- lobby.leave(first)
@@ -337,7 +337,7 @@ class QueuedLobbyManagerSpec extends AsyncWordSpec with AsyncIOSpec with Matcher
       val giveUp = PlayerId.random()
       val next = PlayerId.random()
       for
-        lobby   <- QueuedLobbyManager.of[IO]()
+        lobby   <- QueuedLobbyManager.of[IO](playersPerMatch = 1, maxMatches = 1, maxQueued = Int.MaxValue)
         outcome <- lobby.join(playing)
         _       <- lobby.join(giveUp)
         _       <- lobby.join(next)
@@ -348,7 +348,7 @@ class QueuedLobbyManagerSpec extends AsyncWordSpec with AsyncIOSpec with Matcher
     "be a no-op for a player nobody knows about".in:
       val playerId = PlayerId.random()
       for
-        lobby   <- QueuedLobbyManager.of[IO]()
+        lobby   <- QueuedLobbyManager.of[IO](playersPerMatch = 1, maxMatches = 1, maxQueued = Int.MaxValue)
         _       <- lobby.join(playerId)
         outcome <- lobby.leave(PlayerId.random())
         matches <- lobby.activeMatches
@@ -357,24 +357,16 @@ class QueuedLobbyManagerSpec extends AsyncWordSpec with AsyncIOSpec with Matcher
         matches.map(_.players) shouldBe Set(Set(playerId))
 
   "the match size".should:
-    "be rejected when the minimum exceeds the maximum".in:
-      for result <- QueuedLobbyManager.of[IO](minPlayers = 3, maxPlayers = 2).attempt
-      yield result.isLeft shouldBe true
-
     "be rejected when fewer than one player is required".in:
-      for result <- QueuedLobbyManager.of[IO](minPlayers = 0).attempt
-      yield result.isLeft shouldBe true
-
-    "be rejected when more players than a match can host are allowed".in:
-      for result <- QueuedLobbyManager.of[IO](maxPlayers = QueuedLobbyManager.maxPlayersPerMatch + 1).attempt
+      for result <- QueuedLobbyManager.of[IO](playersPerMatch = 0, maxMatches = 1, maxQueued = Int.MaxValue).attempt
       yield result.isLeft shouldBe true
 
   "the number of matches".should:
     "be rejected when no match is allowed to run".in:
-      for result <- QueuedLobbyManager.of[IO](maxMatches = 0).attempt
+      for result <- QueuedLobbyManager.of[IO](playersPerMatch = 1, maxMatches = 0, maxQueued = Int.MaxValue).attempt
       yield result.isLeft shouldBe true
 
   "the size of the queue".should:
     "be rejected when it cannot gather the players a match needs".in:
-      for result <- QueuedLobbyManager.of[IO](minPlayers = 3, maxQueued = 1).attempt
+      for result <- QueuedLobbyManager.of[IO](playersPerMatch = 3, maxMatches = 1, maxQueued = 1).attempt
       yield result.isLeft shouldBe true
