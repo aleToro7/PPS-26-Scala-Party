@@ -178,7 +178,7 @@ class QueuedLobbyManagerSpec extends AsyncWordSpec with AsyncIOSpec with Matcher
 
     "take no more players than a match can host".in:
       val playing = PlayerId.random()
-      val queued = List.fill(QueuedLobbyManager.MaxPlayersPerMatch + 2)(PlayerId.random())
+      val queued = List.fill(QueuedLobbyManager.maxPlayersPerMatch + 2)(PlayerId.random())
       for
         lobby   <- QueuedLobbyManager.of[IO]()
         outcome <- lobby.join(playing)
@@ -186,8 +186,8 @@ class QueuedLobbyManagerSpec extends AsyncWordSpec with AsyncIOSpec with Matcher
         started <- lobby.finishMatch(matchIdOf(outcome))
         waiting <- lobby.waitingPlayers
       yield
-        started.map(_.players) shouldBe Some(queued.take(QueuedLobbyManager.MaxPlayersPerMatch).toSet)
-        waiting shouldBe queued.drop(QueuedLobbyManager.MaxPlayersPerMatch).toVector
+        started.map(_.players) shouldBe Some(queued.take(QueuedLobbyManager.maxPlayersPerMatch).toSet)
+        waiting shouldBe queued.drop(QueuedLobbyManager.maxPlayersPerMatch).toVector
 
     "leave the arena free when nobody is waiting".in:
       val playerId = PlayerId.random()
@@ -366,7 +366,7 @@ class QueuedLobbyManagerSpec extends AsyncWordSpec with AsyncIOSpec with Matcher
       yield result.isLeft shouldBe true
 
     "be rejected when more players than a match can host are allowed".in:
-      for result <- QueuedLobbyManager.of[IO](maxPlayers = QueuedLobbyManager.MaxPlayersPerMatch + 1).attempt
+      for result <- QueuedLobbyManager.of[IO](maxPlayers = QueuedLobbyManager.maxPlayersPerMatch + 1).attempt
       yield result.isLeft shouldBe true
 
   "the number of matches".should:

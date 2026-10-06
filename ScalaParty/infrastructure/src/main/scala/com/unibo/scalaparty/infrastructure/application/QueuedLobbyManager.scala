@@ -129,10 +129,10 @@ final class QueuedLobbyManager[F[_]: Sync] private (
 
 object QueuedLobbyManager:
   /** The fewest players a match can be played with. */
-  val MinPlayersPerMatch: Int = 1
+  val minPlayersPerMatch: Int = 1
 
   /** The most players a match can host. */
-  val MaxPlayersPerMatch: Int = 4
+  val maxPlayersPerMatch: Int = 4
 
   /** Builds a manager serving matches of the given size in the given number of rooms.
    *
@@ -145,16 +145,16 @@ object QueuedLobbyManager:
    *  @param maxQueued  How many players can wait at the same time, unbounded unless given.
    */
   def of[F[_]: Sync](
-      minPlayers: Int = MinPlayersPerMatch,
-      maxPlayers: Int = MaxPlayersPerMatch,
+      minPlayers: Int = minPlayersPerMatch,
+      maxPlayers: Int = maxPlayersPerMatch,
       maxMatches: Int = 1,
       maxQueued: Int = Int.MaxValue
   ): F[QueuedLobbyManager[F]] =
-    val validSize = MinPlayersPerMatch <= minPlayers && minPlayers <= maxPlayers && maxPlayers <= MaxPlayersPerMatch
+    val validSize = minPlayersPerMatch <= minPlayers && minPlayers <= maxPlayers && maxPlayers <= maxPlayersPerMatch
     for
       _ <- Sync[F].raiseUnless(validSize)(
         IllegalArgumentException(
-          s"a match hosts from $MinPlayersPerMatch to $MaxPlayersPerMatch players, got $minPlayers to $maxPlayers"
+          s"a match hosts from $minPlayersPerMatch to $maxPlayersPerMatch players, got $minPlayers to $maxPlayers"
         )
       )
       _ <- Sync[F].raiseUnless(maxMatches >= 1)(

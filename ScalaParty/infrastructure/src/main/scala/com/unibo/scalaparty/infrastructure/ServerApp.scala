@@ -22,13 +22,13 @@ object ServerApp extends IOApp.Simple:
   private val gameRoute = "scalaparty"
 
   /** How many players a match is played by: a match begins as soon as that many are waiting. */
-  private val PlayersPerMatch = 2
+  private val playersPerMatch = 2
 
   /** How many matches the server plays at the same time; whoever arrives beyond them waits in the queue. */
-  private val MaxConcurrentMatches = 2
+  private val maxConcurrentMatches = 2
 
   /** How many players can wait for a free room at the same time; whoever arrives beyond them is turned away. */
-  private val MaxQueuedPlayers = PlayersPerMatch
+  private val maxQueuedPlayers = playersPerMatch
 
   private val baseRoute: HttpRoutes[IO] = HttpRoutes.of[IO]:
     case request @ GET -> Root / `gameRoute` =>
@@ -49,10 +49,10 @@ object ServerApp extends IOApp.Simple:
       _        <- IO.println("Initializing services...")
       registry <- ConnectionRegistry()
       lobby    <- QueuedLobbyManager.of[IO](
-        minPlayers = PlayersPerMatch,
-        maxPlayers = PlayersPerMatch,
-        maxMatches = MaxConcurrentMatches,
-        maxQueued = MaxQueuedPlayers
+        minPlayers = playersPerMatch,
+        maxPlayers = playersPerMatch,
+        maxMatches = maxConcurrentMatches,
+        maxQueued = maxQueuedPlayers
       )
       commandService <- GameCommandService()
 

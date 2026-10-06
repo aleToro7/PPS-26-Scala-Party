@@ -86,7 +86,7 @@ class ServerIntegrationSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers
         frames.collect { case WebSocketFrame.Text(text, _) => text } shouldBe List("""{"QueueFull":{}}""")
         session shouldBe None
         frames.last match
-          case close: WebSocketFrame.Close => close.closeCode shouldBe WebSocketServer.TryAgainLater
+          case close: WebSocketFrame.Close => close.closeCode shouldBe WebSocketServer.tryAgainLater
           case other => fail(s"expected the connection to be closed, got $other")
     }
 
