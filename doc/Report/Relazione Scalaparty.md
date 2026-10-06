@@ -1,0 +1,10 @@
+
+![[Processo di Sviluppo]]
+![[Analisi dei Requisiti]]
+![[Design Architetturale]]
+![[Design di dettaglio]]
+![[Implementazione - Diotallevi]]
+![[Implementazione - Martini]]
+![[Implementazione - Torelli]]
+![[Testing]]
+![[Retrospettiva]]
