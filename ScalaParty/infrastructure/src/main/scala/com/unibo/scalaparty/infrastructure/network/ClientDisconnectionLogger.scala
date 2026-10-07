@@ -35,7 +35,7 @@ class ClientDisconnectionLogger(underlying: Logger[IO]) extends Logger[IO]:
 object ClientDisconnectionLogger:
 
   /** What the JVM reports when the other end of a socket has gone, depending on the platform. */
-  private val DisconnectionMessages = Set("Connection reset", "Connection reset by peer", "Broken pipe")
+  private val disconnectionMessages = Set("Connection reset", "Connection reset by peer", "Broken pipe")
 
   /** Tells whether an error only means that the client has dropped its connection.
    *
@@ -43,7 +43,7 @@ object ClientDisconnectionLogger:
    *  @return true if the error comes from the client going away, false otherwise
    */
   def isClientDisconnection(error: Throwable): Boolean = error match
-    case e: IOException => DisconnectionMessages.contains(e.getMessage)
+    case e: IOException => disconnectionMessages.contains(e.getMessage)
     // Reading from and writing to the socket may both fail when the client goes, reported together.
     case failure: CompositeFailure => failure.all.forall(isClientDisconnection)
     case _ => false

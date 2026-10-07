@@ -4,7 +4,7 @@ import com.unibo.scalaparty.core.ecs.{components, EntityId, EntityTypeComponent,
 import com.unibo.scalaparty.core.ecs.EntityType.Wall
 import com.unibo.scalaparty.core.geometry.Vector2D
 import com.unibo.scalaparty.core.model.GameSettings
-import com.unibo.scalaparty.core.model.map.Dsl.{S, W, *}
+import com.unibo.scalaparty.core.model.map.Dsl.*
 import com.unibo.scalaparty.core.utils.collectFirstOfClass
 import org.scalatest.OptionValues.convertOptionToValuable
 import org.scalatest.flatspec.AnyFlatSpec
@@ -21,7 +21,7 @@ class GameMapSpec extends AnyFlatSpec with Matchers:
   private val numOfSpawn = 4
 
   "A GameMap" should "should be able to build a GameWorld" in:
-    val players = (1 to numOfSpawn).map(EntityId.fromLong(_))
+    val players = List.fill(numOfSpawn)(EntityId.generate())
     val world = map.buildWorld(GameSettings.default)(players)
     world.entities should have size players.size + numOfWalls
 
@@ -30,7 +30,7 @@ class GameMapSpec extends AnyFlatSpec with Matchers:
       S | / | / | / | / | S,
       W | W | W | W | W | W,
     )
-    val players = (1 to 4).map(EntityId.fromLong(_))
+    val players = List.fill(numOfSpawn)(EntityId.generate())
     an[IllegalArgumentException] should be thrownBy:
       map.buildWorld(GameSettings.default)(players)
 
@@ -40,7 +40,7 @@ class GameMapSpec extends AnyFlatSpec with Matchers:
     world.entities should have size players.size + numOfWalls
 
   it should "create the correct number of walls" in:
-    val players = (1 to numOfSpawn).map(EntityId.fromLong(_))
+    val players = List.fill(numOfSpawn)(EntityId.generate())
     val world = map.buildWorld(GameSettings.default)(players)
     val wallCount = world.entitiesWithComponents.flatMap(
       _.components.collectFirstOfClass[EntityTypeComponent]

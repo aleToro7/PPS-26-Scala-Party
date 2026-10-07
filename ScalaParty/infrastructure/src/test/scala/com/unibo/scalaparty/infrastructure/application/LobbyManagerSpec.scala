@@ -47,7 +47,7 @@ class LobbyManagerSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
         players shouldBe Set(playerOne, playerTwo)
 
     "stop being pending once it reaches the max number of players".in:
-      val players = List.fill(LobbyManager.MaxPlayersPerMatch)(PlayerId.random())
+      val players = List.fill(LobbyManager.maxPlayersPerMatch)(PlayerId.random())
       for
         lobby    <- LobbyManager.of[IO]
         matchIds <- players.traverse(lobby.joinLobby)
@@ -59,7 +59,7 @@ class LobbyManagerSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
         pending shouldBe None
 
     "open a new match once the pending one is full".in:
-      val firstBatch = List.fill(LobbyManager.MaxPlayersPerMatch)(PlayerId.random())
+      val firstBatch = List.fill(LobbyManager.maxPlayersPerMatch)(PlayerId.random())
       val extraPlayer = PlayerId.random()
       for
         lobby        <- LobbyManager.of[IO]
@@ -122,7 +122,7 @@ class LobbyManagerSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
       yield status shouldBe Some(MatchStatus.Waiting)
 
     "move the match to Running once it reaches the max number of players".in:
-      val players = List.fill(LobbyManager.MaxPlayersPerMatch)(PlayerId.random())
+      val players = List.fill(LobbyManager.maxPlayersPerMatch)(PlayerId.random())
       for
         lobby    <- LobbyManager.of[IO]
         matchIds <- players.traverse(lobby.joinLobby)
