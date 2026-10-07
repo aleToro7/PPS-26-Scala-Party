@@ -1,8 +1,10 @@
 package com.unibo.scalaparty.infrastructure.application
 
+import scala.concurrent.duration.*
+
+import cats.effect.{Deferred, IO, Ref}
 import cats.effect.std.Queue
 import cats.effect.testing.scalatest.AsyncIOSpec
-import cats.effect.{Deferred, IO, Ref}
 import cats.syntax.all.*
 import com.unibo.scalaparty.core.dto.EntityDto
 import com.unibo.scalaparty.core.ecs.EntityId
@@ -13,8 +15,6 @@ import com.unibo.scalaparty.infrastructure.ports.{MatchEventPublisher, PlayerNot
 import org.http4s.websocket.WebSocketFrame
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
-
-import scala.concurrent.duration.*
 
 class MatchCoordinatorSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
 
