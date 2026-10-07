@@ -12,13 +12,16 @@ This game is developed as a simple academic project for the _Paradigmi di Progra
 
 ## 🎮 How to Play (Current Status)
 
-We are currently at the end of **Sprint 3**, meaning that we are still warming up the engines!
+The game is being released for the academic course, so it is still in development but it is already playable!
+Currently it is possible to play the game in a local network with multiple players, and enjoy the basic features of the game.
+You'll have no powerups, and will need to touch our code to configure the game to your liking, but it is already a fun experience!
+Upcoming features will include powerups and a way to easily configure the game without touching the code.
 
 To peek into the current state of the game, you can follow these steps:
 
-1. Download the [latest release](https://github.com/aleToro7/PPS-26-Scala-Party/releases)
-2. Download the latest [jar file](scalaparty.jar) from the releases page.
-3. Run the [jar file](scalaparty.jar) using:
+1. Go to the [release page](https://github.com/aleToro7/PPS-26-Scala-Party/releases)
+2. Download the latest jar file from the releases page.
+3. Run the jar file using:
    ```bash
    $ scala -jar scalaparty.jar
    ```
@@ -29,12 +32,7 @@ To peek into the current state of the game, you can follow these steps:
 4. Open your browser and navigate to [http://localhost:8081](http://localhost:8081) to verify the server is up and running. You should see a simple message saying that ScalaParty server is up and running.
 5. Head over to [http://localhost:8081/scalaparty](http://localhost:8081/scalaparty) to connect to the game.
 
-> [!NOTE]
-> At this current version, you will be able to play the game **only in single-player mode**.
-> The game is fully playable, but unfortunately you have no one to compete against yet :((
-> Multiplayer functionality will be hooked up in the upcoming (last) sprint!!
-
-![ScalaParty Demo](./doc/img/demo.png)
+![ScalaParty Demo](./doc/img/demo.gif)
 
 ## Authors
 
