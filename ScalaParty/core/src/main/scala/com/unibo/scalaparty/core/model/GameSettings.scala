@@ -43,7 +43,7 @@ final case class ShootingSettings(
  *  @param timeLimit the longest a match can last, in milliseconds of simulated time
  */
 final case class MatchSettings(
-    timeLimit: Long = 60_000L
+    timeLimit: Long = 180_000L
 ):
   require(timeLimit > 0L, "Time limit must be positive")
 
