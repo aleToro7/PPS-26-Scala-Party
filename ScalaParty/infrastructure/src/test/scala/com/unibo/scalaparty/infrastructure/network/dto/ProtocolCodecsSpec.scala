@@ -3,8 +3,9 @@ package com.unibo.scalaparty.infrastructure.network.dto
 import com.unibo.scalaparty.core.dto.EntityDto
 import com.unibo.scalaparty.core.ecs.EntityId
 import com.unibo.scalaparty.core.geometry.{Point2D, Vector2D}
-import com.unibo.scalaparty.core.geometry.Shape.AABB
-import com.unibo.scalaparty.core.model.MatchState
+import com.unibo.scalaparty.core.geometry.Shape.{AABB, Circle}
+import com.unibo.scalaparty.core.model.{MatchOutcome, MatchState}
+import com.unibo.scalaparty.infrastructure.model.ServerMessage
 import com.unibo.scalaparty.infrastructure.network.dto.ProtocolCodecs.given
 import io.circe.syntax.*
 import org.scalatest.matchers.should.Matchers
@@ -48,9 +49,30 @@ class ProtocolCodecsSpec extends AnyWordSpec with Matchers:
         AABB(2.0, 2.0, Point2D.origin),
         45.0
       )
-      val bullet = EntityDto.Bullet(EntityId.fromLong(2L), Point2D(15.0, 20.0), Vector2D(100.0, 0.0))
+      val bullet =
+        EntityDto.Bullet(EntityId.fromLong(2L), Point2D(15.0, 20.0), Vector2D(100.0, 0.0), Circle(1.0, Point2D.origin))
       val state = MatchState(tick = 1L, entities = List(spaceship, bullet))
       val json = state.asJson.noSpaces
 
       json should include(""""Spaceship":{"id":1""")
       json should include(""""Bullet":{"id":2""")
+
+    "tell a player starting a match which entity is its own" in:
+      val message: ServerMessage = ServerMessage.MatchStarted(players = 2, you = EntityId.fromLong(7L))
+
+      message.asJson.noSpaces shouldEqual """{"MatchStarted":{"players":2,"you":7}}"""
+
+    "tell clients why a match ended" in:
+      val ended: ServerMessage = ServerMessage.MatchEnded(MatchOutcome.TimeUp)
+
+      ended.asJson.noSpaces shouldEqual """{"MatchEnded":{"outcome":{"TimeUp":{}}}}"""
+
+    "tell clients that nobody survived a match" in:
+      val ended: ServerMessage = ServerMessage.MatchEnded(MatchOutcome.NoSurvivors)
+
+      ended.asJson.noSpaces shouldEqual """{"MatchEnded":{"outcome":{"NoSurvivors":{}}}}"""
+
+    "tell clients which spaceship won a match" in:
+      val ended: ServerMessage = ServerMessage.MatchEnded(MatchOutcome.LastStanding(EntityId.fromLong(2L)))
+
+      ended.asJson.noSpaces shouldEqual """{"MatchEnded":{"outcome":{"LastStanding":{"winner":2}}}}"""

@@ -1,12 +1,10 @@
 package com.unibo.scalaparty.infrastructure.application
 
-import scala.concurrent.duration.*
-
 import cats.effect.{Deferred, FiberIO, IO, Ref}
 import cats.syntax.all.*
 import com.unibo.scalaparty.core.ecs.{EntityId, GameWorld}
 import com.unibo.scalaparty.core.engine.{GameConfig, GameEngine}
-import com.unibo.scalaparty.core.model.GameSettings
+import com.unibo.scalaparty.core.model.{GameSettings, MatchOutcome}
 import com.unibo.scalaparty.infrastructure.model.*
 import com.unibo.scalaparty.infrastructure.network.ConnectionRegistry
 import com.unibo.scalaparty.infrastructure.ports.{AccessPort, MatchEventPublisher, PlayerNotifier}
@@ -26,8 +24,7 @@ import com.unibo.scalaparty.infrastructure.ports.{AccessPort, MatchEventPublishe
  *  @param commands      Buffer the gameplay inputs are drained from.
  *  @param notifier      Tells a single player what is happening to it.
  *  @param publisher     Broadcasts the authoritative state to everybody in the match.
- *  @param settings      Shared rules and arena dimensions for the engine.
- *  @param matchDuration How long a match lasts, there being no win condition yet.
+ *  @param settings      Shared rules and arena dimensions for the engine, including when a match ends.
  *  @param running       The fiber ticking each match being played.
  */
 class MatchCoordinator(
@@ -37,7 +34,6 @@ class MatchCoordinator(
     notifier: PlayerNotifier[IO],
     publisher: MatchEventPublisher[IO],
     settings: GameSettings,
-    matchDuration: FiniteDuration,
     running: Ref[IO, Map[MatchId, FiberIO[Unit]]]
 ) extends AccessPort[IO]:
 
@@ -84,12 +80,14 @@ class MatchCoordinator(
    *  @return an effect completing when the match fiber is spawned
    */
   private def startMatch(activeMatch: ActiveMatch): IO[Unit] =
+    // Chosen before the match is announced, so that each player is told which ship is its own.
+    val mapping = activeMatch.players.map(_ -> EntityId.generate()).toMap
     for
-      _          <- admit(activeMatch)
+      _          <- admit(activeMatch, mapping)
       registered <- Deferred[IO, Unit]
       // The match waits for its fiber to be recorded: were it to end first, its cleanup would find
       // nothing to forget and the finished fiber would be recorded afterwards, never to be removed.
-      fiber <- (registered.get *> play(activeMatch)).start
+      fiber <- (registered.get *> play(activeMatch, mapping)).start
       _     <- running.update(_ + (activeMatch.matchId -> fiber))
       // Its last player may have left while it was being started: that leave found no fiber to stop,
       // so the match would tick for its whole duration with nobody in it. Any leave coming later
@@ -98,24 +96,26 @@ class MatchCoordinator(
       _           <- if stillActive then registered.complete(()).void else stop(activeMatch.matchId)
     yield ()
 
-  /** Assigns each player in the match to the connection registry and notifies them that the match has started.
+  /** Assigns each player in the match to the connection registry and notifies them that the match has
+   *  started, telling each one the entity it controls.
    *
    *  @param activeMatch the active match being populated
+   *  @param mapping     the entity each player of the match controls
    *  @return an effect completing when all players are admitted
    */
-  private def admit(activeMatch: ActiveMatch): IO[Unit] =
+  private def admit(activeMatch: ActiveMatch, mapping: PlayerEntityMapping): IO[Unit] =
     activeMatch.players.toList.traverse_ { playerId =>
       registry.assignToMatch(playerId, activeMatch.matchId) *>
-        notifier.send(playerId, ServerMessage.MatchStarted(activeMatch.players.size))
+        notifier.send(playerId, ServerMessage.MatchStarted(activeMatch.players.size, mapping(playerId)))
     }
 
   /** Runs the match to completion, then hands the room over to the next group of players.
    *
    *  @param activeMatch the active match to run
+   *  @param mapping     the entity each player of the match controls
    *  @return an effect completing when the match finishes and cleanup concludes
    */
-  private def play(activeMatch: ActiveMatch): IO[Unit] =
-    val mapping = activeMatch.players.map(_ -> EntityId.generate()).toMap
+  private def play(activeMatch: ActiveMatch, mapping: PlayerEntityMapping): IO[Unit] =
     val session = MatchSession(activeMatch.matchId, mapping, GameWorld(Map.empty))
     val engine = GameEngine(
       GameConfig(
@@ -123,21 +123,23 @@ class MatchCoordinator(
         settings = settings
       )
     )
-    val runner = new MatchRunner(session, commands, engine, publisher, matchDuration)
-    runner.run.compile.drain *> concludeMatch(activeMatch)
+    val roster = lobby.playersOf(activeMatch.matchId)
+    val runner = new MatchRunner(session, commands, engine, publisher, roster)
+    runner.run.flatMap(concludeMatch(activeMatch, _))
 
-  /** Releases the players of a finished match and lets the next one in.
+  /** Releases the players of a finished match, telling them how it ended, and lets the next one in.
    *
    *  @param activeMatch the match that has just concluded
+   *  @param outcome     how the match ended
    *  @return an effect completing when resources are released and the next match starts
    */
-  private def concludeMatch(activeMatch: ActiveMatch): IO[Unit] =
+  private def concludeMatch(activeMatch: ActiveMatch, outcome: MatchOutcome): IO[Unit] =
     for
       // Forget the fiber first: this code runs inside it, and a player leaving now would stop
       // whatever is recorded for this match, which would otherwise cancel us halfway through.
       _ <- running.update(_ - activeMatch.matchId)
       _ <- activeMatch.players.toList.traverse_ { playerId =>
-        registry.clearMatch(playerId) *> notifier.send(playerId, ServerMessage.MatchEnded)
+        registry.clearMatch(playerId) *> notifier.send(playerId, ServerMessage.MatchEnded(outcome))
       }
       next <- lobby.finishMatch(activeMatch.matchId)
       _    <- refreshQueue
@@ -161,8 +163,7 @@ object MatchCoordinator:
    *  @param commands      the service buffering player inputs
    *  @param notifier      the port delivering personal messages to players
    *  @param publisher     the publisher broadcasting match states
-   *  @param settings      Shared rules and arena dimensions for the engine
-   *  @param matchDuration the duration of each match session
+   *  @param settings      Shared rules and arena dimensions for the engine, including when a match ends
    *  @return an IO effect containing the instantiated MatchCoordinator
    */
   def apply(
@@ -171,9 +172,8 @@ object MatchCoordinator:
       commands: GameCommandService,
       notifier: PlayerNotifier[IO],
       publisher: MatchEventPublisher[IO],
-      settings: GameSettings,
-      matchDuration: FiniteDuration = MatchRunner.DefaultDuration
+      settings: GameSettings
   ): IO[MatchCoordinator] =
     Ref
       .of[IO, Map[MatchId, FiberIO[Unit]]](Map.empty)
-      .map(new MatchCoordinator(lobby, registry, commands, notifier, publisher, settings, matchDuration, _))
+      .map(new MatchCoordinator(lobby, registry, commands, notifier, publisher, settings, _))

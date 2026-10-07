@@ -22,7 +22,7 @@ private object LobbyState:
 
 /** Core application service managing the logical state of the matchmaking lobby.
  *  Groups incoming players into the open lobby up to a defined maximum capacity
- *  (MaxPlayersPerMatch). Once that capacity is reached the match moves to
+ *  (maxPlayersPerMatch). Once that capacity is reached the match moves to
  *  [[MatchStatus.Running]] and the next joining player opens a new lobby.
  *
  *  Concurrency is handled internally via a purely functional Ref state.
@@ -88,7 +88,7 @@ final class LobbyManager[F[_]: Sync] private (state: Ref[F, LobbyState]):
           case None => candidateMatchId -> Set(playerId)
 
         val status =
-          if players.size >= LobbyManager.MaxPlayersPerMatch then MatchStatus.Running else MatchStatus.Waiting
+          if players.size >= LobbyManager.maxPlayersPerMatch then MatchStatus.Running else MatchStatus.Waiting
 
         s.copy(matches = s.matches.updated(matchId, MatchInfo(players, status))) -> matchId
 
@@ -109,7 +109,7 @@ final class LobbyManager[F[_]: Sync] private (state: Ref[F, LobbyState]):
           s
 
 object LobbyManager:
-  val MaxPlayersPerMatch: Int = 4
+  val maxPlayersPerMatch: Int = 4
 
   /** Factory method that safely initializes the concurrent lobby state buffer.
    *

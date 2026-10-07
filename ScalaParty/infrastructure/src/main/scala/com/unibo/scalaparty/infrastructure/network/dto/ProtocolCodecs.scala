@@ -3,7 +3,7 @@ package com.unibo.scalaparty.infrastructure.network.dto
 import com.unibo.scalaparty.core.dto.EntityDto
 import com.unibo.scalaparty.core.ecs.EntityId
 import com.unibo.scalaparty.core.geometry.{Point2D, Shape}
-import com.unibo.scalaparty.core.model.{GameCommand, GameEvent, MatchState}
+import com.unibo.scalaparty.core.model.{GameCommand, GameEvent, MatchOutcome, MatchState}
 import com.unibo.scalaparty.infrastructure.model.ServerMessage
 import io.circe.*
 import io.circe.generic.semiauto.*
@@ -27,19 +27,22 @@ object ProtocolCodecs:
       "y" -> point.y.asJson
     )
 
+  /** Custom encoder for [[Shape.AABB]] instances. */
+  given Encoder[Shape.AABB] = Encoder.instance: aabb =>
+    Json.obj(
+      "type" -> "AABB".asJson,
+      "width" -> aabb.width.asJson,
+      "height" -> aabb.height.asJson,
+      "center" -> aabb.center.asJson
+    )
+
   /** Custom encoder for [[Shape]] instances. */
   given Encoder[Shape] = Encoder.instance:
+    case aabb: Shape.AABB => aabb.asJson
     case Shape.Circle(radius, center) =>
       Json.obj(
         "type" -> "Circle".asJson,
         "radius" -> radius.asJson,
-        "center" -> center.asJson
-      )
-    case Shape.AABB(width, height, center) =>
-      Json.obj(
-        "type" -> "AABB".asJson,
-        "width" -> width.asJson,
-        "height" -> height.asJson,
         "center" -> center.asJson
       )
     case Shape.Polygon(vertices*) =>
@@ -66,6 +69,9 @@ object ProtocolCodecs:
 
   /** Encoder for discrete game events occurring during execution. */
   given Encoder[GameEvent] = deriveEncoder
+
+  /** Encoder for the reason a match ended, carried by the end-of-match notification. */
+  given Encoder[MatchOutcome] = deriveEncoder
 
   /** Encoder for server-to-player lobby and queue notifications. */
   given Encoder[ServerMessage] = deriveEncoder

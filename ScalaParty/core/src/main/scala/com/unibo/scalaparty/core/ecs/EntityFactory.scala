@@ -1,7 +1,7 @@
 package com.unibo.scalaparty.core.ecs
 
 import com.unibo.scalaparty.core.geometry.{Point2D, Shape, Vector2D, given}
-import com.unibo.scalaparty.core.model.GameSettings
+import com.unibo.scalaparty.core.model.{GameSettings, ShootingSettings}
 
 object EntityFactory:
 
@@ -24,7 +24,7 @@ object EntityFactory:
     val components: List[Component] = List(
       PositionComponent(position),
       MovementComponent(velocity),
-      RotationComponent(),
+      RotationComponent(velocity.angle),
       EntityTypeComponent(EntityType.Spaceship),
       ShootingComponent(weapon = weapon),
       EntityTypeComponent(EntityType.Spaceship),
@@ -33,6 +33,20 @@ object EntityFactory:
       CollisionDamageComponent(collisionDamage)
     )
     (entityId, components)
+
+  def createSpaceshipFromConfig(settings: GameSettings)(
+      position: Point2D,
+      direction: Vector2D,
+      entityId: EntityId = EntityId.generate()
+  ): EntityWithComponents =
+    createSpaceship(
+      position = position,
+      velocity = direction.normalized * settings.spaceship.speed,
+      entityId = entityId,
+      weapon = Weapon.fromSettings(settings.shooting),
+      maxHealth = settings.spaceship.maxHealth,
+      collisionDamage = settings.spaceship.collisionDamage
+    )
 
     /** Creates a new bullet entity with the specified position, velocity, and power.
      *
@@ -54,6 +68,34 @@ object EntityFactory:
       MovementComponent(velocity),
       EntityTypeComponent(EntityType.Bullet),
       BulletComponent(power, shooterId),
-      ShapeComponent(Shape.Circle(1.0, (0.0, 0.0)))
+      ShapeComponent(Shape.Circle(3.0, (0.0, 0.0)))
     )
     (entityId, components)
+
+  /** Creates a new wall entity with the specified position, width, and height.
+   *
+   *  @param position the position of the wall
+   *  @param width the width of the wall
+   *  @param height the height of the wall
+   *  @return a tuple containing the unique identifier of the created wall entity and its associated list of components
+   */
+  def createWall(
+      position: Point2D,
+      width: Double,
+      height: Double,
+      entityId: EntityId = EntityId.generate()
+  ): EntityWithComponents =
+    val components: List[Component] = List(
+      PositionComponent(position),
+      EntityTypeComponent(EntityType.Wall),
+      ShapeComponent(Shape.AABB(width, height, (0.0, 0.0)))
+    )
+    (entityId, components)
+
+  /** Creates a new match clock entity, set at the beginning of the match.
+   *
+   *  @param entityId the unique identifier of the clock
+   *  @return a tuple containing the unique identifier of the created clock entity and its associated list of components
+   */
+  def createMatchClock(entityId: EntityId = EntityId.generate()): EntityWithComponents =
+    (entityId, List(MatchClockComponent()))

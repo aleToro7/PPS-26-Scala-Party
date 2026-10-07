@@ -2,7 +2,7 @@ scalaVersion := "3.3.3"
 organization := "com.unibo.scalaparty"
 
 // Definiamo la versione a livello di Build globale
-ThisBuild / version := "0.3.0"
+ThisBuild / version := "0.4.0"
 ThisBuild / scalaVersion := "3.3.3"
 
 lazy val commonSettings = Seq(
@@ -33,6 +33,7 @@ lazy val infrastructure = (project in file("infrastructure"))
       "io.circe" %% "circe-generic" % "0.14.6",
       "io.circe" %% "circe-parser" % "0.14.6",
       "ch.qos.logback" % "logback-classic" % "1.4.14",
+      "org.typelevel" %% "log4cats-slf4j" % "2.6.0",
       "org.typelevel" %% "cats-effect-testing-scalatest" % "1.8.0" % Test
     ),
 

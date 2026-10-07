@@ -32,5 +32,14 @@ enum EntityDto:
    *  @param id the unique identifier of the bullet entity
    *  @param position the current 2D spatial coordinates of the bullet
    *  @param velocity the current movement vector representing the speed and direction of the bullet
+   *  @param shape the shape of the bullet
    */
-  case Bullet(id: EntityId, position: Point2D, velocity: Vector2D)
+  case Bullet(id: EntityId, position: Point2D, velocity: Vector2D, shape: Shape)
+
+  /** Represents a wall in the game world.
+   *
+   *  @param id       the unique identifier of the wall entity
+   *  @param position the current 2D spatial coordinates of the wall
+   *  @param shape    the shape of the wall
+   */
+  case Wall(id: EntityId, position: Point2D, shape: Shape)

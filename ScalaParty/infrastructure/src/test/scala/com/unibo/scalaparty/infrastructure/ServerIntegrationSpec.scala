@@ -29,14 +29,14 @@ class ServerIntegrationSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers
     "should handle a connection request and assign the player to a match" in (
       for
         registry       <- ConnectionRegistry()
-        lobby          <- QueuedLobbyManager.of[IO]()
+        lobby          <- QueuedLobbyManager.of[IO](playersPerMatch = 1, maxMatches = 1, maxQueued = Int.MaxValue)
         commandService <- GameCommandService()
 
         notifier = WebSocketNotifier(registry)
         publisher = WebSocketBroadcaster(registry)
         settings = GameSettings.default
 
-        coordinator <- MatchCoordinator(lobby, registry, commandService, notifier, publisher, settings, 50.millis)
+        coordinator <- MatchCoordinator(lobby, registry, commandService, notifier, publisher, settings)
 
         wsServer = WebSocketServer(registry, coordinator, commandService)
 
@@ -62,14 +62,14 @@ class ServerIntegrationSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers
       val rejected = PlayerId.random()
       for
         registry       <- ConnectionRegistry()
-        lobby          <- QueuedLobbyManager.of[IO](maxPlayers = 1, maxQueued = 0)
+        lobby          <- QueuedLobbyManager.of[IO](playersPerMatch = 1, maxMatches = 1, maxQueued = 0)
         commandService <- GameCommandService()
 
         notifier = WebSocketNotifier(registry)
         publisher = WebSocketBroadcaster(registry)
         settings = GameSettings.default
 
-        coordinator <- MatchCoordinator(lobby, registry, commandService, notifier, publisher, settings, 10.seconds)
+        coordinator <- MatchCoordinator(lobby, registry, commandService, notifier, publisher, settings)
 
         wsServer = WebSocketServer(registry, coordinator, commandService)
 
@@ -86,7 +86,47 @@ class ServerIntegrationSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers
         frames.collect { case WebSocketFrame.Text(text, _) => text } shouldBe List("""{"QueueFull":{}}""")
         session shouldBe None
         frames.last match
-          case close: WebSocketFrame.Close => close.closeCode shouldBe WebSocketServer.TryAgainLater
+          case close: WebSocketFrame.Close => close.closeCode shouldBe WebSocketServer.tryAgainLater
           case other => fail(s"expected the connection to be closed, got $other")
+    }
+
+    "should keep pinging a player that has nothing to be told" in {
+      for
+        registry       <- ConnectionRegistry()
+        lobby          <- QueuedLobbyManager.of[IO](playersPerMatch = 1, maxMatches = 1, maxQueued = Int.MaxValue)
+        commandService <- GameCommandService()
+
+        notifier = WebSocketNotifier(registry)
+        publisher = WebSocketBroadcaster(registry)
+        settings = GameSettings.default
+
+        coordinator <- MatchCoordinator(lobby, registry, commandService, notifier, publisher, settings)
+
+        wsServer = WebSocketServer(registry, coordinator, commandService, keepAliveInterval = 20.millis)
+
+        queue  <- Queue.unbounded[IO, WebSocketFrame]
+        frames <- wsServer.keptAlive(queue).take(3).compile.toList
+      yield frames shouldBe List.fill(3)(WebSocketFrame.Ping())
+    }
+
+    "should deliver whatever is queued for a player alongside the pings" in {
+      val message = WebSocketFrame.Text("""{"MatchEnded":{"outcome":{"TimeUp":{}}}}""")
+      for
+        registry       <- ConnectionRegistry()
+        lobby          <- QueuedLobbyManager.of[IO](playersPerMatch = 1, maxMatches = 1, maxQueued = Int.MaxValue)
+        commandService <- GameCommandService()
+
+        notifier = WebSocketNotifier(registry)
+        publisher = WebSocketBroadcaster(registry)
+        settings = GameSettings.default
+
+        coordinator <- MatchCoordinator(lobby, registry, commandService, notifier, publisher, settings)
+
+        wsServer = WebSocketServer(registry, coordinator, commandService, keepAliveInterval = 20.millis)
+
+        queue  <- Queue.unbounded[IO, WebSocketFrame]
+        _      <- queue.offer(message)
+        frames <- wsServer.keptAlive(queue).take(2).compile.toList
+      yield frames shouldBe List(message, WebSocketFrame.Ping())
     }
   }
