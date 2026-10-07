@@ -38,7 +38,7 @@ class WebSocketServer(
     connections: ConnectionRegistry,
     accessPort: AccessPort[IO],
     commandPort: CommandPort[IO],
-    keepAliveInterval: FiniteDuration = WebSocketServer.KeepAliveInterval
+    keepAliveInterval: FiniteDuration = WebSocketServer.keepAliveInterval
 ):
 
   /** Handles a new player connection by registering their outbound message queue
@@ -70,7 +70,7 @@ class WebSocketServer(
   private def turnAway(playerId: PlayerId, queue: MessageQueue): IO[Unit] =
     for
       _     <- connections.removeSession(playerId)
-      close <- IO.fromEither(WebSocketFrame.Close(WebSocketServer.TryAgainLater, "the queue is full"))
+      close <- IO.fromEither(WebSocketFrame.Close(WebSocketServer.tryAgainLater, "the queue is full"))
       _     <- queue.offer(close)
       _     <- IO.println(s"Player $playerId turned away: the queue is full")
     yield ()
@@ -156,9 +156,9 @@ class WebSocketServer(
 
 object WebSocketServer:
   /** Close code telling the client the server is overloaded and it may retry later (RFC 6455, 7.4). */
-  val TryAgainLater: Int = 1013
+  val tryAgainLater: Int = 1013
 
   /** How often a player is pinged when no other interval is given: a third of the 60 seconds after
    *  which the server drops a connection it hears nothing from, so a live client is never dropped.
    */
-  val KeepAliveInterval: FiniteDuration = 20.seconds
+  val keepAliveInterval: FiniteDuration = 20.seconds

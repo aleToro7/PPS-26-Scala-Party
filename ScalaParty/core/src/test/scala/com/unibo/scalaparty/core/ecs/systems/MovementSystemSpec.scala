@@ -7,7 +7,7 @@ import org.scalatest.matchers.should.Matchers
 
 class MovementSystemSpec extends AnyFlatSpec with Matchers:
 
-  private val OneSecondMillis: Long = 1_000L
+  private val oneSecondMillis: Long = 1_000L
 
   private def createMovingEntity(position: Point2D, velocity: Vector2D): EntityWithComponents =
     (EntityId.generate(), List(PositionComponent(position), MovementComponent(velocity)))
@@ -15,7 +15,7 @@ class MovementSystemSpec extends AnyFlatSpec with Matchers:
   private def createWorld(entities: EntityWithComponents*): GameWorld =
     GameWorld(entities.toList)
 
-  private def updateWorld(world: GameWorld, dt: Long = OneSecondMillis): SystemOutput =
+  private def updateWorld(world: GameWorld, dt: Long = oneSecondMillis): SystemOutput =
     MovementSystem.update(world, Set.empty, dt)
 
   extension (world: GameWorld)
@@ -34,7 +34,7 @@ class MovementSystemSpec extends AnyFlatSpec with Matchers:
     val velocity = Vector2D(1.0, 1.0)
     val entity @ (entityId, _) = createMovingEntity(startPos, velocity)
     val world = createWorld(entity)
-    val expectedPos = startPos + (velocity * (OneSecondMillis.toDouble / 1_000.0))
+    val expectedPos = startPos + (velocity * (oneSecondMillis.toDouble / 1_000.0))
     val (updatedWorld, events) = updateWorld(world)
     events shouldBe empty
     updatedWorld.id should not be world.id

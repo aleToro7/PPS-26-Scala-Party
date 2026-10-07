@@ -49,7 +49,7 @@ class MatchRunner(
    */
   def run: IO[MatchOutcome] =
     Stream
-      .fixedRate[IO](MatchRunner.TickInterval)
+      .fixedRate[IO](MatchRunner.tickInterval)
       .zipWithIndex
       // Carries along the players who already left, whose spaceships are already gone.
       .evalMapAccumulate(Set.empty[PlayerId]):
@@ -68,7 +68,7 @@ class MatchRunner(
             leaveCommands = leaving.toList.flatMap(session.players.get).map(GameCommand.LeaveCommand(_))
 
             // Process the resolved commands in the game engine
-            result = engine.update(ecsCommands ++ leaveCommands, MatchRunner.TickInterval.toMillis)
+            result = engine.update(ecsCommands ++ leaveCommands, MatchRunner.tickInterval.toMillis)
 
             // Publish the new authoritative state
             _ <- publisher.broadcastState(session.matchId, MatchState(tick, engine.arena, result.entities))
@@ -83,4 +83,4 @@ class MatchRunner(
 
 object MatchRunner:
   /** The server ticks at roughly 60 frames per second. */
-  val TickInterval: FiniteDuration = 16.millis
+  val tickInterval: FiniteDuration = 16.millis
