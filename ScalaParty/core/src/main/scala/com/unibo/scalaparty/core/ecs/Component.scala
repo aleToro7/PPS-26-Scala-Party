@@ -24,7 +24,8 @@ case class PositionComponent(position: Point2D) extends Component
 case class EntityTypeComponent(entityType: EntityType) extends Component
 
 /** Represents an entity's capacity to shoot.
- *  @param weapon specify the shot's values to apply
+ *
+ *  @param weapon the weapon the entity shoots with
  *  @param isShooting whether the entity is currently shooting
  *  @param cooldownTimer the current cooldown timer
  */
