@@ -47,6 +47,9 @@ object MatchSettings:
 
 /** Unified configuration grouping all arena, entity, and gameplay mechanics parameters.
  *
+ *  Every setting has to be given explicitly: start from [[GameSettings.default]] and
+ *  `copy` it to override only some of them.
+ *
  *  @param spaceship     settings controlling spaceship dynamics, including the weapon they fire with
  *  @param map           the map layout and spawn points for the game world
  *  @param matchSettings settings controlling when a match ends
@@ -58,7 +61,7 @@ final case class GameSettings(
 )
 
 object GameSettings:
-  /** The configuration used unless configured otherwise. */
+  /** The configuration used unless configured otherwise, made of the defaults of every nested setting. */
   val default: GameSettings = GameSettings(
     spaceship = SpaceshipSettings.default,
     map = GameMap.default,
