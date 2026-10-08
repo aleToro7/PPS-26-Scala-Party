@@ -1,7 +1,7 @@
 package com.unibo.scalaparty.core.ecs
 
 import com.unibo.scalaparty.core.geometry.{Point2D, Shape, Vector2D, given}
-import com.unibo.scalaparty.core.model.{GameSettings, SpaceshipSettings, Weapon}
+import com.unibo.scalaparty.core.model.{SpaceshipSettings, Weapon}
 
 object EntityFactory:
 
@@ -18,8 +18,8 @@ object EntityFactory:
       velocity: Vector2D,
       entityId: EntityId = EntityId.generate(),
       weapon: Weapon = Weapon(),
-      maxHealth: Double = GameSettings.default.spaceship.maxHealth,
-      collisionDamage: Double = GameSettings.default.spaceship.collisionDamage
+      maxHealth: Double = SpaceshipSettings().maxHealth,
+      collisionDamage: Double = SpaceshipSettings().collisionDamage
   ): (EntityId, List[Component]) =
     val components: List[Component] = List(
       PositionComponent(position),
