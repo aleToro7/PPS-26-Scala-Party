@@ -24,7 +24,7 @@ import com.unibo.scalaparty.infrastructure.ports.{AccessPort, MatchEventPublishe
  *  @param commands      Buffer the gameplay inputs are drained from.
  *  @param notifier      Tells a single player what is happening to it.
  *  @param publisher     Broadcasts the authoritative state to everybody in the match.
- *  @param settings      Shared rules and arena dimensions for the engine, including when a match ends.
+ *  @param settings      The map, entity parameters and rules every match is played with.
  *  @param running       The fiber ticking each match being played.
  */
 class MatchCoordinator(
@@ -163,7 +163,7 @@ object MatchCoordinator:
    *  @param commands      the service buffering player inputs
    *  @param notifier      the port delivering personal messages to players
    *  @param publisher     the publisher broadcasting match states
-   *  @param settings      Shared rules and arena dimensions for the engine, including when a match ends
+   *  @param settings      the map, entity parameters and rules every match is played with
    *  @return an IO effect containing the instantiated MatchCoordinator
    */
   def apply(

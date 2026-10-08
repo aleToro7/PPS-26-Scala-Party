@@ -37,7 +37,6 @@ trait ConnectionRegistry:
   def queueFor(playerId: PlayerId): IO[Option[MessageQueue]]
 
   /** Retrieves all currently connected players for a given match.
-   *  Essential for broadcasting game state updates only to the relevant clients.
    *
    *  @param matchId The match to query.
    *  @return A list of players currently holding an active connection in that match.
