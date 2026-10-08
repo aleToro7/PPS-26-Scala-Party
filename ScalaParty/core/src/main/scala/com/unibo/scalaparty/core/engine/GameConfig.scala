@@ -5,7 +5,7 @@ import com.unibo.scalaparty.core.model.GameSettings
 
 /** Configuration for the game engine.
  *
- *  @param settings               the default game settings for world size and components
+ *  @param settings               the map, entity parameters and rules of the match
  *  @param players                the list of player entity IDs in the match
  */
 final case class GameConfig(
@@ -17,7 +17,7 @@ object GameConfig:
   /** Helper to quickly create a single-player configuration.
    *
    *  @param playerId               the unique identifier of the single player
-   *  @param settings               the default game settings for world size and components
+   *  @param settings               the map, entity parameters and rules of the match, the default ones if omitted
    *  @return a new [[GameConfig]] configured for a single player
    */
   def singlePlayer(
