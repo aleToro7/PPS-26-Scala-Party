@@ -5,10 +5,10 @@ import com.unibo.scalaparty.core.model.{MatchOutcome, MatchSettings}
 
 /** A system responsible for telling when the match is over and how it ended.
  *
- *  The match ends as soon as no spaceship is left, or as soon as a single one is left in a match started by several
- *  players, which wins it: a match started by a single player has nobody to beat. Otherwise, it ends once the match
- *  clock reaches the time limit, a world without clock never running out of time. An elimination is reported as such
- *  even when the time limit is reached in the same update.
+ *  The match ends as soon as no spaceship is left, or as soon as a single one is left, which wins it: this holds even
+ *  for a match started by a single player, which is won right away. Otherwise, it ends once the match clock reaches
+ *  the time limit, a world without clock never running out of time. An elimination is reported as such even when the
+ *  time limit is reached in the same update.
  *
  *  The end of the match produces a [[GameEvent.MatchEnded]] event, on every update from then on. Received events are
  *  forwarded untouched. The system must run after every other system able to remove spaceships, so that it judges
