@@ -43,8 +43,8 @@ private class DefaultGameEngine(
     pipeline: WorldSystem
 ) extends GameEngine:
   private var world: GameWorld =
-    config.map.buildWorld(config.settings)(config.players) + EntityFactory.createMatchClock()
-  val arena: Shape.AABB = config.map.shape
+    config.settings.map.buildWorld(config.settings)(config.players) + EntityFactory.createMatchClock()
+  val arena: Shape.AABB = config.settings.map.shape
 
   override def update(commands: List[GameCommand], dt: Long): TickResult =
     val (nextWorld, events) = InputGateway

@@ -58,7 +58,7 @@ object ProtocolCodecs:
 
   // Outbound (Server -> Client)
 
-  /** Encoder for entity Data Transfer Objects representing world entities. */
+  /** Encoder for the domain commands applied to the entities of the game world. */
   given Encoder[GameCommand] = deriveEncoder
 
   /** Encoder for entity Data Transfer Objects representing world entities. */
