@@ -51,8 +51,8 @@ object WorldSystem:
    *  2. MovementSystem: Moves entities based on their velocity.
    *  3. ArenaSystem: Checks for arena boundaries and handles entities that go out of bounds.
    *  4. CollisionSystem: Checks for collisions between entities and generates collision events.
-   *  5. ShootingSystem: Processes shooting events and updates the state of projectiles.
-   *  6. DamageSystem: Applies damage to entities based on collision and shooting events.
+   *  5. ShootingSystem: Fires bullets for the entities willing to shoot and manages their weapon cooldown.
+   *  6. DamageSystem: Applies damage to the entities involved in a collision.
    *  7. DeathSystem: Removes the entities whose health has been depleted.
    *  8. MatchEndSystem: Tells when the match is over and how it ended.
    *
