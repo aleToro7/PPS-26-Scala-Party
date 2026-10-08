@@ -5,7 +5,6 @@ import org.scalatest.wordspec.AnyWordSpec
 
 class GameSettingsSpec extends AnyWordSpec with Matchers:
 
-  private val nonPositiveInts: List[Int] = List(0, -1)
   private val nonPositiveDoubles: List[Double] = List(0.0, -1.0)
 
   "GameSettings" should:
