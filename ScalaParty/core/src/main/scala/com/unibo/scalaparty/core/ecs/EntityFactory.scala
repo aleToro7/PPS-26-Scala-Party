@@ -1,7 +1,7 @@
 package com.unibo.scalaparty.core.ecs
 
 import com.unibo.scalaparty.core.geometry.{Point2D, Shape, Vector2D, given}
-import com.unibo.scalaparty.core.model.{GameSettings, ShootingSettings}
+import com.unibo.scalaparty.core.model.{GameSettings, Weapon}
 
 object EntityFactory:
 
@@ -17,7 +17,7 @@ object EntityFactory:
       position: Point2D,
       velocity: Vector2D,
       entityId: EntityId = EntityId.generate(),
-      weapon: Weapon = Weapon.default,
+      weapon: Weapon = Weapon(),
       maxHealth: Double = GameSettings.default.spaceship.maxHealth,
       collisionDamage: Double = GameSettings.default.spaceship.collisionDamage
   ): (EntityId, List[Component]) =
@@ -43,7 +43,7 @@ object EntityFactory:
       position = position,
       velocity = direction.normalized * settings.spaceship.speed,
       entityId = entityId,
-      weapon = Weapon.fromSettings(settings.shooting),
+      weapon = settings.spaceship.weapon,
       maxHealth = settings.spaceship.maxHealth,
       collisionDamage = settings.spaceship.collisionDamage
     )

@@ -1,0 +1,19 @@
+package com.unibo.scalaparty.core.model
+
+/** The weapon a spaceship fires its bullets with.
+ *
+ *  @param bulletPower   the damage dealt by each bullet
+ *  @param bulletSpeed   the linear movement speed of the bullets
+ *  @param shootCooldown the minimum delay between two shots, in milliseconds
+ *  @param muzzleOffset  the distance from the shooter's center at which bullets are spawned (the spaceship's nose)
+ */
+final case class Weapon(
+    bulletPower: Double = 15.0,
+    bulletSpeed: Double = 300.0,
+    shootCooldown: Long = 500L,
+    muzzleOffset: Double = 20.0
+):
+  require(bulletPower > 0.0, "Bullet power must be positive")
+  require(bulletSpeed > 0.0, "Bullet speed must be positive")
+  require(shootCooldown >= 0L, "Shoot cooldown cannot be negative")
+  require(muzzleOffset >= 0.0, "Muzzle offset cannot be negative")

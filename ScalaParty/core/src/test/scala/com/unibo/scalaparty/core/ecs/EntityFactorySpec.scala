@@ -1,7 +1,7 @@
 package com.unibo.scalaparty.core.ecs
 
 import com.unibo.scalaparty.core.geometry.{Point2D, Shape, Vector2D}
-import com.unibo.scalaparty.core.model.{GameSettings, ShootingSettings, SpaceshipSettings}
+import com.unibo.scalaparty.core.model.{GameSettings, SpaceshipSettings, Weapon}
 import com.unibo.scalaparty.core.utils.collectFirstOfClass
 import org.scalatest.OptionValues.convertOptionToValuable
 import org.scalatest.flatspec.AnyFlatSpec
@@ -66,11 +66,13 @@ class EntityFactorySpec extends AnyFlatSpec:
     val shootCooldown = 100
     val muzzleOffset = 1.0
     val settings = GameSettings.default.copy(
-      shooting = ShootingSettings(
-        bulletPower = bulletPower,
-        bulletSpeed = bulletSpeed,
-        shootCooldown = shootCooldown,
-        muzzleOffset = muzzleOffset
+      spaceship = SpaceshipSettings(
+        weapon = Weapon(
+          bulletPower = bulletPower,
+          bulletSpeed = bulletSpeed,
+          shootCooldown = shootCooldown,
+          muzzleOffset = muzzleOffset
+        )
       )
     )
     val position = Point2D(5, 5)

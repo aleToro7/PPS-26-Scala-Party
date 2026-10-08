@@ -1,6 +1,5 @@
-package com.unibo.scalaparty.core.ecs
+package com.unibo.scalaparty.core.model
 
-import com.unibo.scalaparty.core.model.ShootingSettings
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -60,21 +59,12 @@ class WeaponSpec extends AnyFlatSpec with Matchers:
       Weapon(bulletPower = validPower, bulletSpeed = validSpeed, shootCooldown = validCooldown, muzzleOffset = 0.0)
 
   it should "provide default attributes that satisfy all domain invariants" in:
-    val defaultWeapon = Weapon.default
+    val defaultWeapon = Weapon()
 
     defaultWeapon.bulletPower should be > 0.0
     defaultWeapon.bulletSpeed should be > 0.0
     defaultWeapon.shootCooldown should be >= 0L
     defaultWeapon.muzzleOffset should be >= 0.0
-
-  it should "map fields accurately from ShootingSettings" in:
-    val settings = ShootingSettings(bulletPower = 20.0, bulletSpeed = 150.0, shootCooldown = 500L, muzzleOffset = 8.0)
-    val weapon = Weapon.fromSettings(settings)
-
-    weapon.bulletPower shouldBe settings.bulletPower
-    weapon.bulletSpeed shouldBe settings.bulletSpeed
-    weapon.shootCooldown shouldBe settings.shootCooldown
-    weapon.muzzleOffset shouldBe settings.muzzleOffset
 
   it should "support immutable copy operations" in:
     val base = Weapon(

@@ -14,18 +14,18 @@ class GameSettingsSpec extends AnyWordSpec with Matchers:
       val settings = GameSettings.default
 
       settings.spaceship shouldBe SpaceshipSettings()
-      settings.shooting shouldBe ShootingSettings()
+      settings.spaceship.weapon shouldBe Weapon()
       settings.matchSettings shouldBe MatchSettings()
 
     "compose custom configurations accurately" in:
-      val customSpaceship = SpaceshipSettings(speed = 75.0, rotationSpeed = 90.0)
-      val customShooting = ShootingSettings(bulletPower = 20.0, bulletSpeed = 150.0, shootCooldown = 300L)
+      val customWeapon = Weapon(bulletPower = 20.0, bulletSpeed = 150.0, shootCooldown = 300L)
+      val customSpaceship = SpaceshipSettings(speed = 75.0, rotationSpeed = 90.0, weapon = customWeapon)
       val customMatch = MatchSettings(timeLimit = 30_000L)
 
-      val custom = GameSettings(customSpaceship, customShooting, matchSettings = customMatch)
+      val custom = GameSettings(customSpaceship, matchSettings = customMatch)
 
       custom.spaceship shouldBe customSpaceship
-      custom.shooting shouldBe customShooting
+      custom.spaceship.weapon shouldBe customWeapon
       custom.matchSettings shouldBe customMatch
 
   "SpaceshipSettings" should:
@@ -42,21 +42,6 @@ class GameSettingsSpec extends AnyWordSpec with Matchers:
     "validate collision damage boundaries" in:
       an[IllegalArgumentException] should be thrownBy SpaceshipSettings(collisionDamage = -1.0)
       noException should be thrownBy SpaceshipSettings(collisionDamage = 0.0)
-
-  "ShootingSettings" should:
-
-    "reject non-positive bullet power or speed" in:
-      nonPositiveDoubles.foreach: invalid =>
-        an[IllegalArgumentException] should be thrownBy ShootingSettings(bulletPower = invalid)
-        an[IllegalArgumentException] should be thrownBy ShootingSettings(bulletSpeed = invalid)
-
-    "validate shoot cooldown boundaries" in:
-      an[IllegalArgumentException] should be thrownBy ShootingSettings(shootCooldown = -1L)
-      noException should be thrownBy ShootingSettings(shootCooldown = 0L)
-
-    "validate muzzle offset boundaries" in:
-      an[IllegalArgumentException] should be thrownBy ShootingSettings(muzzleOffset = -1.0)
-      noException should be thrownBy ShootingSettings(muzzleOffset = 0.0)
 
   "MatchSettings" should:
 

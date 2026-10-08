@@ -1,6 +1,7 @@
 package com.unibo.scalaparty.core.ecs
 
 import com.unibo.scalaparty.core.geometry.{Point2D, Shape, Vector2D}
+import com.unibo.scalaparty.core.model.Weapon
 
 /** A marker trait for all components in the Entity-Component-System (ECS) architecture.
  *  A Component represents a specific aspect of an entity's state or behavior, such as position, movement, health, etc.
@@ -28,7 +29,7 @@ case class EntityTypeComponent(entityType: EntityType) extends Component
  *  @param cooldownTimer the current cooldown timer
  */
 case class ShootingComponent(
-    weapon: Weapon = Weapon.default,
+    weapon: Weapon = Weapon(),
     isShooting: Boolean = false,
     cooldownTimer: Long = 0L
 ) extends Component
