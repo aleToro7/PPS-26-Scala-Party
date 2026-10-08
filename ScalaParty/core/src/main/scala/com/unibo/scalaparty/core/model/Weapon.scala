@@ -2,6 +2,9 @@ package com.unibo.scalaparty.core.model
 
 /** The weapon a spaceship fires its bullets with.
  *
+ *  Every attribute has to be given explicitly: start from [[Weapon.default]] and
+ *  `copy` it to override only some of them.
+ *
  *  @param bulletPower   the damage dealt by each bullet
  *  @param bulletSpeed   the linear movement speed of the bullets
  *  @param shootCooldown the minimum delay between two shots, in milliseconds
