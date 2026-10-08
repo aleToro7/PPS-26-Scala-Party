@@ -18,8 +18,8 @@ object EntityFactory:
       velocity: Vector2D,
       entityId: EntityId = EntityId.generate(),
       weapon: Weapon = Weapon.default,
-      maxHealth: Double = SpaceshipSettings().maxHealth,
-      collisionDamage: Double = SpaceshipSettings().collisionDamage
+      maxHealth: Double = SpaceshipSettings.default.maxHealth,
+      collisionDamage: Double = SpaceshipSettings.default.collisionDamage
   ): (EntityId, List[Component]) =
     val components: List[Component] = List(
       PositionComponent(position),

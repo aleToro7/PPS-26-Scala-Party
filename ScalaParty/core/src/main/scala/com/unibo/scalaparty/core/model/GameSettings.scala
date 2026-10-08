@@ -11,25 +11,39 @@ import com.unibo.scalaparty.core.model.map.GameMap
  *  @param weapon          the weapon spaceships spawn with
  */
 final case class SpaceshipSettings(
-    speed: Double = 120.0,
-    rotationSpeed: Double = 180.0,
-    maxHealth: Double = 100.0,
-    collisionDamage: Double = 1.0,
-    weapon: Weapon = Weapon.default
+    speed: Double,
+    rotationSpeed: Double,
+    maxHealth: Double,
+    collisionDamage: Double,
+    weapon: Weapon
 ):
   require(speed > 0.0, "Spaceship speed must be positive")
   require(rotationSpeed > 0.0, "Rotation speed must be positive")
   require(maxHealth > 0.0, "Max health must be positive")
   require(collisionDamage >= 0.0, "Collision damage cannot be negative")
 
+object SpaceshipSettings:
+  /** The spaceship dynamics used unless configured otherwise. */
+  val default: SpaceshipSettings = SpaceshipSettings(
+    speed = 120.0,
+    rotationSpeed = 180.0,
+    maxHealth = 100.0,
+    collisionDamage = 1.0,
+    weapon = Weapon.default
+  )
+
 /** Configuration settings for the rules deciding when a match is over.
  *
  *  @param timeLimit the longest a match can last, in milliseconds of simulated time
  */
 final case class MatchSettings(
-    timeLimit: Long = 180_000L
+    timeLimit: Long
 ):
   require(timeLimit > 0L, "Time limit must be positive")
+
+object MatchSettings:
+  /** The match rules used unless configured otherwise. */
+  val default: MatchSettings = MatchSettings(timeLimit = 180_000L)
 
 /** Unified configuration grouping all arena, entity, and gameplay mechanics parameters.
  *
@@ -38,10 +52,15 @@ final case class MatchSettings(
  *  @param matchSettings settings controlling when a match ends
  */
 final case class GameSettings(
-    spaceship: SpaceshipSettings = SpaceshipSettings(),
-    map: GameMap = GameMap.default,
-    matchSettings: MatchSettings = MatchSettings()
+    spaceship: SpaceshipSettings,
+    map: GameMap,
+    matchSettings: MatchSettings
 )
 
 object GameSettings:
-  val default: GameSettings = GameSettings()
+  /** The configuration used unless configured otherwise. */
+  val default: GameSettings = GameSettings(
+    spaceship = SpaceshipSettings.default,
+    map = GameMap.default,
+    matchSettings = MatchSettings.default
+  )

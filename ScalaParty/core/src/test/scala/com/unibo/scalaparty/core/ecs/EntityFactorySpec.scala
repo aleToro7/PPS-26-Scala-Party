@@ -39,7 +39,7 @@ class EntityFactorySpec extends AnyFlatSpec:
 
   it should "be created from settings with the correct health component" in:
     val health = 80.0
-    val settings = SpaceshipSettings(maxHealth = health)
+    val settings = SpaceshipSettings.default.copy(maxHealth = health)
     val position = Point2D(5, 5)
     val direction = Vector2D(1, 0)
     val (_, components) = EntityFactory.createSpaceshipFromConfig(settings)(position, direction)
@@ -49,7 +49,7 @@ class EntityFactorySpec extends AnyFlatSpec:
 
   it should "be created from settings with the correct collision-damage component" in:
     val collisionDamage = 15.0
-    val settings = SpaceshipSettings(collisionDamage = collisionDamage)
+    val settings = SpaceshipSettings.default.copy(collisionDamage = collisionDamage)
     val position = Point2D(5, 5)
     val direction = Vector2D(1, 0)
     val (_, components) = EntityFactory.createSpaceshipFromConfig(settings)(position, direction)
@@ -61,7 +61,7 @@ class EntityFactorySpec extends AnyFlatSpec:
     val bulletSpeed = 20.0
     val shootCooldown = 100
     val muzzleOffset = 1.0
-    val settings = SpaceshipSettings(
+    val settings = SpaceshipSettings.default.copy(
       weapon = Weapon(
         bulletPower = bulletPower,
         bulletSpeed = bulletSpeed,
