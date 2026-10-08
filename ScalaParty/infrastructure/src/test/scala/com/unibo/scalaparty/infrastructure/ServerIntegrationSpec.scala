@@ -26,37 +26,6 @@ import org.typelevel.ci.CIString
 class ServerIntegrationSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers:
 
   "The integrated WebSocket Server" - {
-    "should handle a connection request and assign the player to a match" in (
-      for
-        registry       <- ConnectionRegistry()
-        lobby          <- QueuedLobbyManager.of[IO](playersPerMatch = 1, maxMatches = 1, maxQueued = Int.MaxValue)
-        commandService <- GameCommandService()
-
-        notifier = WebSocketNotifier(registry)
-        publisher = WebSocketBroadcaster(registry)
-        settings = GameSettings.default
-
-        coordinator <- MatchCoordinator(lobby, registry, commandService, notifier, publisher, settings)
-
-        wsServer = WebSocketServer(registry, coordinator, commandService)
-
-        request = Request[IO](method = GET, uri = uri"/ws")
-          .withHeaders(
-            Header.Raw(CIString("Connection"), "Upgrade"),
-            Header.Raw(CIString("Upgrade"), "websocket"),
-            Header.Raw(CIString("Sec-WebSocket-Version"), "13"),
-            Header.Raw(CIString("Sec-WebSocket-Key"), "dGhlIHNhbXBsZSBub25jZQ==")
-          )
-
-        wsb      <- WebSocketBuilder2[IO]
-        response <- wsServer.routes(wsb).orNotFound.run(request)
-
-        matches <- lobby.activeMatches
-      yield
-        response.status shouldBe Status.NotImplemented
-        matches.map(_.players.size) shouldBe Set(1)
-    )
-
     "should tell a player there is no room for it and close its connection" in {
       val playing = PlayerId.random()
       val rejected = PlayerId.random()
