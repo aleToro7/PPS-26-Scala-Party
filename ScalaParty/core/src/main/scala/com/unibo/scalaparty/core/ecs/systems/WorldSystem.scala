@@ -57,7 +57,6 @@ object WorldSystem:
    *  8. MatchEndSystem: Tells when the match is over and how it ended.
    *
    *  @param settings the game configuration used to set up the systems
-   *  @param players  how many players the match starts with
    *  @return a new system pipeline with the default systems
    */
   def defaultPipeline(settings: GameSettings): WorldSystem =
