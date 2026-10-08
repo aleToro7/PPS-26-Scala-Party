@@ -17,7 +17,7 @@ object EntityFactory:
       position: Point2D,
       velocity: Vector2D,
       entityId: EntityId = EntityId.generate(),
-      weapon: Weapon = Weapon(),
+      weapon: Weapon = Weapon.default,
       maxHealth: Double = SpaceshipSettings().maxHealth,
       collisionDamage: Double = SpaceshipSettings().collisionDamage
   ): (EntityId, List[Component]) =
@@ -27,7 +27,6 @@ object EntityFactory:
       RotationComponent(velocity.angle),
       EntityTypeComponent(EntityType.Spaceship),
       ShootingComponent(weapon = weapon),
-      EntityTypeComponent(EntityType.Spaceship),
       ShapeComponent(Shape.Polygon((12.0, 0.0), (-12.0, -7.0), (-12.0, 7.0))),
       HealthComponent.full(maxHealth),
       CollisionDamageComponent(collisionDamage)

@@ -47,7 +47,7 @@ class ShootingSystemSpec extends AnyFlatSpec with Matchers with OptionValues:
     updatedWorld shouldBe world
 
   it should "not modify the world if there are no entities that are shooting" in:
-    val world = worldWith(ShootingComponent(Weapon()))
+    val world = worldWith(ShootingComponent(Weapon.default))
     val (updatedWorld, events) = updateWorld(world)
 
     events shouldBe empty
@@ -62,7 +62,7 @@ class ShootingSystemSpec extends AnyFlatSpec with Matchers with OptionValues:
     updatedWorld.shootingComponent.cooldownTimer should be < cooldown
 
   it should "not decrease cooldown timer below zero" in:
-    val world = worldWith(ShootingComponent(Weapon()))
+    val world = worldWith(ShootingComponent(Weapon.default))
 
     val (updatedWorld, _) = updateWorld(world)
 
@@ -70,7 +70,7 @@ class ShootingSystemSpec extends AnyFlatSpec with Matchers with OptionValues:
     updatedWorld.id shouldBe world.id
 
   it should "add a bullet to the world if an entity is shooting" in:
-    val world = shipWorldWith(ShootingComponent(weapon = Weapon(), isShooting = true))
+    val world = shipWorldWith(ShootingComponent(weapon = Weapon.default, isShooting = true))
 
     val (updatedWorld, events) = updateWorld(world)
 

@@ -19,6 +19,10 @@ class EntityFactorySpec extends AnyFlatSpec:
       EntityTypeComponent(EntityType.Spaceship)
     )
 
+  it should "have at most one component of each type" in:
+    val (_, components) = EntityFactory.createSpaceship(Point2D.origin, Vector2D.zero)
+    components.map(_.getClass).distinct.size shouldBe components.size
+
   it should "be created at full health and able to deal collision damage" in:
     val maxHealth = 80.0
     val collisionDamage = 15.0

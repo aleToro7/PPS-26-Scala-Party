@@ -13,11 +13,11 @@ class GameSettingsSpec extends AnyWordSpec with Matchers:
       val settings = GameSettings.default
 
       settings.spaceship shouldBe SpaceshipSettings()
-      settings.spaceship.weapon shouldBe Weapon()
+      settings.spaceship.weapon shouldBe Weapon.default
       settings.matchSettings shouldBe MatchSettings()
 
     "compose custom configurations accurately" in:
-      val customWeapon = Weapon(bulletPower = 20.0, bulletSpeed = 150.0, shootCooldown = 300L)
+      val customWeapon = Weapon.default.copy(bulletPower = 20.0, bulletSpeed = 150.0, shootCooldown = 300L)
       val customSpaceship = SpaceshipSettings(speed = 75.0, rotationSpeed = 90.0, weapon = customWeapon)
       val customMatch = MatchSettings(timeLimit = 30_000L)
 
