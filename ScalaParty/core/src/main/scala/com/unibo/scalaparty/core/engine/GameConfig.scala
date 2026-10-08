@@ -11,8 +11,7 @@ import com.unibo.scalaparty.core.model.GameSettings
 final case class GameConfig(
     settings: GameSettings,
     players: List[EntityId],
-):
-  export settings.* // VALUTARE SE MANTENERE
+)
 
 object GameConfig:
   /** Helper to quickly create a single-player configuration.
