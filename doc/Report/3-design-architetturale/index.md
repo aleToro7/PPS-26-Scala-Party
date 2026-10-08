@@ -1,2 +1,2 @@
 ![[Report/3-design-architetturale/core/index|index]]
-![[Implementazione - Martini]]
+![[3-design-architetturale/server/index]]
