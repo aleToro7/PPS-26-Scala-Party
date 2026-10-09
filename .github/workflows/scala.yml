@@ -13,16 +13,23 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./ScalaParty
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up JDK 21
         uses: actions/setup-java@v5
         with:
           java-version: '21'
           distribution: 'temurin'
           cache: 'sbt'
-          
+          cache-dependency-path: './ScalaParty/build.sbt'
+
+      - name: Set up sbt
+        uses: sbt/setup-sbt@v1
+
       - name: Compile project
         run: sbt compile
 
@@ -30,15 +37,46 @@ jobs:
     name: Run Unit Tests
     needs: build
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./ScalaParty
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: '21'
           distribution: 'temurin'
           cache: 'sbt'
-          
+          cache-dependency-path: './ScalaParty/build.sbt'
+
+      - name: Set up sbt
+        uses: sbt/setup-sbt@v1
+
       - name: Run tests
         run: sbt test
+
+  lint:
+    name: Code Linting
+    needs: test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./ScalaParty
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'sbt'
+          cache-dependency-path: './ScalaParty/build.sbt'
+
+      - name: Set up sbt
+        uses: sbt/setup-sbt@v1
+
+      - name: Check code formatting
+        run: sbt scalafmtCheckAll
