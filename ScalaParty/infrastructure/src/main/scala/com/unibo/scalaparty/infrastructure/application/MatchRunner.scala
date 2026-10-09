@@ -4,7 +4,7 @@ import scala.concurrent.duration.*
 
 import cats.effect.IO
 import fs2.Stream
-import com.unibo.scalaparty.core.ecs.{EntityId, GameEvent, GameWorld}
+import com.unibo.scalaparty.core.ecs.{EntityId, GameEvent}
 import com.unibo.scalaparty.core.engine.GameEngine
 import com.unibo.scalaparty.core.model.{GameCommand, MatchOutcome, MatchState}
 import com.unibo.scalaparty.infrastructure.application.CommandAdapter.*
@@ -13,11 +13,7 @@ import com.unibo.scalaparty.infrastructure.ports.MatchEventPublisher
 
 type PlayerEntityMapping = Map[PlayerId, EntityId]
 
-case class MatchSession(
-    matchId: MatchId,
-    players: PlayerEntityMapping,
-    world: GameWorld
-)
+case class MatchSession(matchId: MatchId, players: PlayerEntityMapping)
 
 /** Authoritative loop of a single match: drains the buffered inputs, advances the engine by one
  *  tick and broadcasts the resulting state, over and over.
