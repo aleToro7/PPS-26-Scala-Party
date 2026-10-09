@@ -2,6 +2,7 @@ package com.unibo.scalaparty.core.ecs.systems
 
 import com.unibo.scalaparty.core.ecs.*
 import com.unibo.scalaparty.core.geometry.{Point2D, Vector2D}
+import com.unibo.scalaparty.core.model.Weapon
 import com.unibo.scalaparty.core.utils.collectFirstOfClass
 
 /** A system responsible for firing bullets and managing the weapon cooldown of shooting entities.

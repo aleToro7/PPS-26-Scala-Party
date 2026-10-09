@@ -1,7 +1,7 @@
 package com.unibo.scalaparty.core.ecs
 
 import com.unibo.scalaparty.core.geometry.{Point2D, Shape, Vector2D}
-import com.unibo.scalaparty.core.model.{GameSettings, ShootingSettings, SpaceshipSettings}
+import com.unibo.scalaparty.core.model.{SpaceshipSettings, Weapon}
 import com.unibo.scalaparty.core.utils.collectFirstOfClass
 import org.scalatest.OptionValues.convertOptionToValuable
 import org.scalatest.flatspec.AnyFlatSpec
@@ -19,6 +19,10 @@ class EntityFactorySpec extends AnyFlatSpec:
       EntityTypeComponent(EntityType.Spaceship)
     )
 
+  it should "have at most one component of each type" in:
+    val (_, components) = EntityFactory.createSpaceship(Point2D.origin, Vector2D.zero)
+    components.map(_.getClass).distinct.size shouldBe components.size
+
   it should "be created at full health and able to deal collision damage" in:
     val maxHealth = 80.0
     val collisionDamage = 15.0
@@ -35,11 +39,7 @@ class EntityFactorySpec extends AnyFlatSpec:
 
   it should "be created from settings with the correct health component" in:
     val health = 80.0
-    val settings = GameSettings.default.copy(
-      spaceship = SpaceshipSettings(
-        maxHealth = health,
-      ),
-    )
+    val settings = SpaceshipSettings.default.copy(maxHealth = health)
     val position = Point2D(5, 5)
     val direction = Vector2D(1, 0)
     val (_, components) = EntityFactory.createSpaceshipFromConfig(settings)(position, direction)
@@ -49,11 +49,7 @@ class EntityFactorySpec extends AnyFlatSpec:
 
   it should "be created from settings with the correct collision-damage component" in:
     val collisionDamage = 15.0
-    val settings = GameSettings.default.copy(
-      spaceship = SpaceshipSettings(
-        collisionDamage = collisionDamage,
-      ),
-    )
+    val settings = SpaceshipSettings.default.copy(collisionDamage = collisionDamage)
     val position = Point2D(5, 5)
     val direction = Vector2D(1, 0)
     val (_, components) = EntityFactory.createSpaceshipFromConfig(settings)(position, direction)
@@ -65,8 +61,8 @@ class EntityFactorySpec extends AnyFlatSpec:
     val bulletSpeed = 20.0
     val shootCooldown = 100
     val muzzleOffset = 1.0
-    val settings = GameSettings.default.copy(
-      shooting = ShootingSettings(
+    val settings = SpaceshipSettings.default.copy(
+      weapon = Weapon(
         bulletPower = bulletPower,
         bulletSpeed = bulletSpeed,
         shootCooldown = shootCooldown,
