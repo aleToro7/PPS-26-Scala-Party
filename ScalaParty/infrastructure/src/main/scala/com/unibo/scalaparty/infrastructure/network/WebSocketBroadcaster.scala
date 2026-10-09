@@ -24,8 +24,5 @@ class WebSocketBroadcaster(registry: ConnectionRegistry) extends MatchEventPubli
     broadcastToMatch(matchId, frame)
 
   private def broadcastToMatch(matchId: MatchId, frame: WebSocketFrame): IO[Unit] =
-    for
-      queues <- registry.getQueuesForMatch(matchId)
-      // Concurrently push the frame to all queues belonging to this match
-      _ <- queues.traverse(_.offer(frame))
-    yield ()
+    // Queues are unbounded, so offering never blocks and a sequential push is enough
+    registry.getQueuesForMatch(matchId).flatMap(_.traverse_(_.offer(frame)))
