@@ -19,8 +19,6 @@ trait ConnectionRegistry:
   /** Records a freshly connected player which is not taking part in any match yet. */
   def register(playerId: PlayerId, queue: MessageQueue): IO[Unit]
 
-  def bindSessionToMatch(playerId: PlayerId, matchId: MatchId, queue: MessageQueue): IO[Unit]
-
   /** Attaches an already registered player to a match. Does nothing if it is not connected. */
   def assignToMatch(playerId: PlayerId, matchId: MatchId): IO[Unit]
 
@@ -43,6 +41,11 @@ trait ConnectionRegistry:
    */
   def getClientsForMatch(matchId: MatchId): IO[List[PlayerId]]
 
+  /** Retrieves the outbound queues of all the players currently in a given match.
+   *
+   *  @param matchId The match to query.
+   *  @return The queues to push a frame into to reach everybody in that match.
+   */
   def getQueuesForMatch(matchId: MatchId): IO[List[MessageQueue]]
 
 object ConnectionRegistry:
@@ -53,9 +56,6 @@ object ConnectionRegistry:
 
     override def register(playerId: PlayerId, queue: MessageQueue): IO[Unit] =
       state.update(_ + (playerId -> Session(None, queue)))
-
-    override def bindSessionToMatch(playerId: PlayerId, matchId: MatchId, queue: MessageQueue): IO[Unit] =
-      state.update(_ + (playerId -> Session(Some(matchId), queue)))
 
     override def assignToMatch(playerId: PlayerId, matchId: MatchId): IO[Unit] =
       state.update(s => s.get(playerId).fold(s)(session => s + (playerId -> session.copy(matchId = Some(matchId)))))
