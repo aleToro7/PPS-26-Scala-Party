@@ -28,7 +28,7 @@ Per completare un micro-obiettivo in modo che questo possa essere considerato `D
 ## Modalità di revisione degli obiettivi completati
 ### GitHub Actions
 Scelto dal gruppo come soluzione per automatizzare attività legate al ciclo di vita del software, come l'esecuzione dei test e la compilazione del codice, direttamente all'interno del repository, ottenendo anche una conferma di riproducibilità in un ambiente diverso.
-Sono stati utilizzati tre differenti blocchi di esecuzione detti jobs:
+Sono stati utilizzati tre jobs:
 - **Build:** Per compilare il codice sorgente.
 - **Test:** Per eseguire la suite di test e verificare il corretto funzionamento.
 - **Linting:** Per analizzare lo stile del codice e individuare eventuali errori sintattici o di formattazione.
