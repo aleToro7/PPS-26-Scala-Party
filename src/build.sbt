@@ -1,0 +1,61 @@
+scalaVersion := "3.3.3"
+organization := "com.unibo.scalaparty"
+
+// Definiamo la versione a livello di Build globale
+ThisBuild / version := "0.4.1"
+ThisBuild / scalaVersion := "3.3.3"
+
+lazy val commonSettings = Seq(
+  libraryDependencies ++= Seq(
+    "org.scalatest" %% "scalatest" % "3.2.20" % Test
+  )
+)
+
+// --- CORE MODULE ---
+lazy val core = (project in file("core"))
+  .disablePlugins(AssemblyPlugin)
+  .settings(commonSettings *)
+  .settings(
+    name := "scalaparty-core"
+  )
+
+// --- INFRASTRUCTURE MODULE ---
+lazy val infrastructure = (project in file("infrastructure"))
+  .dependsOn(core)
+  .settings(commonSettings *)
+  .settings(
+    name := "scalaparty-infrastructure",
+    Compile / run / mainClass := Some("com.unibo.scalaparty.infrastructure.ServerApp"),
+    libraryDependencies ++= Seq(
+      "org.http4s" %% "http4s-ember-server" % "0.23.23",
+      "org.http4s" %% "http4s-dsl" % "0.23.23",
+      "org.http4s" %% "http4s-circe" % "0.23.23",
+      "org.typelevel" %% "cats-effect" % "3.6.3",
+      "io.circe" %% "circe-generic" % "0.14.6",
+      "io.circe" %% "circe-parser" % "0.14.6",
+      "ch.qos.logback" % "logback-classic" % "1.4.14",
+      "org.typelevel" %% "log4cats-slf4j" % "2.6.0",
+      "org.typelevel" %% "cats-effect-testing-scalatest" % "1.8.0" % Test
+    ),
+
+    // JAR File building
+    assembly / mainClass := Some("com.unibo.scalaparty.infrastructure.ServerApp"),
+    assembly / assemblyJarName := s"scalaparty-${(ThisBuild / version).value}.jar",
+    assembly / assemblyMergeStrategy := {
+      case "module-info.class" => MergeStrategy.discard
+      case x =>
+        val oldStrategy = (assembly / assemblyMergeStrategy).value
+        oldStrategy(x)
+    }
+  )
+
+// --- ROOT PROJECT ---
+lazy val root = (project in file("."))
+  .disablePlugins(AssemblyPlugin)
+  .aggregate(core, infrastructure)
+  .dependsOn(infrastructure)
+  .settings(commonSettings *)
+  .settings(
+    name := "scalaparty",
+    Compile / run / mainClass := Some("com.unibo.scalaparty.infrastructure.ServerApp")
+  )
