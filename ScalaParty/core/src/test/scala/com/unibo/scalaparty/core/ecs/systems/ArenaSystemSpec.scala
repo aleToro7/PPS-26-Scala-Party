@@ -23,7 +23,7 @@ class ArenaSystemSpec extends AnyFlatSpec with Matchers:
   private val minArenaY = -maxArenaY
   private val entityRadius = 5.0
 
-  private val settings = GameSettings(map = map)
+  private val settings = GameSettings.default.copy(map = map)
   private val dt = 1_000L // 1 second in milliseconds
 
   private def createBoundedEntity(
