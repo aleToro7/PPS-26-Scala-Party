@@ -1,0 +1,7 @@
+![[Report/1-processo-di-sviluppo/index]]
+![[2-requisiti/index]]
+![[Report/3-design-architetturale/index|]]
+![[4-design-di-dettaglio/index]]
+![[5-implementazione/index]]
+![[6-testing/index]]
+![[7-conclusioni/index]]
