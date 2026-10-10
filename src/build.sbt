@@ -13,10 +13,10 @@ lazy val commonSettings = Seq(
 
 // --- CORE MODULE ---
 lazy val core = (project in file("core"))
+  .disablePlugins(AssemblyPlugin)
   .settings(commonSettings *)
   .settings(
-    name := "scalaparty-core",
-    assembly / skip := true
+    name := "scalaparty-core"
   )
 
 // --- INFRASTRUCTURE MODULE ---
@@ -51,11 +51,11 @@ lazy val infrastructure = (project in file("infrastructure"))
 
 // --- ROOT PROJECT ---
 lazy val root = (project in file("."))
+  .disablePlugins(AssemblyPlugin)
   .aggregate(core, infrastructure)
   .dependsOn(infrastructure)
   .settings(commonSettings *)
   .settings(
     name := "scalaparty",
-    Compile / run / mainClass := Some("com.unibo.scalaparty.infrastructure.ServerApp"),
-    assembly / skip := true
+    Compile / run / mainClass := Some("com.unibo.scalaparty.infrastructure.ServerApp")
   )
