@@ -33,6 +33,7 @@ val run: IO[Unit] =
 ```
 
 Ogni componente con stato espone una factory che restituisce `IO[...]`. In questo modo la creazione dello stato mutabile condiviso (un `Ref`) è anch'essa un effetto, e non può avvenire in maniera implicita al di fuori del flusso controllato da cats-effect.
+La for-comprehension è una composizione **monadica** di `IO` (tradotta in `flatMap`/`map`), mentre le rotte HTTP sono definite tramite **pattern matching** sugli estrattori di http4s (`case GET -> Root / ...`).
 
 Il server espone tre rotte HTTP:
 
@@ -49,6 +50,8 @@ Il server espone tre rotte HTTP:
 - **Connessione (`onConnect`)**: alla richiesta su `/ws` viene generato un nuovo `PlayerId` (UUID) e creata una coda `Queue[IO, WebSocketFrame]` dedicata ai messaggi in uscita verso quel client. Il giocatore viene registrato nel `ConnectionRegistry` e viene invocato `AccessPort.joinLobby`. Se l'esito è `Admission.Rejected` (tutte le stanze occupate e coda piena), il server mette in coda un frame di chiusura e rimuove subito la sessione.
 - **Messaggio (`onMessage`)**: il frame di testo viene decodificato in un `PlayerInput`. La partita a cui il comando si riferisce viene ricavata dal registro **ad ogni messaggio** e non una volta per tutte alla connessione: un giocatore può infatti connettersi mentre è in coda ed essere assegnato a una partita solo successivamente. Gli input di un giocatore che non è ancora in partita vengono scartati, così come i JSON non validi.
 - **Disconnessione (`onDisconnect`)**: la sessione viene rimossa dal registro e viene invocato `AccessPort.leaveLobby`, così da liberare il posto in coda o rimuovere la navicella dalla partita.
+
+`onConnect` e `onDisconnect` sono for-comprehension su `IO`, cioè composizioni **monadiche** di effetti. In `onMessage` il **pattern matching** è annidato: sul tipo di frame (`WebSocketFrame.Text`), sull'`Either` della decodifica JSON e sull'`Option` della partita. L'esito `Admission` viene scomposto con un `match`.
 
 Il flusso dei frame verso il client è ottenuto unendo la coda dei messaggi del giocatore con un `Ping` inviato ogni 20 secondi:
 
@@ -100,6 +103,7 @@ def run: IO[MatchOutcome] =
 ```
 
 Lo stato del mondo di gioco è conservato tra un tick e il successivo dal `GameEngine`, che lo aggiorna a ogni invocazione di `update`. L'unica informazione che il runner deve mantenere in proprio, l'insieme dei giocatori già usciti, viene invece trasportata nell'accumulatore dello stream anziché in una variabile mutabile. L'elenco dei partecipanti ancora presenti è passato al runner come effetto (`roster: IO[Set[PlayerId]]`), così che il runner non dipenda direttamente dalla lobby.
+Il corpo del tick è una for-comprehension **monadica** che alterna passi con effetti (`<-`) e definizioni pure (`=`). Il **pattern matching** destruttura l'accumulatore (`case (departed, (_, tick))`) e, tramite `collectFirst`, estrae l'esito dall'evento `GameEvent.MatchEnded`.
 
 #### Adapter in uscita: `WebSocketBroadcaster` e `WebSocketNotifier`
 
@@ -134,6 +138,19 @@ def finishMatch(matchId: MatchId): F[Option[ActiveMatch]] // partita avviata nel
 L'identificativo della possibile nuova partita viene generato prima della `modify` (`withCandidateMatchId`), perché la funzione passata a `modify` deve essere pura; l'identificativo viene poi utilizzato solo se una partita inizia effettivamente.
 
 La factory `QueuedLobbyManager.of` valida i parametri di configurazione (`playersPerMatch ≥ 1`, `maxMatches ≥ 1` e una coda capace di contenere almeno `playersPerMatch - 1` giocatori, senza la quale una partita non potrebbe mai raccogliere abbastanza partecipanti) sollevando l'errore all'interno dell'effetto. Il componente è generico sull'effetto (`F[_]: Sync`).
+La factory è una for-comprehension **monadica** in cui il primo `raiseUnless` che fallisce interrompe la catena, senza che il `Ref` venga creato:
+
+```scala
+def of[F[_]: Sync](playersPerMatch: Int, maxMatches: Int, maxQueued: Int): F[QueuedLobbyManager[F]] =
+  for
+    _     <- Sync[F].raiseUnless(playersPerMatch >= 1)(IllegalArgumentException(/* ... */))
+    _     <- Sync[F].raiseUnless(maxMatches >= 1)(IllegalArgumentException(/* ... */))
+    _     <- Sync[F].raiseUnless(maxQueued >= playersPerMatch - 1)(IllegalArgumentException(/* ... */))
+    state <- Ref.of[F, WaitingRoom](WaitingRoom.empty)
+  yield new QueuedLobbyManager[F](state, playersPerMatch, maxMatches, maxQueued)
+```
+
+In `join` il **pattern matching** con guardia (`case None if ...`) distingue il giocatore in coda da quello rifiutato.
 
 #### Coordinamento delle partite: `MatchCoordinator`
 
@@ -145,6 +162,8 @@ La factory `QueuedLobbyManager.of` valida i parametri di configurazione (`player
 - **`concludeMatch`**: al termine della partita sgancia i giocatori dalla partita, invia loro `ServerMessage.MatchEnded(outcome)`, dichiara conclusa la partita nella lobby e avvia immediatamente quella successiva, se ci sono abbastanza giocatori in attesa. In questo modo la coda avanza autonomamente.
 
 Ogni partita è quindi eseguita su una propria fiber, isolata e indipendente dalle altre, e viene interrotta solo quando termina o quando tutti i giocatori l'hanno abbandonata.
+
+`joinLobby` usa il **pattern matching** sui casi di `JoinOutcome`. Le altre operazioni sono composizioni **monadiche** di `IO` (for-comprehension, `flatMap`, `*>`) e usano `traverse_`, anche su `Option`, per eseguire un effetto solo quando il valore è presente (ad esempio `outcome.started.traverse_(startMatch)`).
 
 Il coordinatore gestisce esplicitamente alcune **condizioni di corsa** che emergono dalla concorrenza tra fiber:
 
