@@ -38,7 +38,7 @@ Nonostante l'ispirazione concettuale, la nostra implementazione si discosta da u
 >
 > ```mermaid
 > flowchart LR
->     Clock["1. Trigger Temporale"] --"batch di comandi"--> Pipeline["Pipeline di update"]
+>     Clock["1. Trigger Temporale"] --Tick Δt + Batch Comandi--> Pipeline["Pipeline di update"]
 >     subgraph "2. Update del Modello"
 >         direction LR
 >         Pipeline --"Model(t), eventi"--> Adapter["Serializzatore DTO"]
