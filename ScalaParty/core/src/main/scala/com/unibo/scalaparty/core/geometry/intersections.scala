@@ -12,10 +12,10 @@ extension (self: AABB)
     dx <= self.width.half + other.width.half && dy <= self.height.half + other.height.half
 
   /** Checks if this AABB intersects with a Circle. */
-  def intersects(circle: Circle): Boolean = circle.intersects(self)
+  def intersects(circle: Circle): Boolean = circle intersects self
 
   /** Checks if this AABB intersects with a Polygon. */
-  def intersects(polygon: Polygon): Boolean = polygon.intersects(self)
+  def intersects(polygon: Polygon): Boolean = polygon intersects self
 
   /** Calculates the minimum translation vector needed to separate two intersecting AABBs. */
   def penetratingVector(other: AABB): Option[Vector2D] =
@@ -54,7 +54,7 @@ extension (self: Circle)
 
   /** Checks if this Circle intersects with a Polygon. */
   def intersects(polygon: Polygon): Boolean =
-    polygon.intersects(self)
+    polygon intersects self
 
   /** Calculates the minimum translation vector needed to separate two intersecting circles. */
   def penetratingVector(other: Circle): Option[Vector2D] =
@@ -155,15 +155,15 @@ extension (self: Shape)
 
   /** Determines whether this shape intersects with another shape. */
   def intersects(other: Shape): Boolean = (self, other) match
-    case (a1: AABB, a2: AABB) => a1.intersects(a2)
-    case (c1: Circle, c2: Circle) => c1.intersects(c2)
-    case (p1: Polygon, p2: Polygon) => p1.intersects(p2)
-    case (p: Polygon, a: AABB) => p.intersects(a)
-    case (a: AABB, p: Polygon) => a.intersects(p)
-    case (c: Circle, a: AABB) => c.intersects(a)
-    case (a: AABB, c: Circle) => a.intersects(c)
-    case (p: Polygon, c: Circle) => p.intersects(c)
-    case (c: Circle, p: Polygon) => c.intersects(p)
+    case (a1: AABB, a2: AABB) => a1 intersects a2
+    case (c1: Circle, c2: Circle) => c1 intersects c2
+    case (p1: Polygon, p2: Polygon) => p1 intersects p2
+    case (p: Polygon, a: AABB) => p intersects a
+    case (a: AABB, p: Polygon) => a intersects p
+    case (c: Circle, a: AABB) => c intersects a
+    case (a: AABB, c: Circle) => a intersects c
+    case (p: Polygon, c: Circle) => p intersects c
+    case (c: Circle, p: Polygon) => c intersects p
 
   /** Calculates the minimum translation vector needed to separate two intersecting shapes. */
   def penetratingVector(other: Shape): Option[Vector2D] = (self, other) match

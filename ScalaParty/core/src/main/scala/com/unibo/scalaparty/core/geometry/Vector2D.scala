@@ -37,24 +37,23 @@ final case class Vector2D(x: Double, y: Double):
   def *(scalar: Double): Vector2D =
     Vector2D(this.x * scalar, this.y * scalar)
 
-  /** Computes the dot (scalar) product of this vector and another vector.
+  /** Computes the scalar product of this vector and another vector.
    *
    *  @param other the other vector
    *  @return the dot product as a [[Double]]
    */
-  infix def dot(other: Vector2D): Double =
+  def dot(other: Vector2D): Double =
     this.x * other.x + this.y * other.y
 
-  /** Computes the 2D cross product (determinant / perp dot product) of this vector and another vector.
-   *  The result is positive if `other` is counter-clockwise from this vector, negative if clockwise, and zero if collinear.
+  /** Computes the 2D cross product of this vector and another vector.
    *
    *  @param other the other vector
    *  @return the cross product as a [[Double]]
    */
-  infix def cross(other: Vector2D): Double =
+  def cross(other: Vector2D): Double =
     this.x * other.y - this.y * other.x
 
-  /** Computes a perpendicular (normal) vector rotated 90 degrees counter-clockwise.
+  /** Computes a perpendicular vector rotated 90 degrees counter-clockwise.
    *  The dot product between this vector and its perpendicular vector is always zero.
    *
    *  @return a perpendicular [[Vector2D]]
@@ -66,16 +65,14 @@ final case class Vector2D(x: Double, y: Double):
    *
    *  @return the length of the vector as a [[Double]]
    */
-  def module: Double =
-    Math.hypot(x, y)
+  def module: Double = Math.hypot(x, y)
 
   /** Computes the squared module of this vector.
    *  Useful to avoid square root calculations when comparing lengths.
    *
    *  @return the squared length of the vector as a [[Double]]
    */
-  def moduleSquared: Double =
-    x * x + y * y
+  def moduleSquared: Double = x * x + y * y
 
   /** Computes a normalized (unit) vector pointing in the same direction as this vector.
    *
