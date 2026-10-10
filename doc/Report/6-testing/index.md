@@ -2,7 +2,7 @@
 
 ## Tecnologie utilizzate
 
-- **ScalaTest: framework di riferimento per tutti i test del progetto. Sono stati adottati gli stili `AnyFlatSpec` per il modulo _core_, la cui natura puramente funzionale si presta a specifiche brevi e lineari, e `AnyWordSpec`/`AsyncWordSpec` per il modulo _infrastructure_, dove la struttura annidata permette di raggruppare i comportamenti per operazione (es. _joining_, _leaving_). Le asserzioni sono scritte con i `Matchers` di ScalaTest, che rendono i test leggibili come specifiche (`collisions should have size 1`).
+- **ScalaTest**: framework di riferimento per tutti i test del progetto. Sono stati adottati gli stili `AnyFlatSpec` per il modulo _core_, la cui natura puramente funzionale si presta a specifiche brevi e lineari, e `AnyWordSpec`/`AsyncWordSpec` per il modulo _infrastructure_, dove la struttura annidata permette di raggruppare i comportamenti per operazione (es. _joining_, _leaving_). Le asserzioni sono scritte con i `Matchers` di ScalaTest, che rendono i test leggibili come specifiche (`collisions should have size 1`).
 - **cats-effect-testing (`AsyncIOSpec`)**: integra ScalaTest con Cats Effect, permettendo di scrivere test che restituiscono direttamente un `IO[Assertion]`. In questo modo i componenti effectful del server (lobby, coordinatore delle partite, registro delle connessioni) vengono testati componendo gli effetti in una for-comprehension, senza mai bloccare thread con `unsafeRunSync`.
 - **sbt**: esecuzione dei test, separata per modulo (`core`, `infrastructure`) e aggregata dal progetto radice.
 - **sbt-scoverage**: utilizzato per misurare la copertura del codice.
