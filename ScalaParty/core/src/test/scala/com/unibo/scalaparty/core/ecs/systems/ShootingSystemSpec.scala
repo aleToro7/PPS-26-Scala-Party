@@ -58,9 +58,16 @@ class ShootingSystemSpec extends AnyFlatSpec with Matchers with OptionValues:
 
     val (updatedWorld, _) = updateWorld(world)
 
-    updatedWorld.shootingComponent.cooldownTimer should be < cooldown
+    updatedWorld.shootingComponent.cooldownTimer shouldBe cooldown - defaultDt
 
   it should "not decrease cooldown timer below zero" in:
+    val world = worldWith(ShootingComponent(Weapon.default, cooldownTimer = defaultDt / 2))
+
+    val (updatedWorld, _) = updateWorld(world)
+
+    updatedWorld.shootingComponent.cooldownTimer shouldBe 0L
+
+  it should "leave the world untouched once the cooldown is over" in:
     val world = worldWith(ShootingComponent(Weapon.default))
 
     val (updatedWorld, _) = updateWorld(world)
@@ -96,7 +103,7 @@ class ShootingSystemSpec extends AnyFlatSpec with Matchers with OptionValues:
 
     updatedWorld.findEntitiesWithComponent[BulletComponent] shouldBe empty
     updatedWorld.shootingComponent.isShooting shouldBe false
-    updatedWorld.shootingComponent.cooldownTimer should be < cooldown
+    updatedWorld.shootingComponent.cooldownTimer shouldBe cooldown - defaultDt
 
   it should "spawn the bullet in front of the shooter at the muzzle offset" in:
     val weapon = weaponWith(shootCooldown = 500L, muzzleOffset = 12.0)
@@ -106,7 +113,7 @@ class ShootingSystemSpec extends AnyFlatSpec with Matchers with OptionValues:
 
     val (_, bulletComponents) = updatedWorld.findEntitiesWithComponent[BulletComponent].head
     val bulletPosition = bulletComponents.collectFirst { case pc: PositionComponent => pc.position }.value
-    bulletPosition shouldBe Point2D(12.0, 0.0)
+    bulletPosition shouldBe Point2D(weapon.muzzleOffset, 0.0)
 
   it should "spawn bullet with correct velocity, power and shooterId" in:
     val weapon = weaponWith(shootCooldown = 500L, bulletPower = 25.0, bulletSpeed = 150.0)
