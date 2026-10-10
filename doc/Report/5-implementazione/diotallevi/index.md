@@ -81,43 +81,41 @@ GameMap.fromGrid(
 
 Inoltre il parametro contestuale `TileSize` permette di definire la dimensione di ciascun tile in maniera totalmente trasparente e soltanto al bisogno. In assenza di un valore given, il sistema utilizza la dimensione consigliata come default per ogni tile.
 
-## Contextual Abstractions e Geometria 2D
+## Modellazione Geometrica ed Extension Methods
 
-Per implementare la fisica bidimensionale e l'algoritmo di collisione, è stato necessario proiettare forme geometriche eterogenee (poligoni, cerchi, rettangoli AABB) lungo assi di separazione arbitrari.
-Invece di imporre ereditarietà sull'ADT `Shape`, è stato definito il trait funzionale `Projectable`:
+Per implementare la fisica e il rilevamento delle collisioni senza inquinare l'ADT `Shape` con algoritmi complessi e senza ricorrere a classi utility statiche procedurali, la logica geometrica è stata realizzat in un modulo separato sfruttando gli extension methods:
 
 ```scala
-trait Projectable:
-  def projectOnto(axis: Vector2D): (Double, Double)
+extension (self: AABB)
+  def intersects(other: AABB): Boolean = ...
+  def penetratingVector(other: AABB): Option[Vector2D] = ...
+
+extension (self: Polygon)
+  def intersects(other: Polygon): Boolean = ...
+  def penetratingVector(other: Polygon): Option[Vector2D] = ...
+
+extension (self: Circle)
+  def intersects(other: Polygon): Boolean = other.intersects(self) // Simmetria
+  def penetratingVector(other: Polygon): Option[Vector2D] =
+    other.penetratingVector(self).map(-_) // Anti-simmetria vettoriale
 ```
 
-Sfruttando le Contextual Abstractions, il compilatore converte automaticamente e trasparentemente le forme geometriche in entità proiettabili:
+Quando il tipo concreto della forma non è noto staticamente (come all'interno dei componenti ECS), un'estensione su `Shape` gestisce il dynamic dispatch tramite pattern matching:
 
 ```scala
-given Conversion[Polygon, Projectable] with
-  def apply(p: Polygon): Projectable = axis =>
-    val projections = p.vertices.map: v =>
-      v.x * axis.x + v.y * axis.y
-    (projections.min, projections.max)
+extension (self: Shape)
+  def intersects(other: Shape): Boolean = (self, other) match
+    case (p1: Polygon, p2: Polygon) => p1.intersects(p2)
+    case (c: Circle, p: Polygon)    => c.intersects(p)
+    case (a1: AABB, a2: AABB)       => a1.intersects(a2)
+    case ...                        => ...
 
-given Conversion[Circle, Projectable] with
-  def apply(c: Circle): Projectable = axis =>
-    val centerProjection = c.center.x * axis.x + c.center.y * axis.y
-    (centerProjection - c.radius, centerProjection + c.radius)
-```
-
-La conversione implicita permette di applicare direttamente metodi come `projectOnto` o `minOverlappingAxis` su istanze di `Polygon` o `Circle` senza wrapper espliciti.
-
-- **Extension Methods Polimorfe**: Tutta la logica di calcolo delle intersezioni e dei vettori di penetrazione è incapsulata in extension methods parametriche:
-
-```scala
-extension [S <: Shape](self: S)
-  def intersects[B <: Shape](other: B): Boolean = ...
   def penetratingVector(other: Shape): Option[Vector2D] = ...
-  def moveTo(p: Point2D): S = ...
 ```
 
-Questo approccio mantiene le definizioni dei tipi nell'enum `Shape` estremamente pulite e snelle, separando la dichiarazione dei dati dalle operazioni geometriche.
+Questo approccio garantisce una sintassi naturale e leggibile (es. `actorShape.boundingBox intersects targetShape.boundingBox`).
+
+Inoltre, per migliorare l'espressività e la robustezza del modulo sono state utilizzate le conversioni implicite che permettono l'uso trasparente di tuple letterali nei test e nella configurazione senza overhead sintattico.
 
 ## Risoluzione Immutabile nel Collision System
 
