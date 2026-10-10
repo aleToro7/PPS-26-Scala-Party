@@ -1,0 +1,69 @@
+package com.unibo.scalaparty.core.ecs
+
+import com.unibo.scalaparty.core.dto.EntityDto.{Bullet, Spaceship, Wall}
+import com.unibo.scalaparty.core.dto.toDto
+import com.unibo.scalaparty.core.geometry.{Point2D, Vector2D}
+import com.unibo.scalaparty.core.geometry.Shape.{AABB, Circle}
+import org.scalatest.OptionValues.convertOptionToValuable
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
+
+class EntityAdapterSpec extends AnyFlatSpec with Matchers:
+
+  "EntityAdapter" should "convert a spaceship entity to its corresponding DTO" in:
+    val entityId = EntityId.generate()
+    val position = Point2D(10, 20)
+    val velocity = Vector2D(1, 1)
+    val shape = AABB(2, 2, Point2D.origin)
+    val components =
+      List(
+        PositionComponent(position),
+        MovementComponent(velocity),
+        EntityTypeComponent(EntityType.Spaceship),
+        ShapeComponent(shape)
+      )
+    val entity = (entityId, components)
+    val dto = entity.toDto
+    dto should not be None
+    dto.get shouldBe a[Spaceship]
+
+  it should "convert a bullet entity to its corresponding DTO" in:
+    val entityId = EntityId.generate()
+    val components =
+      List(
+        PositionComponent(Point2D(10, 20)),
+        MovementComponent(Vector2D(1, 0)),
+        EntityTypeComponent(EntityType.Bullet),
+        ShapeComponent(Circle(1, Point2D.origin))
+      )
+    val entity = (entityId, components)
+    val dto = entity.toDto
+    dto should not be None
+    dto.get shouldBe a[Bullet]
+
+  it should "convert a wall entity to its corresponding DTO" in:
+    val entityId = EntityId.generate()
+    val components =
+      List(
+        PositionComponent(Point2D(5, 5)),
+        ShapeComponent(AABB(10, 2, Point2D.origin)),
+        EntityTypeComponent(EntityType.Wall)
+      )
+    val entity = (entityId, components)
+    val dto = entity.toDto
+    dto should not be None
+    dto.value shouldBe a[Wall]
+
+  it should "return None for a spaceship entity missing required components" in:
+    val entityId = EntityId.generate()
+    val components = List(EntityTypeComponent(EntityType.Spaceship))
+    val entity = (entityId, components)
+    val dto = entity.toDto
+    dto shouldBe None
+
+  it should "return None for an entity with an unknown type" in:
+    val entityId = EntityId.generate()
+    val components = List() // No EntityTypeComponent
+    val entity = (entityId, components)
+    val dto = entity.toDto
+    dto shouldBe None
