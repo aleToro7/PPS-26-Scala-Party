@@ -18,3 +18,9 @@ object ClockSystem extends WorldSystem:
           .collectFirstOfClass[MatchClockComponent]
           .fold(currentWorld)(clock => currentWorld.updateComponent(clockId, clock.advanced(dt)))
     (updatedWorld, events)
+
+  extension (clock: MatchClockComponent)
+
+    private def advanced(dt: Long): MatchClockComponent =
+      require(dt >= 0L, "Time cannot flow backwards")
+      clock.copy(elapsed = clock.elapsed + dt)

@@ -13,19 +13,6 @@ class ConnectionRegistrySpec extends AsyncWordSpec with AsyncIOSpec with Matcher
 
   "A ConnectionRegistry".should:
 
-    "allow binding a session to a match and retrieving it".in:
-      val playerId = PlayerId.random()
-      val matchId = MatchId.random()
-
-      for
-        registry <- ConnectionRegistry()
-        queue    <- Queue.unbounded[IO, WebSocketFrame]
-        _        <- registry.bindSessionToMatch(playerId, matchId, queue)
-        players  <- registry.getClientsForMatch(matchId)
-      yield
-        players.size shouldBe 1
-        players.head shouldBe playerId
-
     "return an empty list for a match with no players".in:
       val matchId = MatchId.random()
 
@@ -41,7 +28,8 @@ class ConnectionRegistrySpec extends AsyncWordSpec with AsyncIOSpec with Matcher
       for
         registry <- ConnectionRegistry()
         queue    <- Queue.unbounded[IO, WebSocketFrame]
-        _        <- registry.bindSessionToMatch(playerId, matchId, queue)
+        _        <- registry.register(playerId, queue)
+        _        <- registry.assignToMatch(playerId, matchId)
         _        <- registry.removeSession(playerId)
         players  <- registry.getClientsForMatch(matchId)
       yield players shouldBe empty
@@ -55,8 +43,10 @@ class ConnectionRegistrySpec extends AsyncWordSpec with AsyncIOSpec with Matcher
         registry <- ConnectionRegistry()
         queue1   <- Queue.unbounded[IO, WebSocketFrame]
         queue2   <- Queue.unbounded[IO, WebSocketFrame]
-        _        <- registry.bindSessionToMatch(player1, matchId, queue1)
-        _        <- registry.bindSessionToMatch(player2, matchId, queue2)
+        _        <- registry.register(player1, queue1)
+        _        <- registry.assignToMatch(player1, matchId)
+        _        <- registry.register(player2, queue2)
+        _        <- registry.assignToMatch(player2, matchId)
         players  <- registry.getClientsForMatch(matchId)
       yield
         players.size shouldBe 2
@@ -108,7 +98,8 @@ class ConnectionRegistrySpec extends AsyncWordSpec with AsyncIOSpec with Matcher
       for
         registry <- ConnectionRegistry()
         queue    <- Queue.unbounded[IO, WebSocketFrame]
-        _        <- registry.bindSessionToMatch(playerId, matchId, queue)
+        _        <- registry.register(playerId, queue)
+        _        <- registry.assignToMatch(playerId, matchId)
         _        <- registry.clearMatch(playerId)
         current  <- registry.matchOf(playerId)
         players  <- registry.getClientsForMatch(matchId)

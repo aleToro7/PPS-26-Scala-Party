@@ -37,6 +37,9 @@ class ClockSystemSpec extends AnyFlatSpec with Matchers:
 
     twice.elapsed shouldBe Some(2 * defaultDt)
 
+  it should "reject a negative elapsed time" in:
+    an[IllegalArgumentException] should be thrownBy ClockSystem.update(world, Set.empty, -1L)
+
   it should "leave the other entities untouched" in:
     val (updatedWorld, _) = updateWorld(world)
 

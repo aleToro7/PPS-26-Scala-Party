@@ -19,6 +19,12 @@ object DamageSystem extends WorldSystem:
       case (currentWorld, _) => currentWorld
     (updatedWorld, events)
 
+  extension (health: HealthComponent)
+
+    private def damaged(amount: Double): HealthComponent =
+      require(amount >= 0.0, "Damage cannot be negative")
+      health.copy(current = math.max(0.0, health.current - amount))
+
   extension (world: GameWorld)
 
     private def strike(attackerId: EntityId, targetId: EntityId): GameWorld =

@@ -21,7 +21,8 @@ class WebSocketBroadcasterSpec extends AsyncWordSpec with AsyncIOSpec with Match
       for
         registry <- ConnectionRegistry()
         queue    <- Queue.unbounded[IO, WebSocketFrame]
-        _        <- registry.bindSessionToMatch(playerId, matchId, queue)
+        _        <- registry.register(playerId, queue)
+        _        <- registry.assignToMatch(playerId, matchId)
 
         broadcaster = WebSocketBroadcaster(registry)
 

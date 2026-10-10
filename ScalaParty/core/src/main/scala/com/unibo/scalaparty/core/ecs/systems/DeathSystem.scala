@@ -24,3 +24,7 @@ object DeathSystem extends WorldSystem:
     val outgoingEvents = events ++ deadEntities.map(GameEvent.Death(_))
     val updatedWorld = entitiesToRemove.foldLeft(world)(_ - _)
     (updatedWorld, outgoingEvents)
+
+  extension (health: HealthComponent)
+
+    private def isDepleted: Boolean = health.current == 0.0

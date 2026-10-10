@@ -55,6 +55,20 @@ class DamageSystemSpec extends AnyFlatSpec with Matchers with OptionValues:
 
     updatedWorld.healthOf(shipId) shouldBe maxHealth - bulletPower
 
+  it should "never let the health drop below zero" in:
+    val world = GameWorld(List(ship(shipId), bulletShotBy(otherShipId)))
+      .updateComponent(shipId, HealthComponent(bulletPower / 2, maxHealth))
+
+    val (updatedWorld, _) = updateWorld(world, CollisionDetected(bulletId, shipId))
+
+    updatedWorld.healthOf(shipId) shouldBe 0.0
+
+  it should "reject a negative damage" in:
+    val bullet = EntityFactory.createBullet(otherShipId, Point2D.origin, Vector2D.zero, power = -1.0, bulletId)
+    val world = GameWorld(List(ship(shipId), bullet))
+
+    an[IllegalArgumentException] should be thrownBy updateWorld(world, CollisionDetected(bulletId, shipId))
+
   it should "consume a bullet once it damages an entity" in:
     val world = GameWorld(List(ship(shipId), bulletShotBy(otherShipId)))
 
