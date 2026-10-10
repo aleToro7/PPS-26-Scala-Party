@@ -2,7 +2,7 @@ package com.unibo.scalaparty.core.ecs.systems
 
 import com.unibo.scalaparty.core.ecs.*
 import com.unibo.scalaparty.core.ecs.GameEvent.CollisionDetected
-import com.unibo.scalaparty.core.geometry.{center, rotate, Point2D, Shape, Vector2D}
+import com.unibo.scalaparty.core.geometry.{Point2D, Shape, Vector2D}
 import com.unibo.scalaparty.core.geometry.Shape.{AABB, Polygon}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

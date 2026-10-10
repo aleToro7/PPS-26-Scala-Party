@@ -1,7 +1,7 @@
 package com.unibo.scalaparty.core.ecs.systems
 
 import com.unibo.scalaparty.core.ecs.*
-import com.unibo.scalaparty.core.geometry.{rotate as rotatePolygon, *}
+import com.unibo.scalaparty.core.geometry.*
 import com.unibo.scalaparty.core.geometry.Shape.AABB
 import com.unibo.scalaparty.core.model.GameSettings
 import com.unibo.scalaparty.core.utils.{collectFirstOfClass, half}
@@ -54,8 +54,3 @@ class ArenaSystem(private val settings: GameSettings) extends WorldSystem:
     val clampedX = position.x.max(minAssignableX).min(maxAssignableX)
     val clampedY = position.y.max(minAssignableY).min(maxAssignableY)
     Point2D(clampedX, clampedY)
-
-  extension (shape: Shape)
-    private def rotate(angle: Double): Shape = shape match
-      case p: Shape.Polygon => p.rotatePolygon(angle)
-      case _ => shape // For Circle and AABB, rotation does not change the shape

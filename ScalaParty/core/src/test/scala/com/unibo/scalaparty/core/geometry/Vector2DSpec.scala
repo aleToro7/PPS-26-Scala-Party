@@ -10,6 +10,10 @@ class Vector2DSpec extends AnyFlatSpec with Matchers:
   "A Vector2D" should "provide a zero vector constant at origin" in:
     Vector2D.zero shouldBe Vector2D(0.0, 0.0)
 
+  it should "provide unit axes constants" in:
+    Vector2D.unitX shouldBe Vector2D(1.0, 0.0)
+    Vector2D.unitY shouldBe Vector2D(0.0, 1.0)
+
   it should "correctly add two vectors component-wise" in:
     val v1 = Vector2D(1.5, 2.0)
     val v2 = Vector2D(3.0, -1.0)
@@ -25,9 +29,34 @@ class Vector2DSpec extends AnyFlatSpec with Matchers:
     val scalar = 2.0
     (v * scalar) shouldBe Vector2D(4.0, -7.0)
 
+  it should "correctly multiply a scalar by a vector from the left" in:
+    val v = Vector2D(2.0, -3.5)
+    (2.0 * v) shouldBe Vector2D(4.0, -7.0)
+
+  it should "compute the correct dot product" in:
+    val v1 = Vector2D(2.0, 3.0)
+    val v2 = Vector2D(4.0, -1.0)
+    (v1 dot v2) shouldBe 5.0
+    (Vector2D(1.0, 0.0) dot Vector2D(0.0, 1.0)) shouldBe 0.0
+
+  it should "compute the correct 2D cross product" in:
+    val v1 = Vector2D(1.0, 0.0)
+    val v2 = Vector2D(0.0, 1.0)
+    (v1 cross v2) shouldBe 1.0
+    (v2 cross v1) shouldBe -1.0
+    (v1 cross v1) shouldBe 0.0
+
+  it should "compute a perpendicular vector rotated 90 degrees CCW" in:
+    val v = Vector2D(3.0, 4.0)
+    val perp = v.perpendicular
+    perp shouldBe Vector2D(-4.0, 3.0)
+    (v dot perp) shouldBe 0.0
+    perp.module shouldBe v.module
+
   it should "calculate the correct module" in:
     val v = Vector2D(3.0, 4.0)
     v.module shouldBe 5.0
+    v.moduleSquared shouldBe 25.0
 
   it should "normalize a non-zero vector to unit length" in:
     val v = Vector2D(3.0, 0.0)
