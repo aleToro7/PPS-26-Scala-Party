@@ -1,7 +1,7 @@
 package com.unibo.scalaparty.core.ecs
 
-import com.unibo.scalaparty.core.geometry.{Point2D, Shape, Vector2D, given}
-import com.unibo.scalaparty.core.model.{GameSettings, ShootingSettings}
+import com.unibo.scalaparty.core.geometry.{Point2D, Shape, Vector2D}
+import com.unibo.scalaparty.core.model.{SpaceshipSettings, Weapon}
 
 object EntityFactory:
 
@@ -18,8 +18,8 @@ object EntityFactory:
       velocity: Vector2D,
       entityId: EntityId = EntityId.generate(),
       weapon: Weapon = Weapon.default,
-      maxHealth: Double = GameSettings.default.spaceship.maxHealth,
-      collisionDamage: Double = GameSettings.default.spaceship.collisionDamage
+      maxHealth: Double = SpaceshipSettings.default.maxHealth,
+      collisionDamage: Double = SpaceshipSettings.default.collisionDamage
   ): (EntityId, List[Component]) =
     val components: List[Component] = List(
       PositionComponent(position),
@@ -27,25 +27,24 @@ object EntityFactory:
       RotationComponent(velocity.angle),
       EntityTypeComponent(EntityType.Spaceship),
       ShootingComponent(weapon = weapon),
-      EntityTypeComponent(EntityType.Spaceship),
-      ShapeComponent(Shape.Polygon((12.0, 0.0), (-12.0, -7.0), (-12.0, 7.0))),
+      ShapeComponent(Shape.Polygon(Point2D(12.0, 0.0), Point2D(-12.0, -7.0), Point2D(-12.0, 7.0))),
       HealthComponent.full(maxHealth),
       CollisionDamageComponent(collisionDamage)
     )
     (entityId, components)
 
-  def createSpaceshipFromConfig(settings: GameSettings)(
+  def createSpaceshipFromConfig(settings: SpaceshipSettings)(
       position: Point2D,
       direction: Vector2D,
       entityId: EntityId = EntityId.generate()
   ): EntityWithComponents =
     createSpaceship(
       position = position,
-      velocity = direction.normalized * settings.spaceship.speed,
+      velocity = direction.normalized * settings.speed,
       entityId = entityId,
-      weapon = Weapon.fromSettings(settings.shooting),
-      maxHealth = settings.spaceship.maxHealth,
-      collisionDamage = settings.spaceship.collisionDamage
+      weapon = settings.weapon,
+      maxHealth = settings.maxHealth,
+      collisionDamage = settings.collisionDamage
     )
 
     /** Creates a new bullet entity with the specified position, velocity, and power.
@@ -68,7 +67,7 @@ object EntityFactory:
       MovementComponent(velocity),
       EntityTypeComponent(EntityType.Bullet),
       BulletComponent(power, shooterId),
-      ShapeComponent(Shape.Circle(3.0, (0.0, 0.0)))
+      ShapeComponent(Shape.Circle(3.0, Point2D.origin))
     )
     (entityId, components)
 
@@ -88,7 +87,7 @@ object EntityFactory:
     val components: List[Component] = List(
       PositionComponent(position),
       EntityTypeComponent(EntityType.Wall),
-      ShapeComponent(Shape.AABB(width, height, (0.0, 0.0)))
+      ShapeComponent(Shape.AABB(width, height, Point2D.origin))
     )
     (entityId, components)
 

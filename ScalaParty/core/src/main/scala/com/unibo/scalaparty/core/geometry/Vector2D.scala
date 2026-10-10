@@ -37,12 +37,42 @@ final case class Vector2D(x: Double, y: Double):
   def *(scalar: Double): Vector2D =
     Vector2D(this.x * scalar, this.y * scalar)
 
-  /** Computes the magnitude (length) of this vector.
+  /** Computes the scalar product of this vector and another vector.
+   *
+   *  @param other the other vector
+   *  @return the dot product as a [[Double]]
+   */
+  def dot(other: Vector2D): Double =
+    this.x * other.x + this.y * other.y
+
+  /** Computes the 2D cross product of this vector and another vector.
+   *
+   *  @param other the other vector
+   *  @return the cross product as a [[Double]]
+   */
+  def cross(other: Vector2D): Double =
+    this.x * other.y - this.y * other.x
+
+  /** Computes a perpendicular vector rotated 90 degrees counter-clockwise.
+   *  The dot product between this vector and its perpendicular vector is always zero.
+   *
+   *  @return a perpendicular [[Vector2D]]
+   */
+  def perpendicular: Vector2D =
+    Vector2D(-this.y, this.x)
+
+  /** Computes the module (length) of this vector.
    *
    *  @return the length of the vector as a [[Double]]
    */
-  def module: Double =
-    Math.hypot(x, y)
+  def module: Double = Math.hypot(x, y)
+
+  /** Computes the squared module of this vector.
+   *  Useful to avoid square root calculations when comparing lengths.
+   *
+   *  @return the squared length of the vector as a [[Double]]
+   */
+  def moduleSquared: Double = x * x + y * y
 
   /** Computes a normalized (unit) vector pointing in the same direction as this vector.
    *
@@ -76,6 +106,31 @@ final case class Vector2D(x: Double, y: Double):
    */
   def angle: Double = math.atan2(y, x).toDegrees
 
+  /** Converts this vector to a [[Point2D]]. */
+  def toPoint: Point2D = Point2D(x, y)
+
 object Vector2D:
   /** A constant vector representing the origin `(0.0, 0.0)`. */
   val zero: Vector2D = Vector2D(0.0, 0.0)
+
+  /** A unit vector pointing along the positive X-axis `(1.0, 0.0)`. */
+  val unitX: Vector2D = Vector2D(1.0, 0.0)
+
+  /** A unit vector pointing along the positive Y-axis `(0.0, 1.0)`. */
+  val unitY: Vector2D = Vector2D(0.0, 1.0)
+
+  /** Creates a vector from a tuple of coordinates. */
+  def apply(t: (Double, Double)): Vector2D = Vector2D(t._1, t._2)
+
+  given Conversion[(Double, Double), Vector2D] with
+    def apply(t: (Double, Double)): Vector2D = Vector2D(t._1, t._2)
+
+export Vector2D.given
+
+extension (scalar: Double)
+  /** Multiplies a scalar by a vector from the left.
+   *
+   *  @param v the vector to scale
+   *  @return a new [[Vector2D]] scaled by this factor
+   */
+  def *(v: Vector2D): Vector2D = v * scalar

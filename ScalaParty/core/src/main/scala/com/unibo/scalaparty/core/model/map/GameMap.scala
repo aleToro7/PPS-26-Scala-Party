@@ -113,5 +113,5 @@ class GridMap[S <: Int](val tileSize: Int, rows: Vector[MapRow[S]]) extends Game
       case (playerId, spawnPoint) =>
         // If the spawn point is at the center of the map, default to a direction pointing upwards (0, 1)
         val direction = if mapCenter != spawnPoint then mapCenter - spawnPoint else Vector2D(0, 1)
-        EntityFactory.createSpaceshipFromConfig(settings)(spawnPoint, direction, playerId)
+        EntityFactory.createSpaceshipFromConfig(settings.spaceship)(spawnPoint, direction, playerId)
     GameWorld((walls ++ spawnedPlayers).toList)

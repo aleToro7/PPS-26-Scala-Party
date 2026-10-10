@@ -20,6 +20,8 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 object ServerApp extends IOApp.Simple:
   private val gameRoute = "scalaparty"
+  private val serverHost = ipv4"0.0.0.0"
+  private val serverPort = port"8081"
 
   /** How many players a match is played by: a match begins as soon as that many are waiting. */
   private val playersPerMatch = 2
@@ -66,10 +68,10 @@ object ServerApp extends IOApp.Simple:
 
       _ <- EmberServerBuilder
         .default[IO]
-        .withHost(ipv4"0.0.0.0")
-        .withPort(port"8081")
+        .withHost(serverHost)
+        .withPort(serverPort)
         .withLogger(serverLogger)
         .withHttpWebSocketApp(wsb => httpApp(wsb, wsServer))
         .build
-        .use(_ => IO.println("Server started on port 8081") *> IO.never)
+        .use(_ => IO.println(s"Server started on port $serverPort") *> IO.never)
     yield ()

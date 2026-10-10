@@ -191,6 +191,24 @@ class PolygonSpec extends AnyFlatSpec:
     result.get.y shouldBe (0.0 +- 1e-4)
     result.get.x shouldBe (-1.0 +- 1e-4)
 
+  "A Polygon" should "compute perpendicular normal axes for horizontal and vertical edges" in:
+    val rectPoly = Polygon(Point2D(0.0, 0.0), Point2D(4.0, 0.0), Point2D(4.0, 2.0), Point2D(0.0, 2.0))
+    val axes = rectPoly.axes
+    // Horizontal edge (0,0) -> (4,0) has normal (0, 1) or (0, -1)
+    axes.exists(a => math.abs(a.x) < 1e-6 && math.abs(math.abs(a.y) - 1.0) < 1e-6) shouldBe true
+    // Vertical edge (4,0) -> (4,2) has normal (1, 0) or (-1, 0)
+    axes.exists(a => math.abs(math.abs(a.x) - 1.0) < 1e-6 && math.abs(a.y) < 1e-6) shouldBe true
+
+  it should "correctly detect collision and compute MTV between two axis-aligned polygons" in:
+    val polyA = Polygon(Point2D(0.0, 0.0), Point2D(4.0, 0.0), Point2D(4.0, 4.0), Point2D(0.0, 4.0))
+    val polyB = Polygon(Point2D(3.0, 1.0), Point2D(7.0, 1.0), Point2D(7.0, 5.0), Point2D(3.0, 5.0))
+    (polyA intersects polyB) shouldBe true
+    val mtv = polyA.penetratingVector(polyB)
+    mtv shouldBe defined
+    // Minimal overlap along X is (4 - 3) = 1.0, along Y is (4 - 1) = 3.0 -> MTV along X = (1.0, 0.0)
+    mtv.get.x shouldBe (1.0 +- 1e-4)
+    mtv.get.y shouldBe (0.0 +- 1e-4)
+
   extension (self: Triangle)
     def shouldEqual(other: Triangle): Unit =
       val tolerance = 0.0001

@@ -3,7 +3,7 @@ package com.unibo.scalaparty.infrastructure.network.dto
 import com.unibo.scalaparty.core.dto.EntityDto
 import com.unibo.scalaparty.core.ecs.EntityId
 import com.unibo.scalaparty.core.geometry.{Point2D, Shape}
-import com.unibo.scalaparty.core.model.{GameCommand, GameEvent, MatchOutcome, MatchState}
+import com.unibo.scalaparty.core.model.{GameEvent, MatchOutcome, MatchState}
 import com.unibo.scalaparty.infrastructure.model.ServerMessage
 import io.circe.*
 import io.circe.generic.semiauto.*
@@ -53,13 +53,10 @@ object ProtocolCodecs:
 
   // Inbound (Client -> Server)
 
-  /** Decoder for incoming player and game commands sent from the client. */
-  given Decoder[GameCommand] = deriveDecoder
+  /** Decoder for the inputs sent by the client, which carry no entity id: the server resolves it from the player. */
+  given Decoder[PlayerInput] = deriveDecoder
 
   // Outbound (Server -> Client)
-
-  /** Encoder for entity Data Transfer Objects representing world entities. */
-  given Encoder[GameCommand] = deriveEncoder
 
   /** Encoder for entity Data Transfer Objects representing world entities. */
   given Encoder[EntityDto] = deriveEncoder

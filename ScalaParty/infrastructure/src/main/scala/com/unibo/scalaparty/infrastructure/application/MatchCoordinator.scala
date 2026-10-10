@@ -2,7 +2,7 @@ package com.unibo.scalaparty.infrastructure.application
 
 import cats.effect.{Deferred, FiberIO, IO, Ref}
 import cats.syntax.all.*
-import com.unibo.scalaparty.core.ecs.{EntityId, GameWorld}
+import com.unibo.scalaparty.core.ecs.EntityId
 import com.unibo.scalaparty.core.engine.{GameConfig, GameEngine}
 import com.unibo.scalaparty.core.model.{GameSettings, MatchOutcome}
 import com.unibo.scalaparty.infrastructure.model.*
@@ -24,7 +24,7 @@ import com.unibo.scalaparty.infrastructure.ports.{AccessPort, MatchEventPublishe
  *  @param commands      Buffer the gameplay inputs are drained from.
  *  @param notifier      Tells a single player what is happening to it.
  *  @param publisher     Broadcasts the authoritative state to everybody in the match.
- *  @param settings      Shared rules and arena dimensions for the engine, including when a match ends.
+ *  @param settings      The map, entity parameters and rules every match is played with.
  *  @param running       The fiber ticking each match being played.
  */
 class MatchCoordinator(
@@ -116,7 +116,7 @@ class MatchCoordinator(
    *  @return an effect completing when the match finishes and cleanup concludes
    */
   private def play(activeMatch: ActiveMatch, mapping: PlayerEntityMapping): IO[Unit] =
-    val session = MatchSession(activeMatch.matchId, mapping, GameWorld(Map.empty))
+    val session = MatchSession(activeMatch.matchId, mapping)
     val engine = GameEngine(
       GameConfig(
         players = mapping.values.toList,
@@ -163,7 +163,7 @@ object MatchCoordinator:
    *  @param commands      the service buffering player inputs
    *  @param notifier      the port delivering personal messages to players
    *  @param publisher     the publisher broadcasting match states
-   *  @param settings      Shared rules and arena dimensions for the engine, including when a match ends
+   *  @param settings      the map, entity parameters and rules every match is played with
    *  @return an IO effect containing the instantiated MatchCoordinator
    */
   def apply(

@@ -4,7 +4,7 @@ import scala.concurrent.duration.*
 
 import cats.effect.{IO, Ref}
 import cats.effect.testing.scalatest.AsyncIOSpec
-import com.unibo.scalaparty.core.ecs.{EntityId, GameWorld}
+import com.unibo.scalaparty.core.ecs.EntityId
 import com.unibo.scalaparty.core.ecs.GameEvent.MatchEnded
 import com.unibo.scalaparty.core.engine.{GameEngine, TickResult}
 import com.unibo.scalaparty.core.geometry.{Point2D, Shape}
@@ -55,7 +55,7 @@ class MatchRunnerSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
 
     "execute ticks and publish state changes at each interval".in:
       val f = Fixture()
-      val session = MatchSession(f.matchId, Map.empty, GameWorld(Map.empty))
+      val session = MatchSession(f.matchId, Map.empty)
 
       for
         commandService <- GameCommandService()
@@ -65,7 +65,7 @@ class MatchRunnerSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
 
     "number the published states by their tick".in:
       val f = Fixture()
-      val session = MatchSession(f.matchId, Map.empty, GameWorld(Map.empty))
+      val session = MatchSession(f.matchId, Map.empty)
 
       for
         commandService <- GameCommandService()
@@ -75,7 +75,7 @@ class MatchRunnerSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
 
     "end on its own once the engine reports the end of the match".in:
       val f = Fixture()
-      val session = MatchSession(f.matchId, Map.empty, GameWorld(Map.empty))
+      val session = MatchSession(f.matchId, Map.empty)
 
       for
         commandService <- GameCommandService()
@@ -86,7 +86,7 @@ class MatchRunnerSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
 
     "complete with the outcome reported by the engine".in:
       val f = Fixture()
-      val session = MatchSession(f.matchId, Map.empty, GameWorld(Map.empty))
+      val session = MatchSession(f.matchId, Map.empty)
 
       for
         commandService <- GameCommandService()
@@ -96,7 +96,7 @@ class MatchRunnerSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
 
     "drain and process queued player commands during execution".in:
       val f = Fixture()
-      val session = MatchSession(f.matchId, Map(f.playerId -> f.entityId), GameWorld(Map.empty))
+      val session = MatchSession(f.matchId, Map(f.playerId -> f.entityId))
 
       for
         commandService <- GameCommandService()
@@ -110,7 +110,7 @@ class MatchRunnerSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
     "ignore unmapped player commands not present in the session mapping".in:
       val f = Fixture()
       val unregisteredPlayer = PlayerId.random()
-      val session = MatchSession(f.matchId, Map(f.playerId -> f.entityId), GameWorld(Map.empty))
+      val session = MatchSession(f.matchId, Map(f.playerId -> f.entityId))
 
       for
         commandService <- GameCommandService()
@@ -124,7 +124,7 @@ class MatchRunnerSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
       val staying = PlayerId.random()
       val stayingEntity = EntityId.generate()
       val session =
-        MatchSession(f.matchId, Map(f.playerId -> f.entityId, staying -> stayingEntity), GameWorld(Map.empty))
+        MatchSession(f.matchId, Map(f.playerId -> f.entityId, staying -> stayingEntity))
 
       for
         commandService <- GameCommandService()
@@ -135,7 +135,7 @@ class MatchRunnerSpec extends AsyncWordSpec with AsyncIOSpec with Matchers:
 
     "leave the spaceships of the players still in the match alone".in:
       val f = Fixture()
-      val session = MatchSession(f.matchId, Map(f.playerId -> f.entityId), GameWorld(Map.empty))
+      val session = MatchSession(f.matchId, Map(f.playerId -> f.entityId))
 
       for
         commandService <- GameCommandService()

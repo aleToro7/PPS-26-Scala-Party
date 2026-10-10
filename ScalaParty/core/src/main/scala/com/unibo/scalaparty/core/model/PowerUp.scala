@@ -28,7 +28,7 @@ object Effect:
   final case class Repair(amount: Double) extends Effect:
     require(amount > 0.0, "Repair amount must be positive")
 
-/** The stats of a spaceship that a power-up can modify. Each system applies the stats it is responsible for. */
+/** The stats of a spaceship that a power-up can modify. */
 enum Stat:
   /** The delay between two shots. */
   case ShootCooldown

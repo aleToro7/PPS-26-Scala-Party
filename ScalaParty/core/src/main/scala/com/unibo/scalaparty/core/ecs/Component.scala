@@ -1,6 +1,7 @@
 package com.unibo.scalaparty.core.ecs
 
 import com.unibo.scalaparty.core.geometry.{Point2D, Shape, Vector2D}
+import com.unibo.scalaparty.core.model.Weapon
 
 /** A marker trait for all components in the Entity-Component-System (ECS) architecture.
  *  A Component represents a specific aspect of an entity's state or behavior, such as position, movement, health, etc.
@@ -23,7 +24,8 @@ case class PositionComponent(position: Point2D) extends Component
 case class EntityTypeComponent(entityType: EntityType) extends Component
 
 /** Represents an entity's capacity to shoot.
- *  @param weapon specify the shot's values to apply
+ *
+ *  @param weapon the weapon the entity shoots with
  *  @param isShooting whether the entity is currently shooting
  *  @param cooldownTimer the current cooldown timer
  */
@@ -57,19 +59,6 @@ case class HealthComponent(current: Double, max: Double) extends Component:
   require(max > 0.0, "Max health must be positive")
   require(current >= 0.0 && current <= max, "Current health must be between zero and max health")
 
-  /** Applies the given damage, never letting the health drop below zero.
-   *  @param amount the non-negative damage to apply
-   *  @return a new component with the reduced health
-   */
-  def damaged(amount: Double): HealthComponent =
-    require(amount >= 0.0, "Damage cannot be negative")
-    copy(current = math.max(0.0, current - amount))
-
-  /** Whether the health has been completely depleted.
-   *  @return true if no health points are left, false otherwise
-   */
-  def isDepleted: Boolean = current == 0.0
-
 object HealthComponent:
   /** Creates a health component at full health.
    *  @param max the maximum health points
@@ -88,11 +77,3 @@ case class CollisionDamageComponent(damage: Double) extends Component:
  */
 case class MatchClockComponent(elapsed: Long = 0L) extends Component:
   require(elapsed >= 0L, "Elapsed time cannot be negative")
-
-  /** Lets the given time pass.
-   *  @param dt the non-negative time to let pass, in milliseconds
-   *  @return a new component whose elapsed time is increased by dt
-   */
-  def advanced(dt: Long): MatchClockComponent =
-    require(dt >= 0L, "Time cannot flow backwards")
-    copy(elapsed = elapsed + dt)

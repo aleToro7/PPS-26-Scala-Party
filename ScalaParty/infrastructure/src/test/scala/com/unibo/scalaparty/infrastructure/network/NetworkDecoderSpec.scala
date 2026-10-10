@@ -2,7 +2,6 @@ package com.unibo.scalaparty.infrastructure.network
 
 import com.unibo.scalaparty.infrastructure.network.dto.PlayerInput
 import com.unibo.scalaparty.infrastructure.network.dto.ProtocolCodecs.given
-import io.circe.generic.auto.*
 import io.circe.parser.decode
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
