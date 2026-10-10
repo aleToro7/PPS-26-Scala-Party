@@ -10,11 +10,8 @@ Il gioco è fortemente ispirato al titolo _Astro Party_ di cui ne riprende piena
 Il sistema deve rispettare i seguenti vincoli di business:
 
 - I giocatori competono all'interno di un'arena bidimensionale, controllando ciascuno una navicella spaziale in moto costante, di cui possono modificare la rotazione e sparare proiettili per colpire gli avversari.
-
 - Il gioco deve essere fruibile direttamente tramite un comune browser web che permetta di accedere ad una partita e giocare con altri utenti.
-
 - Nessuna registrazione deve essere richiesta, gli utenti si connetteranno e attenderanno che la prima lobby disponibile li inserisca automaticamente in una partita.
-    
 - Il sistema deve garantire la sincronizzazione in tempo reale dello stato della partita tra tutti i client connessi durante lo svolgimento del match.
 
 ## Modello del dominio
@@ -38,7 +35,7 @@ Gli elementi concettuali e le entità che compongono il dominio di gioco sono i 
 - **Arena**: Spazio di gioco limitato in cui si sfidano le navicelle spaziali.
 
 ```mermaid
-classDiagram 
+classDiagram
 
     class Match {
         + join(p: Player) Unit
@@ -70,6 +67,7 @@ classDiagram
 ## Requisiti funzionali
 
 In questa sezione vengono riportate le interazioni consentite agli utenti e i comportamenti che il sistema deve garantire per soddisfare le regole di gioco di **Scala Party**. Sono riportati, per ogni sezione, due tipi di requisiti:
+
 - Requisiti obbligatori: condizioni da soddisfare necessariamente per garantire l'uscita del videogioco.
 - Requisiti opzionali: obiettivi previsti per release future, non strettamente necessari nella prima fase di rilascio.
 
@@ -79,11 +77,11 @@ I requisiti utente descrivono tutte le possibili interazione dell'utente con il 
 
 ##### Requisiti Utente Obbligatori
 
-- **Accesso alla Piattaforma (RFU1):** L'utente deve potersi connettere al sistema di gioco tramite un comune browser web.
-- **Partecipazione alla Partita (RFU2):** L'utente deve potersi unire a una sessione di gioco online, condividendo la sessione con un numero massimo di quattro partecipanti complessivi.
+- **Accesso alla Piattaforma (RFU1):** L'utente deve potersi connettere al sistema senza alcuna autenticazione tramite browser web, venendo accolto dal sistema di ingresso che ne gestisce l'accesso immediato o l'inserimento in una coda di attesa qualora le lobby attive o le stanze siano sature.
+- **Partecipazione alla Partita (RFU2):** L'utente deve potersi unire a delle sessioni di gioco online, composte da un numero prefissato di partecipanti per match (fino a un massimo di quattro).
 - **Controllo della Navicella (RFU3):** Durante la partita, l'utente deve poter ruotare la propria navicella spaziale in tempo reale, modificandone la direzione.
 - **Permanenza nell'Arena (RFU4):** L'utente deve avere pieno accesso alla visione dell'arena e di tutti gli elementi che ne fanno parte per l'intera durata della partita.
-- **Sparo (RFU5):** L'utente deve poter azionare il comando di sparo per rilasciare un proiettile nella direzione corrente della navicella da lui controllata.
+- **Sparo (RFU5):** L'utente deve poter azionare il comando di sparo per rilasciare un proiettile nella direzione corrente della navicella da lui controllata. Il comando deve essere soggetto a un vincolo temporale di ricarica (cooldown) tra colpi consecutivi.
 
 ##### Requisiti Utente Opzionali
 
@@ -96,12 +94,15 @@ I requisiti di sistema descrivono le risposte automatiche, le regole di simulazi
 
 ##### Requisiti Obbligatori
 
-- **Movimento Continuo (RFS1):** Il sistema deve garantire che le navicelle si muovano costantemente nello spazio di gioco a una velocità prestabilita, impedendo che in qualsiasi momento possano fermarsi.
+- **Movimento Continuo (RFS1):** Il sistema deve garantire che le navicelle si muovano costantemente inmoto rettilineo uniforme nello spazio di gioco a velocità prestabilita, impedendo che in qualsiasi momento possano fermarsi (a meno di collisioni che ne impediscano l'avanzamento).
 - **Gestione Multi-partita (RFS2):** Il sistema deve essere in grado di ospitare, isolare e gestire simultaneamente più sessioni di gioco distinte e indipendenti tra loro.
-- **Gestione dei Confini e degli Ostacoli (RFS3):** Il sistema deve impedire alle navicelle e ai proiettili di superare i confini dell'arena o di attraversare i muri presenti al suo interno.
-- **Rilevamento Collisioni e Danni (RFS4):** Il sistema deve rilevare gli impatti tra navicelle e proiettili o tra navicelle stesse, applicando la conseguente riduzione dei punti vita alle entità coinvolte o colpite.
-- **Eliminazione Navicelle (RFS5):** Il sistema deve rimuovere permanentemente dall'arena le navicelle i cui punti vita si azzerano, decretando l'eliminazione del giocatore corrispondente.
-- **Condizione di Vittoria (RFS6):** Il sistema deve monitorare continuamente lo stato della partita e dichiarare vincitore l'ultimo giocatore la cui navicella rimane in vita.
+- **Gestione dei Confini e degli Ostacoli (RFS3):** Il sistema deve confinare il moto delle entità entro il perimetro dell'arena e distruggere proiettili che impattano ostacoli o bordi, impedendo la compenetrazione dei muri.
+- **Rilevamento Collisioni e Danni (RFS4):** Il sistema deve rilevare gli impatti tra tutte le entità presenti nell'arena, applicando, ove necessario, la conseguente riduzione degli eventuali punti vita alle entità coinvolte o colpite.
+- **Eliminazione Navicelle (RFS5):** Il sistema deve rimuovere istantaneamente dall'arena le entità la cui salute si azzera o i cui giocatori interrompono la connessione/abbandonano il match.
+- **Condizione di Vittoria (RFS6):** Il sistema deve monitorare costantemente le condizioni di arresto della simulazione e decretare la fine del match al verificarsi di uno dei seguenti esiti:
+  - sopravvivenza di un unico vincitore
+  - eliminazione simultanea di tutti i contendenti
+  - esaurimento del tempo massimo limite stabilito e configurabile per la partita
 - **Sincronizzazione in Tempo Reale (RFS7):** Il sistema deve aggiornare e sincronizzare lo stato della partita in tempo reale tra tutti i giocatori connessi, garantendo coerenza visiva e interattiva durante lo svolgimento del match.
 
 ##### Requisiti Opzionali
@@ -112,8 +113,16 @@ I requisiti di sistema descrivono le risposte automatiche, le regole di simulazi
 
 I requisiti non funzionali definiscono le esigenze qualitative, le prestazioni e i vincoli operativi che il sistema deve soddisfare, focalizzandosi sul _come_ il software si comporta piuttosto che sulle specifiche funzioni di gioco che deve implementare.
 
-- **Prestazioni e Scalabilità (RNF1):** Il sistema deve essere in grado di gestire un numero elevato di connessioni simultanee, garantendo tempi di risposta rapidi e una latenza minima durante le interazioni di gioco.
-- **Pulizia del Codice e Manutenibilità (RNF2):** Il codice sorgente del sistema deve essere scritto in modo chiaro, modulare e documentato, facilitando la manutenzione e la correzione di eventuali bug.
-- **Sicurezza e Protezione dei Dati (RNF3):** Il sistema non deve memorizzare alcun dato che possa identificare l'utente, garantendo la privacy e la sicurezza delle informazioni durante l'interazione con il gioco.
-- **Estensibilità e Modularità (RNF4):** Il sistema deve essere progettato in modo modulare, consentendo l'aggiunta di nuove funzionalità con minime modifiche al codice esistente.
-- **Testabilità e Verificabilità (RNF5):** Il sistema deve essere progettato per facilitare la scrittura di test automatici, consentendo la verifica del corretto funzionamento delle funzionalità implementate.
+- **Prestazioni e Scalabilità (RNF1):** Il sistema deve garantire una frequenza fissa di avanzamento della simulazione di 60 tick al secondo (~16ms per tick)
+- **Pulizia del Codice e Manutenibilità (RNF2):** Il codice sorgente del sistema deve essere scritto in modo chiaro, modulare e documentato, facilitando la manutenzione ed enfatizzando l'uso di pattern di progettazione e best practice consolidate.
+- **Sicurezza e Protezione dei Dati (RNF3):** Il sistema non deve memorizzare né richiedere alcun dato identificativo personale o credenziale su supporti persistenti. Tutte le sessioni di gioco e le connessioni devono essere puramente volatili in memoria (zero data retention).
+- **Estensibilità e Modularità (RNF4):** Il sistema deve essere progettato in modo altamente modulare, consentendo l'aggiunta di nuove funzionalità con minime modifiche al codice esistente.
+- **Testabilità e Verificabilità (RNF5):** Il sistema deve essere progettato per facilitare la scrittura di test automatici, consentendo la verifica del corretto funzionamento delle funzionalità implementate. In particolare la copertura dei test unitari sulle linee di codice deve essere superiore al 90% del codice sorgente.
+- **Tolleranza ai guasti di connessione (RNF6):** Il sistema deve isolare il ciclo di vita di ciascuna stanza di gioco: il rallentamento, l'errore o la disconnessione repentina di un client non devono propagare instabilità né degradare le prestazioni delle altre sessioni attive sul server.
+
+### Requisiti di implementazione
+
+- **Linguaggio e Compilatore (RI1):** Il sistema deve essere implementato interamente in **Scala 3** (target v3.3.x LTS)
+- **Separazione dei moduli (RI2):** Il sistema deve essere strutturato in moduli separati per la logica di gioco e la gestione del server.
+- **Assenza di Dipendenze nel modulo di logica (RI3):** Il modulo di logica deve essere quanto più possibile indipendente da librerie esterne.
+- **Struttura del progetto (RI4):** Il progetto deve essere gestito tramite **sbt** e seguire una struttura multi-progetto esplicita, separando le configurazioni di dipendenze.
