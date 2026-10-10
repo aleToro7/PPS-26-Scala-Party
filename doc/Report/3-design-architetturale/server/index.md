@@ -78,67 +78,32 @@ I dettagli implementativi dei singoli componenti sono descritti nella sezione [[
 ### Diagramma dei componenti
 
 ```mermaid
-flowchart LR
-    Client["Client web<br/>(index.html, canvas)"]
+flowchart TB
+    Client["Client web"]
 
-    subgraph infrastructure["Modulo infrastructure (server)"]
-        direction LR
-
-        subgraph adapters_in["Adapter in ingresso"]
-            WSS["WebSocketServer"]
-        end
-
-        subgraph ports_in["Porte in ingresso"]
-            AP(["AccessPort"])
-            CP(["CommandPort"])
-        end
-
-        subgraph application["Application"]
-            MC["MatchCoordinator"]
-            QLM["QueuedLobbyManager"]
-            MR["MatchRunner<br/>(una fiber per partita)"]
-            GCS["GameCommandService"]
-        end
-
-        subgraph ports_out["Porte in uscita"]
-            MEP(["MatchEventPublisher"])
-            PN(["PlayerNotifier"])
-        end
-
-        subgraph adapters_out["Adapter in uscita"]
-            WSB["WebSocketBroadcaster"]
-            WSN["WebSocketNotifier"]
-        end
-
-        subgraph network_support["Supporto di rete"]
-            REG[("ConnectionRegistry")]
-        end
+    subgraph server["Server (infrastructure)"]
+        direction TB
+        WSS["WebSocketServer"]
+        IN(["AccessPort / CommandPort"])
+        APP["MatchCoordinator<br/>QueuedLobbyManager<br/>GameCommandService"]
+        MR["MatchRunner"]
+        OUT(["MatchEventPublisher / PlayerNotifier"])
+        ADP["WebSocketBroadcaster<br/>WebSocketNotifier"]
     end
 
-    subgraph core["Modulo core"]
-        GE["GameEngine<br/>InputGateway + pipeline ECS"]
-    end
+    GE["GameEngine (core)"]
 
-    Client -- "PlayerInput (JSON)" --> WSS
-    WSS --> AP
-    WSS --> CP
-    WSS --> REG
-    AP -. implementata da .-> MC
-    CP -. implementata da .-> GCS
-    MC --> QLM
-    MC -- avvia --> MR
-    MR -- drainCommands --> GCS
+    Client -- "input JSON" --> WSS
+    WSS --> IN --> APP
+    APP -- "una fiber per partita" --> MR
     MR -- update --> GE
-    MC -. crea per ogni partita .-> GE
-    MR --> MEP
-    MC --> PN
-    MEP -. implementata da .-> WSB
-    PN -. implementata da .-> WSN
-    MC --> REG
-    WSB -- accoda i frame --> REG
-    WSN -- accoda i frame --> REG
-    WSS -- "MatchState / ServerMessage (JSON)" --> Client
+    APP --> OUT
+    MR --> OUT
+    OUT -. implementate da .-> ADP
+    ADP -- "stato e notifiche JSON" --> Client
 ```
+
+I nodi arrotondati sono le porte; le relazioni di dettaglio (incluso il `ConnectionRegistry`) sono riportate nel diagramma delle classi.
 
 ### Diagramma delle classi del server
 
@@ -233,65 +198,40 @@ classDiagram
 ### Ciclo di vita di una partita
 
 Il seguente diagramma di sequenza riassume l'interazione tra i componenti, dalla connessione dei giocatori alla conclusione della partita.
+Per semplicità i messaggi verso il client sono mostrati come diretti, anche se passano per gli adapter in uscita, e gli input sono raccolti dal `GameCommandService`, da cui il runner li preleva a ogni tick.
 
 ```mermaid
 sequenceDiagram
-    autonumber
     participant C as Client
     participant WS as WebSocketServer
-    participant R as ConnectionRegistry
     participant MC as MatchCoordinator
     participant L as QueuedLobbyManager
-    participant MR as MatchRunner (fiber)
-    participant CS as GameCommandService
+    participant MR as MatchRunner
     participant E as GameEngine (core)
-    participant OUT as Broadcaster / Notifier
 
-    C->>WS: apertura WebSocket /scalaparty/ws
-    WS->>R: register(playerId, queue)
-    WS->>MC: joinLobby(playerId)
-    MC->>L: join(playerId)
-    alt giocatori sufficienti e stanza libera
-        L-->>MC: Playing(activeMatch)
-        MC->>R: assignToMatch(playerId, matchId)
-        MC->>OUT: MatchStarted(players, you) a ogni giocatore
-        MC->>MR: start (nuova fiber)
-    else giocatori insufficienti o nessuna stanza libera
-        L-->>MC: Queued(playersAhead)
-        MC->>OUT: Queued(playersAhead)
+    C->>WS: connessione WebSocket
+    WS->>MC: joinLobby
+    MC->>L: join
+    alt stanza libera e giocatori sufficienti
+        MC->>MR: avvio su una nuova fiber
+        MC-->>C: MatchStarted
+    else stanze occupate
+        MC-->>C: Queued(posizione)
     else coda piena
-        L-->>MC: Rejected
-        MC->>OUT: QueueFull
-        WS-->>C: Close 1013
+        MC-->>C: QueueFull e chiusura
     end
 
-    par Input del client (asincrono)
-        loop a ogni comando del giocatore
-            C->>WS: {"Rotate": ...} / {"Shoot": {}}
-            WS->>R: matchOf(playerId)
-            WS->>CS: handleCommand(matchId, playerId, input)
-        end
-    and Tick della partita
-        loop ogni 16 ms
-            MR->>CS: drainCommands(matchId)
-            MR->>E: update(commands, dt)
-            E-->>MR: TickResult(entities, events)
-            MR->>OUT: broadcastState(MatchState)
-            OUT->>R: accoda il frame per ogni giocatore
-            WS-->>C: MatchState (JSON)
-        end
+    loop ogni 16 ms
+        C->>WS: input
+        MR->>E: update(comandi, dt)
+        MR-->>C: MatchState
     end
 
-    E-->>MR: GameEvent.MatchEnded(outcome)
+    E-->>MR: MatchEnded(outcome)
     MR-->>MC: outcome
-    MC->>R: clearMatch(playerId)
-    MC->>OUT: MatchEnded(outcome) a ogni giocatore
-    MC->>L: finishMatch(matchId)
-    L-->>MC: eventuale partita successiva
-    MC->>OUT: Queued(posizione) ai giocatori in attesa
-    opt è iniziata una nuova partita
-        MC->>R: assignToMatch(playerId, matchId)
-        MC->>OUT: MatchStarted(players, you) a ogni giocatore
-        MC->>MR: start (nuovo runner su una nuova fiber)
+    MC-->>C: MatchEnded(outcome)
+    MC->>L: finishMatch
+    opt giocatori in attesa
+        MC->>MR: avvio della partita successiva
     end
 ```
