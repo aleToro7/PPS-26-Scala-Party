@@ -101,3 +101,20 @@ class CircleSpec extends AnyFlatSpec with Matchers:
     val expectedY = -(side / cornerDist) * overlapDepth
     result.get.x shouldBe (expectedX +- tolerance)
     result.get.y shouldBe (expectedY +- tolerance)
+
+  it should "calculate a non-zero MTV for concentric overlapping circles" in:
+    val a = Circle(3.0, Point2D(0.0, 0.0))
+    val b = Circle(2.0, Point2D(0.0, 0.0))
+    val mtv = a.penetratingVector(b)
+    mtv shouldBe defined
+    mtv.get.module shouldBe (5.0 +- tolerance)
+
+  it should "calculate a non-zero MTV when the circle center is completely inside an AABB" in:
+    val circle = Circle(1.0, Point2D(0.5, 0.0))
+    val square = AABB(4.0, 4.0, Point2D(0.0, 0.0))
+    // Square extends from -2 to +2 on X and Y.
+    // Circle center is at (0.5, 0.0). Closest face is right face at X = 2.0 (distance 1.5 vs left distance 2.5).
+    // Circle should be pushed towards the right with overlap = 1.5 + 1.0 = 2.5
+    val mtv = circle.penetratingVector(square)
+    mtv shouldBe defined
+    mtv.get shouldBe Vector2D(-2.5, 0.0)
