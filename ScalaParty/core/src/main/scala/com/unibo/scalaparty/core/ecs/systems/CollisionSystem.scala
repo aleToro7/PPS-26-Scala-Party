@@ -47,10 +47,10 @@ object CollisionSystem extends WorldSystem:
       movingEntities: Set[EntityId]
   ): GameWorld =
     val (actor, target, mtv) = collision
-    val isTargetMoving = movingEntities.contains(target)
+    val targetIsMoving = movingEntities.contains(target)
     val slop = 0.001
     val bufferedMtv = mtv + (mtv.normalized * slop) // This small buffer prevents jittering when entities are in contact
-    if isTargetMoving then
+    if targetIsMoving then
       // Dynamic vs Dynamic collision: push actor in negative direction (-50%) and target in positive direction (+50%)
       val halfMtv = bufferedMtv * 0.5
       val worldAfterActor = moveEntity(world, actor, -halfMtv)
