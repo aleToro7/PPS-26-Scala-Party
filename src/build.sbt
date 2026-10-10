@@ -2,7 +2,7 @@ scalaVersion := "3.3.3"
 organization := "com.unibo.scalaparty"
 
 // Definiamo la versione a livello di Build globale
-ThisBuild / version := "0.4.0"
+ThisBuild / version := "0.4.1"
 ThisBuild / scalaVersion := "3.3.3"
 
 lazy val commonSettings = Seq(
@@ -25,6 +25,7 @@ lazy val infrastructure = (project in file("infrastructure"))
   .settings(commonSettings *)
   .settings(
     name := "scalaparty-infrastructure",
+    Compile / run / mainClass := Some("com.unibo.scalaparty.infrastructure.ServerApp"),
     libraryDependencies ++= Seq(
       "org.http4s" %% "http4s-ember-server" % "0.23.23",
       "org.http4s" %% "http4s-dsl" % "0.23.23",
@@ -51,8 +52,10 @@ lazy val infrastructure = (project in file("infrastructure"))
 // --- ROOT PROJECT ---
 lazy val root = (project in file("."))
   .aggregate(core, infrastructure)
+  .dependsOn(infrastructure)
   .settings(commonSettings *)
   .settings(
     name := "scalaparty",
+    Compile / run / mainClass := Some("com.unibo.scalaparty.infrastructure.ServerApp"),
     assembly / skip := true
   )
