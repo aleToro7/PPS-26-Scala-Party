@@ -74,12 +74,7 @@ object CollisionSystem extends WorldSystem:
       shape                  <- components.collectFirstOfClass[ShapeComponent].map(_.shape)
       PositionComponent(pos) <- components.collectFirstOfClass[PositionComponent]
       rotation = components.collectFirstOfClass[RotationComponent].map(_.angle).getOrElse(0.0)
-      rotatedShape = rotateShape(shape, rotation)
+      rotatedShape = shape.rotate(rotation)
     yield (entityId, rotatedShape moveTo pos)
-
-  private def rotateShape(shape: Shape, rotation: Double): Shape =
-    shape match
-      case polygon: Polygon => polygon.rotate(rotation)
-      case _ => shape
 
 private type EntityWithShape = (EntityId, Shape)
