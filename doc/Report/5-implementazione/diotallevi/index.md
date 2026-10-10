@@ -1,6 +1,6 @@
 # Implementazione: Federico Diotallevi
 
-Questa sezione illustra i contributi individuali sviluppati da **Federico Diotallevi** all'interno del progetto **ScalaParty**, approfondendo le scelte implementative e l'applicazione dei meccanismi avanzati e idiomatici offerti da **Scala 3**.
+Questa sezione illustra i contributi individuali sviluppati da Federico Diotallevi all'interno del progetto, approfondendo le scelte implementative e l'applicazione dei meccanismi avanzati e idiomatici offerti da Scala 3.
 
 ## Panoramica dei Contributi Personali
 
@@ -8,7 +8,7 @@ Durante i quattro sprint del progetto, il lavoro svolto si è concentrato preval
 
 - Il motore matematico e geometrico 2D (`com.unibo.scalaparty.core.geometry`).
 - L'algoritmo di rilevamento e risoluzione delle collisioni (`CollisionSystem`).
-- Il design e l'implementazione del **Map DSL** (`com.unibo.scalaparty.core.model.map`).
+- Il design e l'implementazione del DSL per le mappe (`com.unibo.scalaparty.core.model.map`).
 - L'architettura a combinatori della pipeline di simulazione (`WorldSystem`, `GameEngine`).
 - La cinematica di movimento e confinamento nell'arena (`MovementSystem`, `ArenaSystem`).
 
@@ -19,9 +19,9 @@ Inoltre, in collaborazione con Torelli, ho contribuito alla realizzazione di:
 
 ## Type-Level Programming nel Map DSL
 
-Uno dei contributi più caratterizzanti dello sviluppo è stata la realizzazione del **DSL per le mappe di gioco**, progettato per consentire una definizione grafica e leggibile delle arene garantendo la correttezza dimensionale a **tempo di compilazione**.
+Uno dei contributi più interessanti dello sviluppo è stata la realizzazione del DSL per le mappe di gioco, progettato per consentire una definizione grafica e leggibile delle arene garantendo la correttezza dimensionale **a tempo di compilazione**.
 
-In una mappa basata su griglia di tessere (muri, spawn, spazi vuoti), definire righe di lunghezze disuguali comporterebbe anomalie geometriche durante la partita. Un controllo tradizionale a runtime tramite eccezioni manifesterebbe l'errore solo all'avvio del match. L'obiettivo è stato quindi impedire a compile-time la creazione di mappe non rettangolari.
+In una mappa basata su griglia di tile (muri, spawn, spazi vuoti), definire righe di lunghezze disuguali comporterebbe la creazione di mappe non rettangolari, non permesse dai requisiti e di difficile gestione. Un controllo tradizionale a runtime tramite eccezioni manifesterebbe l'errore solo all'avvio del match. L'obiettivo è stato quindi impedire a compile-time la creazione di mappe non rettangolari.
 
 ### Soluzione Adottata
 
@@ -79,7 +79,7 @@ GameMap.fromGrid(
 )
 ```
 
-Inoltre il parametro contestuale `TileSize` permette di definire la dimensione di ciascun tile in maniera totalmente trasparente e soltanto al bisogno, in assenza di un valore given esplicito, il sistema utilizza la dimensione consigliata come default.
+Inoltre il parametro contestuale `TileSize` permette di definire la dimensione di ciascun tile in maniera totalmente trasparente e soltanto al bisogno. In assenza di un valore given, il sistema utilizza la dimensione consigliata come default per ogni tile.
 
 ## Contextual Abstractions e Geometria 2D
 
@@ -91,7 +91,7 @@ trait Projectable:
   def projectOnto(axis: Vector2D): (Double, Double)
 ```
 
-Sfruttando le **Contextual Abstractions** di Scala 3, il compilatore converte automaticamente e trasparentemente le forme geometriche in entità proiettabili:
+Sfruttando le Contextual Abstractions, il compilatore converte automaticamente e trasparentemente le forme geometriche in entità proiettabili:
 
 ```scala
 given Conversion[Polygon, Projectable] with
@@ -148,7 +148,7 @@ Ciò permette di rendere le tuple facilmente confrontabili senza dover introduur
 
 ## Uso della for-comprehension
 
-In tutto il modulo è stato ampiamente utilizzato il costrutto `for-comprehension` per la gestione dei valori opzionali e delle collezioni, migliorando la leggibilità e riducendo la complessità del codice.
+In tutto il modulo è stato ampiamente utilizzato il costrutto for-comprehension per la gestione dei valori opzionali e delle collezioni, migliorando la leggibilità e riducendo la complessità del codice.
 Un esempio semplice ed elegante è la rilevazione delle collisioni tra entità all'interno del `CollisionSystem`:
 
 ```scala
